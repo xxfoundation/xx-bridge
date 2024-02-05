@@ -1,0 +1,14 @@
+# [build]
+# functions = "netlify-functions"
+# command = "vite build"
+
+[[redirects]]
+# Redirect all other routes to index.html
+from = "/*"
+to = "/index.html"
+status = 200
+
+# Environment variables for all branches
+[build.environment]
+NODE_OPTIONS = "--max_old_space_size=4096"
+WALLET_CONNECT_PROJECT_ID = '01c18f1ef60e3cadd621865e0a14de04'
