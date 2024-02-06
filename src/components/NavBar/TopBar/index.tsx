@@ -1,10 +1,12 @@
 import React from 'react'
-import { AppBar, Toolbar, IconButton, Alert } from '@mui/material'
+import { AppBar, Toolbar, IconButton, Stack } from '@mui/material'
 import { Menu as MenuIcon } from '@mui/icons-material'
 // Files
 import { useNavBarContext } from '..'
 import getStyles from '../styles'
 import Web3Wallet from './Web3Wallet'
+import ButtonLink from '@/components/Custom/ButtonLink'
+import StyledButton from '@/components/Custom/StyledButton'
 
 const TopBar: React.FC = () => {
   const { footerHeight, topBarHeight, drawerWidth, handleDrawerToggle } =
@@ -21,20 +23,25 @@ const TopBar: React.FC = () => {
         >
           <MenuIcon />
         </IconButton>
-        <Alert
-          severity="info"
-          variant="filled"
-          sx={{
-            backgroundColor: 'background.paper',
-            color: 'primary.main',
-            paddingLeft: '10px',
-            svg: {
-              paddingTop: '3px'
-            }
-          }}
-        >
-          <b>Alpha version</b>
-        </Alert>
+        <Stack direction="row" spacing={7}>
+          <ButtonLink
+            text="xx network"
+            onClick={() => window.open('https://xx.network/', '_blank')}
+          />
+          <ButtonLink
+            text="xx hub"
+            onClick={() => window.open('https://hub.xx.network/', '_blank')}
+          />
+          <ButtonLink
+            text="xx wallet"
+            onClick={() => window.open('https://wallet.xx.network/', '_blank')}
+          />
+          <StyledButton
+            onClick={() => window.open('https://echoexx.tech/', '_blank')}
+          >
+            Get xx Messenger
+          </StyledButton>
+        </Stack>
         <Web3Wallet />
       </Toolbar>
     </AppBar>

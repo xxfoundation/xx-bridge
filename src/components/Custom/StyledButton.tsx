@@ -7,8 +7,14 @@ interface StyledButtonProps extends ButtonProps {
 
 const StyledButton: React.FC<StyledButtonProps> = props => {
   const { children, ...rest } = props
+  const { sx } = rest
   return (
-    <Button {...rest} variant="contained" color="primary">
+    <Button
+      {...rest}
+      variant="contained"
+      color="primary"
+      sx={{ borderRadius: '22px', fontWeight: 'bold', ...sx }}
+    >
       {children}
     </Button>
   )

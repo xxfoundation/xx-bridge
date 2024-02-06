@@ -5,24 +5,24 @@ import {
 } from '@mui/material'
 
 const primaryColors: PaletteColorOptions = {
-  main: '#cbb26b',
+  main: '#08CCD6',
   light: '#dccB9c',
   dark: '#9a7a4c',
-  contrastText: '#000000' // or '#333333'
+  contrastText: '#FFFFFF' // or '#333333'
 }
 
 const secondaryColors: PaletteColorOptions = {
   main: '#746129', // Main secondary color - darker, warm tone
   light: '#bd9f46', // Lighter shade of the secondary color
   dark: '#29220e', // Darker shade of the secondary color
-  contrastText: '#FFFFFF' // White contrast text for readability
+  contrastText: '#000' // White contrast text for readability
 }
 
 const backgroundColors = {
   default: '#fff',
-  paper: '#242424',
-  dark: '#000',
-  grey: '#313131'
+  paper: '#141416',
+  dark: '#1D1C20',
+  grey: '#2D2C30'
 }
 
 const theme1 = createTheme({
@@ -54,7 +54,8 @@ const theme1 = createTheme({
       grey: backgroundColors.grey
     },
     error: {
-      main: '#ff2f42'
+      main: '#4F1A25',
+      light: '#DA2648'
     },
     info: {
       main: '#2196f3'
@@ -63,8 +64,8 @@ const theme1 = createTheme({
       main: '#4caf50'
     },
     text: {
-      primary: '#fff',
-      secondary: '#555555'
+      primary: '#A0A0A2',
+      secondary: '#68676B'
     }
   },
   typography: {
@@ -117,7 +118,7 @@ const theme1 = createTheme({
     MuiDivider: {
       styleOverrides: {
         root: {
-          backgroundColor: backgroundColors.paper,
+          backgroundColor: backgroundColors.grey,
           height: '0.2px',
           margin: '15px 0'
         }
