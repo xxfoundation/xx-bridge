@@ -8,6 +8,7 @@ interface ButtonLinkProps extends StackProps {
   tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right'
   onClick: () => void
   noUnderline?: boolean
+  secondaryColor?: boolean
 }
 
 const ButtonLink: React.FC<ButtonLinkProps> = ({
@@ -15,18 +16,20 @@ const ButtonLink: React.FC<ButtonLinkProps> = ({
   tooltipText = '',
   tooltipPlacement = 'right',
   onClick,
-  noUnderline = false
+  noUnderline = false,
+  secondaryColor = false
 }) => (
   <Stack direction="row" spacing={1} alignItems="center">
     <Typography
-      variant="body1"
+      variant="body2"
       sx={{
         width: 'fit-content',
         fontWeight: 'bold',
         cursor: 'pointer',
         textDecorationLine: noUnderline ? 'none' : 'underline',
         '&&:hover': {
-          color: 'primary.main'
+          color: secondaryColor ? 'primary.light' : 'primary.main',
+          textDecorationLine: 'underline'
         }
       }}
       onClick={onClick}

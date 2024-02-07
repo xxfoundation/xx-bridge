@@ -6,7 +6,7 @@ import React, {
   useState
 } from 'react'
 import { Outlet } from 'react-router-dom'
-import { Box, Stack } from '@mui/material'
+import { Box, Stack, useMediaQuery } from '@mui/material'
 
 // Files
 import { useAccount } from 'wagmi'
@@ -14,6 +14,8 @@ import TopBar from './TopBar'
 import LeftDrawer from './LeftDrawer'
 import getStyles from './styles'
 import useLocalStorage from '@/hooks/useLocalStorage'
+import Footer from '../Footer'
+import theme from '@/theme'
 
 const topBarHeight = '90px'
 const drawerWidth = '240px'
@@ -42,6 +44,7 @@ const NavBar: React.FC = () => {
   const [loggedInAddress] = useLocalStorage<string>('loggedInAddress')
   const style = getStyles({ topBarHeight, drawerWidth, footerHeight })
   const [mobileOpen, setMobileOpen] = useState(false)
+  const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -75,6 +78,7 @@ const NavBar: React.FC = () => {
           <Box sx={style.outlet}>
             <Outlet />
           </Box>
+          {!isMobile && <Footer />}
         </Stack>
       </Stack>
     </NavBarContext.Provider>

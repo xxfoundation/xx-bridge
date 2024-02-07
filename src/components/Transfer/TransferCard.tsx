@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { ArrowDownward, ArrowUpward, ShowChart } from '@mui/icons-material'
 import { Divider, IconButton, Stack, Typography } from '@mui/material'
 import StyledButton from '../Custom/StyledButton'
-import { Currency } from '@/utils'
+import { ConversionRates, Currency } from '@/utils'
 import NetworkInfo from './NetworkInfo'
 
 interface TransferCardProps {
@@ -16,23 +16,33 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
   const [output, setOutput] = useState<number>(0)
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
 
+  // TODO: rates to be pulled
+  const conversionRates: ConversionRates = {
+    XX: {
+      ETH: 0.0001
+    },
+    ETH: {
+      XX: 0.0002
+    }
+  }
+
   // use effect that will update the output value when the input value changes
   useEffect(() => {
     if (fromTo) {
-      setOutput(input * from.conversionRate)
+      setOutput(input * conversionRates[from.code][to.code])
     } else {
-      setOutput(input / to.conversionRate)
+      setOutput(input / conversionRates[to.code][from.code])
     }
   }, [input])
 
   // use effect that will update the input value when the output value changes
   useEffect(() => {
     if (fromTo) {
-      setInput(output / from.conversionRate)
+      setInput(output / conversionRates[from.code][to.code])
     } else {
-      setInput(output * to.conversionRate)
+      setInput(output * conversionRates[to.code][from.code])
     }
-  }, [output])
+  }, [output, fromTo])
 
   // use effect that will update the allowTransfer value when the input value changes
   useEffect(() => {
@@ -41,7 +51,7 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
     } else if (input > 0 && input <= to.balance && !fromTo) {
       setAllowTransfer(true)
     } else setAllowTransfer(false)
-  }, [input, output, fromTo])
+  }, [input, fromTo])
 
   return (
     <Stack
@@ -67,7 +77,10 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
           <Typography
             sx={{ fontSize: '13px', color: 'primary.main', fontWeight: 'bold' }}
           >
-            1 {from.code} = {fromTo ? from.conversionRate : to.conversionRate}{' '}
+            1 {from.code} ={' '}
+            {fromTo
+              ? conversionRates[from.code][to.code]
+              : conversionRates[to.code][from.code]}{' '}
             {to.code}
           </Typography>
         </Stack>
@@ -136,7 +149,7 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
           </Typography>
         </Stack>
       </Stack>
-      <Stack direction="row" padding={4} justifyContent="center">
+      <Stack direction="row" padding={2} justifyContent="center">
         <StyledButton fullWidth disabled={!allowTransfer}>
           Transfer
         </StyledButton>

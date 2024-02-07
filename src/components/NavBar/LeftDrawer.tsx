@@ -18,7 +18,8 @@ import theme from '../../theme'
 import logo from '../../assets/logo/png/xxbridge.png'
 import { useNavBarContext } from '.'
 import getStyles from './styles'
-import Copyright from '../Footer/Copyright'
+import FooterMobile from '../Footer/FooterMobile'
+import echoexxLogo from '@/assets/logo/png/normal.png'
 
 interface ListMenuElementsProps {
   menuList: string[]
@@ -47,12 +48,16 @@ const ListMenuElements: React.FC<ListMenuElementsProps> = ({
             >
               {menuIcons[index]}
             </ListItemIcon>
-            <ListItemText
-              primary={text}
-              sx={{
-                color: 'white'
-              }}
-            />
+            {index === 3 ? (
+              <img src={echoexxLogo} alt="logo" width="100px" />
+            ) : (
+              <ListItemText
+                primary={text}
+                sx={{
+                  color: 'white'
+                }}
+              />
+            )}
           </ListItemButton>
         </ListItem>
         {index === 2 && <Divider />}
@@ -136,7 +141,7 @@ const LeftDrawer: React.FC = () => {
       />
       <Divider />
 
-      <Copyright />
+      <FooterMobile />
     </Drawer>
   )
 }

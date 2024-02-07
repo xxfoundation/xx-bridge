@@ -9,15 +9,13 @@ const Bridge: React.FC = () => {
     code: 'XX',
     name: 'xx network',
     symbol: xxLogo,
-    balance: 4.0,
-    conversionRate: 0.0001
+    balance: 10.0
   }
   const to = {
     code: 'ETH',
     name: 'Ethereum',
     symbol: ethLogo,
-    balance: 2.0,
-    conversionRate: 0.0002
+    balance: 2.0
   }
 
   return (

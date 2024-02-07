@@ -3,7 +3,11 @@ export interface Currency {
   name: string
   symbol: string
   balance: number
-  conversionRate: number
+}
+export interface ConversionRates {
+  [key: string]: {
+    [key: string]: number
+  }
 }
 
 const camelToKebabCase = (str: string): string =>
