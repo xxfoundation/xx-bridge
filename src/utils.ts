@@ -1,3 +1,11 @@
+export interface Currency {
+  code: string
+  name: string
+  symbol: string
+  balance: number
+  conversionRate: number
+}
+
 const camelToKebabCase = (str: string): string =>
   `--${str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`
 

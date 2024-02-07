@@ -1,127 +1,10 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ArrowDownward, ArrowUpward, ShowChart } from '@mui/icons-material'
-import {
-  Divider,
-  IconButton,
-  InputBase,
-  Stack,
-  Typography
-} from '@mui/material'
+import { Divider, IconButton, Stack, Typography } from '@mui/material'
 import StyledButton from '../Custom/StyledButton'
+import { Currency } from '@/utils'
+import NetworkInfo from './NetworkInfo'
 
-interface Currency {
-  code: string
-  name: string
-  symbol: string
-  balance: number
-}
-
-interface CurrencyInputFieldProps {
-  currencyInfo: Currency
-  fromTo: boolean
-  value: number
-}
-
-const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
-  currencyInfo,
-  fromTo,
-  value
-}) => {
-  const [exceedsBalance, setExceedsBalance] = useState<boolean>(false)
-  return (
-    <Stack marginTop="10px" spacing={1}>
-      {exceedsBalance && (
-        <Typography sx={{ color: 'error.light', fontSize: '13px' }}>
-          Exceeds balance
-        </Typography>
-      )}
-      <Stack
-        direction="row"
-        margin="15px 0 5px 0"
-        spacing={1}
-        alignItems="center"
-        sx={{
-          backgroundColor: exceedsBalance ? 'error.main' : 'background.paper',
-          padding: '10px',
-          borderRadius: '30px',
-          height: '25px'
-        }}
-      >
-        <InputBase
-          placeholder="0"
-          startAdornment={fromTo ? '-' : '+'}
-          endAdornment={currencyInfo.code}
-          type="number"
-          inputProps={{ min: 0, max: currencyInfo.balance }}
-          sx={{
-            width: '100%',
-            paddingLeft: '10px',
-            color: 'primary.contrastText',
-            fontWeight: 'bold'
-          }}
-          value={value}
-          onChange={e => {
-            if (Number(e.target.value) > currencyInfo.balance) {
-              setExceedsBalance(true)
-            } else {
-              setExceedsBalance(false)
-            }
-          }}
-        />
-        <StyledButton
-          sx={{ height: '30px', backgroundColor: 'background.grey' }}
-          disabled={exceedsBalance}
-        >
-          Max
-        </StyledButton>
-      </Stack>
-    </Stack>
-  )
-}
-
-interface NetworkInfoProps {
-  currencyInfo: Currency
-  fromTo: boolean
-  value: number
-}
-
-const NetworkInfo: React.FC<NetworkInfoProps> = ({
-  currencyInfo,
-  fromTo,
-  value
-}) => {
-  console.log(fromTo)
-  return (
-    <Stack>
-      <Stack direction="row" justifyContent="space-between">
-        <Stack direction="row" spacing={1} alignItems="center">
-          <img
-            src={currencyInfo.symbol || 'https://via.placeholder.com/25'}
-            width={25}
-            height={25}
-            style={{ borderRadius: '50%' }}
-            alt="placeholder"
-          />
-          <Typography sx={{ fontWeight: 'bold' }}>
-            {currencyInfo.name}
-          </Typography>
-        </Stack>
-        <Stack textAlign="right">
-          <Typography
-            sx={{ fontWeight: 'bold', fontSize: '13px', color: 'text.primary' }}
-          >
-            Balance: {currencyInfo.balance} {currencyInfo.code}
-          </Typography>
-        </Stack>
-      </Stack>
-      <CurrencyInputField
-        currencyInfo={currencyInfo}
-        fromTo={fromTo}
-        value={value}
-      />
-    </Stack>
-  )
-}
 interface TransferCardProps {
   from: Currency
   to: Currency
@@ -129,8 +12,36 @@ interface TransferCardProps {
 
 const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
   const [fromTo, setFromTo] = useState<boolean>(true)
-  const [initialFromValue] = useState<number>(0)
-  const [initialToValue] = useState<number>(0)
+  const [input, setInput] = useState<number>(0)
+  const [output, setOutput] = useState<number>(0)
+  const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
+
+  // use effect that will update the output value when the input value changes
+  useEffect(() => {
+    if (fromTo) {
+      setOutput(input * from.conversionRate)
+    } else {
+      setOutput(input / to.conversionRate)
+    }
+  }, [input])
+
+  // use effect that will update the input value when the output value changes
+  useEffect(() => {
+    if (fromTo) {
+      setInput(output / from.conversionRate)
+    } else {
+      setInput(output * to.conversionRate)
+    }
+  }, [output])
+
+  // use effect that will update the allowTransfer value when the input value changes
+  useEffect(() => {
+    if (input > 0 && input <= from.balance && fromTo) {
+      setAllowTransfer(true)
+    } else if (input > 0 && input <= to.balance && !fromTo) {
+      setAllowTransfer(true)
+    } else setAllowTransfer(false)
+  }, [input, output, fromTo])
 
   return (
     <Stack
@@ -156,7 +67,8 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
           <Typography
             sx={{ fontSize: '13px', color: 'primary.main', fontWeight: 'bold' }}
           >
-            1 {from.code} = 0.0001 {to.code}
+            1 {from.code} = {fromTo ? from.conversionRate : to.conversionRate}{' '}
+            {to.code}
           </Typography>
         </Stack>
         <Stack spacing={2} marginTop="15px">
@@ -166,7 +78,8 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
           <NetworkInfo
             currencyInfo={from}
             fromTo={fromTo}
-            value={initialFromValue}
+            value={fromTo ? input : output}
+            setValue={fromTo ? setInput : setOutput}
           />
         </Stack>
         <IconButton
@@ -200,7 +113,8 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
           <NetworkInfo
             currencyInfo={to}
             fromTo={!fromTo}
-            value={initialToValue}
+            value={fromTo ? output : input}
+            setValue={fromTo ? setOutput : setInput}
           />
         </Stack>
         <Divider />
@@ -223,7 +137,9 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
         </Stack>
       </Stack>
       <Stack direction="row" padding={4} justifyContent="center">
-        <StyledButton fullWidth>Transfer</StyledButton>
+        <StyledButton fullWidth disabled={!allowTransfer}>
+          Transfer
+        </StyledButton>
       </Stack>
     </Stack>
   )

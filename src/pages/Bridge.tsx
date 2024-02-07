@@ -4,20 +4,24 @@ import { Typography } from '@mui/material'
 import StyledStack from '../components/Custom/StyledStack'
 import StyledButton from '../components/Custom/StyledButton'
 import TransferCard from '@/components/Transfer/TransferCard'
+import xxLogo from '@/assets/currencies/xx.jpeg'
+import ethLogo from '@/assets/currencies/eth.png'
 
 const Bridge: React.FC = () => {
   const navigate = useNavigate()
   const from = {
     code: 'XX',
     name: 'xx network',
-    symbol: 'https://via.placeholder.com/25',
-    balance: 4.0
+    symbol: xxLogo,
+    balance: 4.0,
+    conversionRate: 0.0001
   }
   const to = {
     code: 'ETH',
     name: 'Ethereum',
-    symbol: 'https://via.placeholder.com/25',
-    balance: 2.0
+    symbol: ethLogo,
+    balance: 2.0,
+    conversionRate: 0.0002
   }
 
   return (
