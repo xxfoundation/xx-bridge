@@ -15,14 +15,17 @@ const getStyles = (styleParams: StyleParams) => ({
     right: 0,
     width: {
       mobile: '100%',
-      tablet: `calc(100vw - ${styleParams.drawerWidth})`
+      tablet: `100%`
     },
     height: styleParams.topBarHeight,
     justifyContent: 'center',
     backgroundColor: theme.palette.background.paper
   },
   topBarHeader: {
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    svg: {
+      color: theme.palette.primary.contrastText
+    }
   },
   topBarMenuButton: {
     marginRight: 2,
@@ -31,7 +34,7 @@ const getStyles = (styleParams: StyleParams) => ({
   outlet: {
     width: {
       mobile: '100vw',
-      tablet: `calc(100vw - ${styleParams.drawerWidth})`
+      tablet: `100vw`
     },
     // since topBar has position fixed we need to define margin-top
     marginTop: styleParams.topBarHeight,

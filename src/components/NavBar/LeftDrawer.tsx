@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { Fragment, useMemo } from 'react'
 import {
   Divider,
   Drawer,
@@ -11,8 +11,7 @@ import {
   Stack,
   useMediaQuery
 } from '@mui/material'
-import { Home, Logout } from '@mui/icons-material'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Home, Hub, Message, Wallet } from '@mui/icons-material'
 
 // Files
 import theme from '../../theme'
@@ -31,60 +30,38 @@ const ListMenuElements: React.FC<ListMenuElementsProps> = ({
   menuList,
   menuIcons,
   onClick
-}) => {
-  const [activePage, setActivePage] = useState<string>('Dashboard')
-  const location = useLocation()
-  const { pathname } = location
-
-  useEffect(() => {
-    // Extract the last part of the path (after the last '/')
-    const pathParts = pathname.split('/')
-    const path = pathParts[pathParts.length - 1]
-    setActivePage(path)
-  }, [pathname])
-
-  return (
-    <List>
-      {menuList.map((text, index) => (
-        <>
-          <ListItem key={text} disablePadding>
-            <ListItemButton
-              onClick={() => {
-                onClick(text)
-                setActivePage(text)
-              }}
+}) => (
+  <List>
+    {menuList.map((text, index) => (
+      <Fragment key={text}>
+        <ListItem key={text} disablePadding>
+          <ListItemButton
+            onClick={() => {
+              onClick(text)
+            }}
+          >
+            <ListItemIcon
               sx={{
-                borderLeft:
-                  activePage === text.toLowerCase() ? '2px solid' : '',
-                borderLeftColor: 'primary.main'
+                color: 'white'
               }}
             >
-              <ListItemIcon
-                sx={{
-                  color:
-                    activePage === text.toLowerCase() ? 'primary.main' : 'white'
-                }}
-              >
-                {menuIcons[index]}
-              </ListItemIcon>
-              <ListItemText
-                primary={text}
-                sx={{
-                  color:
-                    activePage === text.toLowerCase() ? 'primary.main' : 'white'
-                }}
-              />
-            </ListItemButton>
-          </ListItem>
-          {index === 1 && <Divider />}
-        </>
-      ))}
-    </List>
-  )
-}
+              {menuIcons[index]}
+            </ListItemIcon>
+            <ListItemText
+              primary={text}
+              sx={{
+                color: 'white'
+              }}
+            />
+          </ListItemButton>
+        </ListItem>
+        {index === 2 && <Divider />}
+      </Fragment>
+    ))}
+  </List>
+)
 
 const LeftDrawer: React.FC = () => {
-  const navigate = useNavigate()
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
   const {
     footerHeight,
@@ -99,8 +76,13 @@ const LeftDrawer: React.FC = () => {
     drawerWidth
   })
 
-  const menuList = ['Bridge', 'LogOut']
-  const menuIcons = [<Home key="home" />, <Logout key="logout" />]
+  const menuList = ['xx network', 'xx wallet', 'xx hub', 'Echoexx']
+  const menuIcons = [
+    <Home key="home" />,
+    <Wallet key="wallet" />,
+    <Hub key="home" />,
+    <Message key="message" />
+  ]
 
   const drawerProps: DrawerProps = useMemo(
     () =>
@@ -115,17 +97,28 @@ const LeftDrawer: React.FC = () => {
             sx: menuDrawer
           }
         : {
-            variant: 'permanent',
-            sx: menuDrawer,
-            open: true
+            display: 'none'
           },
     [handleDrawerToggle, isMobile, menuDrawer, mobileOpen]
   )
 
   const handleMenuItemClick = (text: string) => {
-    if (text === 'LogOut') {
-      console.log('logout')
-    } else navigate(`/${text.toLowerCase()}`)
+    switch (text) {
+      case 'xx network':
+        window.open('https://xx.network/', '_blank')
+        break
+      case 'xx wallet':
+        window.open('https://wallet.xx.network/', '_blank')
+        break
+      case 'xx hub':
+        window.open('https://hub.xx.network/', '_blank')
+        break
+      case 'Echoexx':
+        window.open('https://echoexx.tech/', '_blank')
+        break
+      default:
+        break
+    }
   }
 
   return (

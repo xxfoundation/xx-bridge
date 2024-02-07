@@ -25,6 +25,7 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
     } else {
       setExceedsBalance(false)
     }
+    console.log('value:', value)
   }, [value, currencyInfo, fromTo])
 
   return (
@@ -55,6 +56,7 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
           }}
           value={value}
           onChange={e => {
+            console.log('e.target.value:', e.target.value)
             setValue(Number(e.target.value))
           }}
         />
