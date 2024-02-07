@@ -10,14 +10,26 @@ import echoexxLogo from '@/assets/logo/png/normal.png'
 const Footer: React.FC = () => (
   <Stack
     padding="30px"
-    sx={{ backgroundColor: 'background.dark', height: '90px' }}
+    sx={{ backgroundColor: 'background.dark', height: '100px' }}
   >
     <Stack direction="row" justifyContent="space-between">
-      <Stack direction="row" spacing={3}>
-        <img src={echoexxLogo} alt="xx network" height="40px" />
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Typography sx={{ fontWeight: 'bold' }}>POWERED BY</Typography>
-          <img src={xxNetworkLogo} alt="discord" height="20px" />
+      <Stack spacing={0.5}>
+        <a
+          href="https://echoexx.tech/"
+          style={{ height: 'fit-content', width: 'fit-content' }}
+        >
+          <img src={echoexxLogo} alt="xx network" width="90px" />
+        </a>
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <Typography sx={{ fontWeight: 'bold', fontSize: '10px' }}>
+            POWERED BY
+          </Typography>
+          <a
+            href="https://xx.network/"
+            style={{ height: 'fit-content', width: 'fit-content' }}
+          >
+            <img src={xxNetworkLogo} alt="discord" height="13px" />
+          </a>
         </Stack>
       </Stack>
       <Stack>
@@ -48,7 +60,7 @@ const Footer: React.FC = () => (
     </Stack>
     <Divider />
     <Stack direction="row" justifyContent="space-between">
-      <Typography sx={{ fontSize: '11px', width: '60%' }}>
+      <Typography sx={{ fontSize: '11px', width: '88%' }}>
         xx Network does not distribute, offer, solicit sales of, or sell any xx
         coins in any state or jurisdiction in which such a distribution, offer,
         solicitation or sale would be unlawful prior to registration or

@@ -19,7 +19,7 @@ import logo from '../../assets/logo/png/xxbridge.png'
 import { useNavBarContext } from '.'
 import getStyles from './styles'
 import FooterMobile from '../Footer/FooterMobile'
-import echoexxLogo from '@/assets/logo/png/normal.png'
+import echoexxLogo from '@/assets/logo/png/short.png'
 
 interface ListMenuElementsProps {
   menuList: string[]
@@ -41,23 +41,29 @@ const ListMenuElements: React.FC<ListMenuElementsProps> = ({
               onClick(text)
             }}
           >
-            <ListItemIcon
-              sx={{
-                color: 'white'
-              }}
-            >
-              {menuIcons[index]}
-            </ListItemIcon>
             {index === 3 ? (
-              <img src={echoexxLogo} alt="logo" width="100px" />
+              <img
+                src={echoexxLogo}
+                alt="logo"
+                width="30px"
+                style={{ paddingRight: '23px' }}
+              />
             ) : (
-              <ListItemText
-                primary={text}
+              <ListItemIcon
                 sx={{
                   color: 'white'
                 }}
-              />
+              >
+                {menuIcons[index]}
+              </ListItemIcon>
             )}
+
+            <ListItemText
+              primary={text}
+              sx={{
+                color: 'white'
+              }}
+            />
           </ListItemButton>
         </ListItem>
         {index === 2 && <Divider />}
@@ -81,7 +87,7 @@ const LeftDrawer: React.FC = () => {
     drawerWidth
   })
 
-  const menuList = ['xx network', 'xx wallet', 'xx hub', 'Echoexx']
+  const menuList = ['xx network', 'xx wallet', 'xx hub', 'echoexx']
   const menuIcons = [
     <Home key="home" />,
     <Wallet key="wallet" />,
@@ -118,7 +124,7 @@ const LeftDrawer: React.FC = () => {
       case 'xx hub':
         window.open('https://hub.xx.network/', '_blank')
         break
-      case 'Echoexx':
+      case 'echoexx':
         window.open('https://echoexx.tech/', '_blank')
         break
       default:

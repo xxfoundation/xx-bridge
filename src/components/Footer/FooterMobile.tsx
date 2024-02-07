@@ -25,7 +25,8 @@ const FooterMobile: React.FC = () => (
           direction="row"
           spacing={2}
           alignItems="center"
-          paddingBottom="10px"
+          paddingBottom="20px"
+          paddingTop="20px"
           justifyContent="space-between"
         >
           <IconButton
