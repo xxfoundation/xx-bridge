@@ -5,8 +5,8 @@ import CurrencyInputField from '../Custom/CurrencyInputField'
 interface NetworkInfoProps {
   currencyInfo: Currency
   fromTo: boolean
-  value: number
-  setValue: React.Dispatch<React.SetStateAction<number>>
+  value: number | null
+  setValue: React.Dispatch<React.SetStateAction<number | null>>
 }
 
 const NetworkInfo: React.FC<NetworkInfoProps> = ({

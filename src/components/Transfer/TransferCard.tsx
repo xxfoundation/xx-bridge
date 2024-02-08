@@ -12,8 +12,8 @@ interface TransferCardProps {
 
 const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
   const [fromTo, setFromTo] = useState<boolean>(true)
-  const [input, setInput] = useState<number>(0)
-  const [output, setOutput] = useState<number>(0)
+  const [input, setInput] = useState<number | null>(null)
+  const [output, setOutput] = useState<number | null>(null)
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
 
   // TODO: rates to be pulled
@@ -28,6 +28,7 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
 
   // use effect that will update the output value when the input value changes
   useEffect(() => {
+    if (input === null) return
     if (fromTo) {
       setOutput(input * conversionRates[from.code][to.code])
     } else {
@@ -37,6 +38,7 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
 
   // use effect that will update the input value when the output value changes
   useEffect(() => {
+    if (output === null) return
     if (fromTo) {
       setInput(output / conversionRates[from.code][to.code])
     } else {
@@ -46,6 +48,7 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
 
   // use effect that will update the allowTransfer value when the input value changes
   useEffect(() => {
+    if (input === null) return
     if (input > 0 && input <= from.balance && fromTo) {
       setAllowTransfer(true)
     } else if (input > 0 && input <= to.balance && !fromTo) {
@@ -91,7 +94,7 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
           <NetworkInfo
             currencyInfo={from}
             fromTo={fromTo}
-            value={fromTo ? input : output}
+            value={fromTo ? input : Number(output?.toFixed(4))}
             setValue={fromTo ? setInput : setOutput}
           />
         </Stack>
@@ -126,7 +129,7 @@ const TransferCard: React.FC<TransferCardProps> = ({ from, to }) => {
           <NetworkInfo
             currencyInfo={to}
             fromTo={!fromTo}
-            value={fromTo ? output : input}
+            value={fromTo ? Number(output?.toFixed(4)) : input}
             setValue={fromTo ? setOutput : setInput}
           />
         </Stack>

@@ -7,8 +7,8 @@ import { Currency } from '@/utils'
 interface CurrencyInputFieldProps {
   currencyInfo: Currency
   fromTo: boolean
-  value: number
-  setValue: React.Dispatch<React.SetStateAction<number>>
+  value: number | null
+  setValue: React.Dispatch<React.SetStateAction<number | null>>
 }
 
 const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
@@ -20,12 +20,11 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
   const [exceedsBalance, setExceedsBalance] = useState<boolean>(false)
 
   useEffect(() => {
-    if (value > currencyInfo.balance && fromTo) {
+    if (value && value > currencyInfo.balance && fromTo) {
       setExceedsBalance(true)
     } else {
       setExceedsBalance(false)
     }
-    console.log('value:', value)
   }, [value, currencyInfo, fromTo])
 
   return (
@@ -56,8 +55,10 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
           }}
           value={value}
           onChange={e => {
-            console.log('e.target.value:', e.target.value)
             setValue(Number(e.target.value))
+            if (e.target.value === '') {
+              setValue(null)
+            }
           }}
         />
         {fromTo && (
