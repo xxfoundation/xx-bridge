@@ -1,27 +1,87 @@
-import React from 'react'
+import React, { useCallback, useState } from 'react'
 import StyledStack from '../components/Custom/StyledStack'
-import TransferCard from '@/components/Transfer/TransferCard'
+import { Stack, Typography } from '@mui/material'
+import NetworkInfo from '../components/Bridge/NetworkInfo'
+import { Network } from '@/utils'
 import xxLogo from '@/assets/currencies/xx.jpeg'
 import ethLogo from '@/assets/currencies/eth.png'
 import ApiProvider from '../plugins/substrate/components/ApiProvider.tsx'
+import Loading from '@/components/Utils/Loading.tsx'
+import ETHToXX from '@/components/Bridge/ETHToXX.tsx'
 
 const from = {
-  code: 'wXX',
   name: 'Ethereum Mainnet',
-  symbol: ethLogo
-}
-const to = {
-  code: 'XX',
-  name: 'xx network',
-  symbol: xxLogo
+  gasToken: {
+    code: 'ETH',
+    symbol: ethLogo
+  },
+  token: {
+    address: '0x3f709398808af36ADBA86ACC617FeB7F5B7B193E',
+    code: 'wXX',
+    symbol: xxLogo,
+    decimals: 
+  }
 }
 
-const Bridge: React.FC = () => (
-  <ApiProvider>
-    <StyledStack direction="column" spacing="40px" centerWidth centerHeight>
-      <TransferCard from={from} to={to} />
-    </StyledStack>
-  </ApiProvider>
-)
+const to = {
+  name: 'xx network',
+  gasToken: {
+    code: 'XX',
+    symbol: xxLogo
+  }
+}
+
+const Bridge: React.FC = () => {
+  const [source, setSource] = useState<Network>(from)
+  const [dest, setDest] = useState<Network>(to)
+  const [switching, setSwitching] = useState<boolean>(false)
+  const [fromXX, setFromXX] = useState<boolean>(false)
+
+  // Switch networks
+  const switchNetworks = useCallback(() => {
+    setSwitching(true)
+    setTimeout(() => {
+      setFromXX(!fromXX)
+      setSource(dest)
+      setDest(source)
+      setSwitching(false)
+    }, 2000)
+  }, [fromXX, source, dest])
+
+  return (
+    <ApiProvider>
+      <StyledStack direction="column" spacing="40px" centerWidth centerHeight>
+        <Stack spacing={6}>
+          {!switching && (
+            <>
+              <Stack
+                sx={{
+                  width: '640px',
+                  backgroundColor: 'background.dark',
+                  borderRadius: '18px'
+                }}
+              >
+                <NetworkInfo
+                  source={source}
+                  dest={dest}
+                  setSwitching={switchNetworks}
+                />
+              </Stack>
+              { fromXX ? <XXToETH network={source} /> : <ETHToXX network={source} />}
+            </>
+          )}
+          {switching && (
+            <Stack direction="column" spacing={2} padding={5} alignItems="center">
+              <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                Switching Networks
+              </Typography>
+              <Loading size="sm2" />
+            </Stack>
+          )}
+        </Stack>
+      </StyledStack>
+    </ApiProvider>
+  )
+}
 
 export default Bridge

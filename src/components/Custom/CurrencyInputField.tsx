@@ -2,17 +2,17 @@ import { InputBase, Typography } from '@mui/material'
 import { Stack } from '@mui/system'
 import { useState, useEffect } from 'react'
 import StyledButton from './StyledButton'
-import { Currency } from '@/utils'
+import { Network } from '@/utils'
 
 interface CurrencyInputFieldProps {
-  currencyInfo: Currency
+  network: Network
   balance: number
   value: number | null
   setValue: React.Dispatch<React.SetStateAction<number | null>>
 }
 
 const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
-  currencyInfo,
+  network,
   balance,
   value,
   setValue
@@ -25,7 +25,7 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
     } else {
       setExceedsBalance(false)
     }
-  }, [value, currencyInfo])
+  }, [value, network])
 
   return (
     <Stack marginTop="10px" spacing={1}>
@@ -43,7 +43,7 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
       >
         <InputBase
           placeholder="0"
-          endAdornment={currencyInfo.code}
+          endAdornment={network.token ? network.token.code : network.gasToken.code}
           type="number"
           inputProps={{ min: 0 }}
           sx={{

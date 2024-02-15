@@ -1,10 +1,10 @@
 import { IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import { Loop } from '@mui/icons-material'
-import { Currency } from '@/utils'
+import { Network } from '@/utils'
 
 interface NetworkInfoProps {
-  source: Currency
-  dest: Currency
+  source: Network
+  dest: Network
   setSwitching: () => void
 }
 
@@ -24,7 +24,7 @@ const NetworkInfo: React.FC<NetworkInfoProps> = ({
       <Typography sx={{ fontWeight: 'bold' }}>From</Typography>
       <Stack direction="row" spacing={1} alignItems="center">
         <img
-          src={source.symbol || 'https://via.placeholder.com/25'}
+          src={source.gasToken.symbol || 'https://via.placeholder.com/25'}
           width={25}
           height={25}
           style={{ borderRadius: '50%' }}
@@ -54,7 +54,7 @@ const NetworkInfo: React.FC<NetworkInfoProps> = ({
       <Typography sx={{ fontWeight: 'bold' }}>To</Typography>
       <Stack direction="row" spacing={1} alignItems="center">
         <img
-          src={dest.symbol || 'https://via.placeholder.com/25'}
+          src={dest.gasToken.symbol || 'https://via.placeholder.com/25'}
           width={25}
           height={25}
           style={{ borderRadius: '50%' }}

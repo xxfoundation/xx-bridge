@@ -1,7 +1,40 @@
-export interface Currency {
-  code: string
+import { decodeAddress, encodeAddress } from '@polkadot/keyring'
+import { u8aToHex } from '@polkadot/util'
+
+export interface Network {
   name: string
-  symbol: string
+  gasToken: {
+    code: string
+    symbol: string
+  }
+  token?: {
+    address: string
+    code: string
+    symbol: string
+    decimals: number
+  }
+}
+
+// Check if an address is a valid xx network address
+export const isValidXXNetworkAddress = (address: string) => {
+  // Quit early if hex string
+  if (address.startsWith('0x')) {
+    return false
+  }
+  try {
+    // Use ss58 format 55, which is registered for xx network
+    const val = decodeAddress(address, false, 55)
+    const addr = encodeAddress(val, 55)
+    return addr.length === 48
+  } catch (error) {
+    return false
+  }
+}
+
+// Convert ss58 address to hexstring pubkey
+export const convertXXAddress = (address: string) => {
+  const val = decodeAddress(address, false)
+  return u8aToHex(val)
 }
 
 const camelToKebabCase = (str: string): string =>
@@ -97,5 +130,5 @@ export function checkForUndefinedVariables<T extends any[]>(
 }
 
 // isAddress
-export const isAddress = (address: string): boolean =>
+export const isETHAddress = (address: string): boolean =>
   address.startsWith('0x') && address.length === 42
