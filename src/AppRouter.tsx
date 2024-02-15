@@ -7,7 +7,6 @@ import NotFound from './pages/NotFound'
 import Bridge from './pages/Bridge.tsx'
 import NavBar from './components/NavBar/index.tsx'
 import AccountsProvider from './plugins/substrate/components/AccountsProvider.tsx'
-import ApiProvider from './plugins/substrate/components/ApiProvider.tsx'
 
 const AppRouter: React.FC = () => {
   const navigate = useNavigate()
@@ -26,9 +25,7 @@ const AppRouter: React.FC = () => {
           path="/"
           element={
             <AccountsProvider>
-              <ApiProvider>
-                  <NavBar />
-              </ApiProvider>
+              <NavBar />
             </AccountsProvider>
           }
         >

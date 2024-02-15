@@ -1,79 +1,78 @@
-import { FC, useEffect, useCallback, useMemo, useState } from 'react';
-import "@polkadot/api-augment"
-import { ApiPromise, WsProvider } from '@polkadot/api';
-import { TypeRegistry } from '@polkadot/types/create';
-import { Box, Typography } from '@mui/material';
+import { FC, useEffect, useCallback, useMemo, useState } from 'react'
+import '@polkadot/api-augment'
+import { ApiPromise, WsProvider } from '@polkadot/api'
+import { TypeRegistry } from '@polkadot/types/create'
+import { Box } from '@mui/material'
 
-import ApiContext, { ApiContextType } from './ApiContext';
-import Error from './Error';
-import Loading from './Loading';
-import { WithChildren } from '../types';
+import ApiContext, { ApiContextType } from './ApiContext'
+import Error from './Error'
+import { WithChildren } from '../types'
 
-const registry = new TypeRegistry();
+const registry = new TypeRegistry()
 
 const ApiProvider: FC<WithChildren> = ({ children }) => {
-  const [error, setApiError] = useState<null | string>(null);
-  const [api, setApi] = useState<ApiPromise>();
-  const [connected, setConnected] = useState(false);
-  const [ready, setIsReady] = useState(false);
+  const [error, setApiError] = useState<null | string>(null)
+  const [api, setApi] = useState<ApiPromise>()
+  const [connected, setConnected] = useState(false)
+  const [ready, setIsReady] = useState(false)
 
   const onError = useCallback(
     (err: unknown): void => {
-      console.error(err);
+      console.error(err)
 
-      setApiError((err as Error).message);
+      setApiError((err as Error).message)
     },
     [setApiError]
-  );
+  )
 
   // Connect to xx network blockchain
-  const connect = useCallback(() => {
+  useEffect(() => {
     if (!api) {
-      const provider = new WsProvider(process.env.REACT_APP_API_URL);
+      console.log('Connecting to xx network blockchain')
+      const provider = new WsProvider(process.env.REACT_APP_API_URL)
       setApi(
         new ApiPromise({
           provider,
           registry
         })
-      );
+      )
     } else {
-      console.log('API already initialized, connect should only be called once');
+      console.log('API already initialized, connect should only be called once')
     }
-  }, [api]);
+  }, [api])
 
   useEffect(() => {
     if (api) {
-      api.on('disconnected', () => setConnected(false));
-      api.on('connected', () => setConnected(true));
-      api.on('error', onError);
-      api.on('ready', () => setIsReady(true));
+      api.on('disconnected', () => setConnected(false))
+      api.on('connected', () => setConnected(true))
+      api.on('error', onError)
+      api.on('ready', () => setIsReady(true))
     }
-  }, [api, onError]);
+  }, [api, onError])
 
   const context = useMemo<ApiContextType>(
     () => ({
       api,
-      connect,
       connected,
       ready,
-      error,
+      error
     }),
-    [api, connect, connected, error, ready]
-  );
+    [api, connected, error, ready]
+  )
 
   if (error) {
     return (
       <Box sx={{ p: 5, py: 10, textAlign: 'center' }}>
         <Error
-          variant='body1'
+          variant="body1"
           sx={{ fontSize: 24, pb: 5 }}
-          message='Service currently unavailable. Please check your internet connectivity.'
+          message="Service currently unavailable. Please check your internet connectivity."
         />
       </Box>
-    );
+    )
   }
 
-  return <ApiContext.Provider value={context}>{children}</ApiContext.Provider>;
-};
+  return <ApiContext.Provider value={context}>{children}</ApiContext.Provider>
+}
 
-export default ApiProvider;
+export default ApiProvider

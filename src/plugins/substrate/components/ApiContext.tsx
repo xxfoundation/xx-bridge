@@ -1,21 +1,20 @@
-import type { ApiPromise } from '@polkadot/api';
+import type { ApiPromise } from '@polkadot/api'
 
-import React from 'react';
+import React from 'react'
 
 export type ApiContextType = {
-  api: ApiPromise | undefined;
-  connect: () => void;
-  connected: boolean;
-  ready: boolean;
-  error: string | null;
-};
+  api: ApiPromise | undefined
+  connected: boolean
+  ready: boolean
+  error: string | null
+}
 
 const ApiContext: React.Context<ApiContextType> = React.createContext(
   {} as unknown as ApiContextType
-);
-const ApiConsumer: React.Consumer<ApiContextType> = ApiContext.Consumer;
-const ApiProvider: React.Provider<ApiContextType> = ApiContext.Provider;
+)
+const ApiConsumer: React.Consumer<ApiContextType> = ApiContext.Consumer
+const ApiProvider: React.Provider<ApiContextType> = ApiContext.Provider
 
-export default ApiContext;
+export default ApiContext
 
-export { ApiConsumer, ApiProvider };
+export { ApiConsumer, ApiProvider }
