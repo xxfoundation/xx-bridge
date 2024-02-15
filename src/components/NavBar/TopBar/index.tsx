@@ -1,10 +1,10 @@
 import React from 'react'
-import { AppBar, Toolbar, IconButton } from '@mui/material'
+import { AppBar, Toolbar, IconButton, Typography } from '@mui/material'
 import { Menu as MenuIcon } from '@mui/icons-material'
 // Files
 import { useNavBarContext } from '..'
 import getStyles from '../styles'
-import Web3Wallet from './Web3Wallet'
+import Wallets from './Wallets'
 
 const TopBar: React.FC = () => {
   const { footerHeight, topBarHeight, drawerWidth, handleDrawerToggle } =
@@ -21,8 +21,11 @@ const TopBar: React.FC = () => {
         >
           <MenuIcon />
         </IconButton>
+        <Typography variant="h6" marginLeft={5}>
+          xx Bridge
+        </Typography>
         <div />
-        <Web3Wallet />
+        <Wallets />
       </Toolbar>
     </AppBar>
   )

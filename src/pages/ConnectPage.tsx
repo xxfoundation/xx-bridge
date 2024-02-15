@@ -13,19 +13,7 @@ const MobileMessage: React.FC = () => (
       variant="h4"
       sx={{ color: 'primary.main', margin: '40px', textAlign: 'center' }}
     >
-      {xxbridge} is not yet available for mobile. Please check our{' '}
-      <Link
-        href="https://echoexx.tech/roadmap"
-        target="_blank"
-        rel="noopener noreferrer"
-        sx={{
-          textDecoration: 'underline',
-          '&:hover': { color: 'text.primary' }
-        }}
-      >
-        roadmap
-      </Link>{' '}
-      for more information.
+      {xxbridge} is not yet available for mobile.
     </Typography>
   </StyledStack>
 )

@@ -4,16 +4,10 @@ import { useAccount } from 'wagmi'
 import ConnectPage from './pages/ConnectPage.tsx'
 import NotFound from './pages/NotFound'
 // Files
-import Home from './pages/Home.tsx'
 import Bridge from './pages/Bridge.tsx'
-
-const RerouteToBridge: React.FC = () => {
-  const navigate = useNavigate()
-  useEffect(() => {
-    navigate('/bridge', { replace: true })
-  }, [navigate])
-  return null
-}
+import NavBar from './components/NavBar/index.tsx'
+import AccountsProvider from './plugins/substrate/components/AccountsProvider.tsx'
+import ApiProvider from './plugins/substrate/components/ApiProvider.tsx'
 
 const AppRouter: React.FC = () => {
   const navigate = useNavigate()
@@ -31,13 +25,14 @@ const AppRouter: React.FC = () => {
         <Route
           path="/"
           element={
-            <>
-              <Home />
-            </>
+            <AccountsProvider>
+              <ApiProvider>
+                  <NavBar />
+              </ApiProvider>
+            </AccountsProvider>
           }
         >
-          <Route path="/" element={<RerouteToBridge />} />
-          <Route path="/bridge" element={<Bridge />} />
+          <Route path="/" element={<Bridge />} />
         </Route>
       ) : (
         <Route path="/" element={<ConnectPage />} />

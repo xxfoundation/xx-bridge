@@ -13,7 +13,7 @@ const Bridge: React.FC = () => {
   }
   const to = {
     code: 'ETH',
-    name: 'Ethereum',
+    name: 'Ethereum Mainnet',
     symbol: ethLogo,
     balance: 2.0
   }
