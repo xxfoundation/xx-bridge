@@ -6,16 +6,14 @@ import ethLogo from '@/assets/currencies/eth.png'
 
 const Bridge: React.FC = () => {
   const from = {
-    code: 'XX',
-    name: 'xx network',
-    symbol: xxLogo,
-    balance: 10.0
+    code: 'wXX',
+    name: 'Ethereum Mainnet',
+    symbol: ethLogo
   }
   const to = {
-    code: 'ETH',
-    name: 'Ethereum Mainnet',
-    symbol: ethLogo,
-    balance: 2.0
+    code: 'XX',
+    name: 'xx network',
+    symbol: xxLogo
   }
 
   return (

@@ -1,46 +1,68 @@
-import { Stack, Typography } from '@mui/material'
+import { IconButton, Stack, Tooltip, Typography } from '@mui/material'
+import { Loop } from '@mui/icons-material'
 import { Currency } from '@/utils'
-import CurrencyInputField from '../Custom/CurrencyInputField'
 
 interface NetworkInfoProps {
-  currencyInfo: Currency
-  fromTo: boolean
-  value: number | null
-  setValue: React.Dispatch<React.SetStateAction<number | null>>
+  source: Currency
+  dest: Currency
+  setSwitching: () => void
 }
 
 const NetworkInfo: React.FC<NetworkInfoProps> = ({
-  currencyInfo,
-  fromTo,
-  value,
-  setValue
+  source,
+  dest,
+  setSwitching
 }) => (
-  <Stack>
-    <Stack direction="row" justifyContent="space-between">
+  <Stack
+    direction="row"
+    spacing={2}
+    padding={4}
+    alignItems="center"
+    justifyContent="space-between"
+  >
+    <Stack direction="column" spacing={2}>
+      <Typography sx={{ fontWeight: 'bold' }}>From</Typography>
       <Stack direction="row" spacing={1} alignItems="center">
         <img
-          src={currencyInfo.symbol || 'https://via.placeholder.com/25'}
+          src={source.symbol || 'https://via.placeholder.com/25'}
           width={25}
           height={25}
           style={{ borderRadius: '50%' }}
           alt="placeholder"
         />
-        <Typography sx={{ fontWeight: 'bold' }}>{currencyInfo.name}</Typography>
-      </Stack>
-      <Stack textAlign="right">
-        <Typography
-          sx={{ fontWeight: 'bold', fontSize: '13px', color: 'text.primary' }}
-        >
-          Balance: {currencyInfo.balance} {currencyInfo.code}
-        </Typography>
+        <Typography sx={{ fontWeight: 'bold' }}>{source.name}</Typography>
       </Stack>
     </Stack>
-    <CurrencyInputField
-      currencyInfo={currencyInfo}
-      fromTo={fromTo}
-      value={value}
-      setValue={setValue}
-    />
+    <IconButton
+      sx={{
+        backgroundColor: 'primary.main',
+        borderRadius: '50%',
+        padding: '8px',
+        width: '50px',
+        height: '50px',
+        '&:hover': {
+          backgroundColor: 'primary.dark'
+        }
+      }}
+      onClick={setSwitching}
+    >
+      <Tooltip title="Switch Networks" arrow placement="top">
+        <Loop sx={{ color: 'primary.contrastText' }} />
+      </Tooltip>
+    </IconButton>
+    <Stack direction="column" spacing={2}>
+      <Typography sx={{ fontWeight: 'bold' }}>To</Typography>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <img
+          src={dest.symbol || 'https://via.placeholder.com/25'}
+          width={25}
+          height={25}
+          style={{ borderRadius: '50%' }}
+          alt="placeholder"
+        />
+        <Typography sx={{ fontWeight: 'bold' }}>{dest.name}</Typography>
+      </Stack>
+    </Stack>
   </Stack>
 )
 

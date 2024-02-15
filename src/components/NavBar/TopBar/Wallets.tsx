@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { InputLabel, NativeSelect, Stack } from '@mui/material'
+import { NativeSelect, Stack } from '@mui/material'
 import { useAccount } from 'wagmi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 
@@ -22,19 +22,24 @@ const Wallets: React.FC = () => {
 
   return (
     <Stack direction="row" gap="10px" key={address} alignItems="center">
-      {(extensions.length !== 0) && <>
-        <NativeSelect
-          value={selectedAccount?.address || ''}
-          onChange={(e) => selectAccount(e.target.value)}
-        >
-          {accounts.map((account) => (
-            <option key={account.address} value={account.address}>
-              {truncateString(account.meta.name || 'No name') + " (" + shortenHash(account.address) + ")"}
-            </option>
-          ))}
-        </NativeSelect>
-      </>}
-      {(extensions.length === 0) && <div>No wallet extension found</div>}
+      {extensions.length !== 0 && accounts.length > 0 && (
+        <>
+          <NativeSelect
+            value={selectedAccount?.address || ''}
+            onChange={e => selectAccount(e.target.value)}
+          >
+            {accounts.map(account => (
+              <option key={account.address} value={account.address}>
+                {`${truncateString(account.meta.name || 'No name')} (${shortenHash(account.address)})`}
+              </option>
+            ))}
+          </NativeSelect>
+        </>
+      )}
+      {extensions.length !== 0 && accounts.length === 0 && (
+        <div>Extension found, but no accounts connected</div>
+      )}
+      {extensions.length === 0 && <div>No wallet extension found</div>}
       <div
         onClick={() => {
           const modal = document.querySelector('body > w3m-modal:nth-child(5)')

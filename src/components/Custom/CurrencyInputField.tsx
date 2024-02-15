@@ -6,26 +6,26 @@ import { Currency } from '@/utils'
 
 interface CurrencyInputFieldProps {
   currencyInfo: Currency
-  fromTo: boolean
+  balance: number
   value: number | null
   setValue: React.Dispatch<React.SetStateAction<number | null>>
 }
 
 const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
   currencyInfo,
-  fromTo,
+  balance,
   value,
   setValue
 }) => {
   const [exceedsBalance, setExceedsBalance] = useState<boolean>(false)
 
   useEffect(() => {
-    if (value && value > currencyInfo.balance && fromTo) {
+    if (value && value > balance) {
       setExceedsBalance(true)
     } else {
       setExceedsBalance(false)
     }
-  }, [value, currencyInfo, fromTo])
+  }, [value, currencyInfo])
 
   return (
     <Stack marginTop="10px" spacing={1}>
@@ -43,7 +43,6 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
       >
         <InputBase
           placeholder="0"
-          startAdornment={fromTo ? '-' : '+'}
           endAdornment={currencyInfo.code}
           type="number"
           inputProps={{ min: 0 }}
@@ -61,14 +60,12 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
             }
           }}
         />
-        {fromTo && (
-          <StyledButton
-            sx={{ height: '30px', backgroundColor: 'background.grey' }}
-            onClick={() => setValue(currencyInfo.balance)}
-          >
-            Max
-          </StyledButton>
-        )}
+        <StyledButton
+          sx={{ height: '30px', backgroundColor: 'background.grey' }}
+          onClick={() => setValue(balance)}
+        >
+          Max
+        </StyledButton>
       </Stack>
       {exceedsBalance && (
         <Typography sx={{ color: 'error.light', fontSize: '13px' }}>
