@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
-import StyledStack from '../components/Custom/StyledStack'
 import { Stack, Typography } from '@mui/material'
+import StyledStack from '../components/Custom/StyledStack'
 import NetworkInfo from '../components/Bridge/NetworkInfo'
 import { Network } from '@/utils'
 import xxLogo from '@/assets/currencies/xx.jpeg'
@@ -9,6 +9,7 @@ import ApiProvider from '../plugins/substrate/components/ApiProvider.tsx'
 import Loading from '@/components/Utils/Loading.tsx'
 import ETHToXX from '@/components/Bridge/ETHToXX.tsx'
 import { WRAPPED_XX_ADDRESS } from '@/consts.ts'
+import XXToETH from '@/components/Bridge/XXToETH.tsx'
 
 const from = {
   name: 'Ethereum Mainnet',
@@ -68,14 +69,16 @@ const Bridge: React.FC = () => {
                   setSwitching={switchNetworks}
                 />
               </Stack>
-              { fromXX ?
-                <XXToETH network={source} /> :
-                <ETHToXX network={source} />
-              }
+              {fromXX ? <XXToETH /> : <ETHToXX network={source} />}
             </>
           )}
           {switching && (
-            <Stack direction="column" spacing={2} padding={5} alignItems="center">
+            <Stack
+              direction="column"
+              spacing={2}
+              padding={5}
+              alignItems="center"
+            >
               <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
                 Switching Networks
               </Typography>

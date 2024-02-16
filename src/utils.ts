@@ -1,5 +1,6 @@
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import { u8aToHex } from '@polkadot/util'
+import { padHex, toHex } from 'viem'
 
 export interface Network {
   name: string
@@ -35,6 +36,16 @@ export const isValidXXNetworkAddress = (address: string) => {
 export const convertXXAddress = (address: string) => {
   const val = decodeAddress(address, false)
   return u8aToHex(val)
+}
+
+export const encodeBridgeDeposit = (
+  to: string,
+  amount: bigint
+): `0x${string}` => {
+  const deposit = padHex(toHex(amount)).substring(2) // Deposit Amount (32 bytes)
+  const recipientLen = padHex(toHex((to.length - 2) / 2)).substring(2) // len(recipientAddress) (32 bytes)
+  const recipient = to.substring(2) // recipientAddress (?? bytes)
+  return `0x${deposit}${recipientLen}${recipient}`
 }
 
 const camelToKebabCase = (str: string): string =>

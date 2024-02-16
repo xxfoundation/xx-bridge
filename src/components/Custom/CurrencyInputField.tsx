@@ -3,13 +3,12 @@ import { Stack } from '@mui/system'
 import { useState, useEffect } from 'react'
 import StyledButton from './StyledButton'
 import { Network } from '@/utils'
-import { set } from 'lodash'
 
 interface CurrencyInputFieldProps {
   network: Network
   balance: number
   value: number | null
-  setValue: React.Dispatch<React.SetStateAction<number | null>>
+  setValue: (value: number | null) => void
 }
 
 const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
@@ -21,9 +20,9 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
   const [error, setError] = useState<string>()
 
   useEffect(() => {
-    if (value && value > balance) {
+    if (value !== null && value > balance) {
       setError('Exceeds balance')
-    } else if (value && value < 1) {
+    } else if (value !== null && value < 1) {
       setError('Minimum amount is 1')
     } else {
       setError(undefined)
@@ -46,7 +45,9 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
       >
         <InputBase
           placeholder="1"
-          endAdornment={network.token ? network.token.code : network.gasToken.code}
+          endAdornment={
+            network.token ? network.token.code : network.gasToken.code
+          }
           type="number"
           inputProps={{ min: 0 }}
           sx={{
