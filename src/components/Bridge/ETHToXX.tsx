@@ -10,9 +10,9 @@ import {
 } from 'wagmi'
 import StyledButton from '../Custom/StyledButton'
 import {
-  Network,
   convertXXAddress,
   encodeBridgeDeposit,
+  formatBalance,
   isValidXXNetworkAddress
 } from '@/utils'
 import CurrencyInputField from '../Custom/CurrencyInputField'
@@ -24,25 +24,14 @@ import {
   BRIDGE_ERC20_HANDLER_ADDRESS,
   BRIDGE_ID_XXNETWORK,
   BRIDGE_RESOURCE_ID_XX,
-  WRAPPED_XX_ADDRESS
+  WRAPPED_XX_ADDRESS,
+  ethereumMainnet,
+  xxNetwork
 } from '@/consts'
 import TransferETHToXX from './TransferETHToXX'
 import IERC20 from '../../contracts/IERC20.json'
 import Bridge from '../../contracts/Bridge.json'
 import useApi from '@/plugins/substrate/hooks/useApi'
-
-const formatBalance = (
-  balance: bigint | string,
-  networkDecimals: number,
-  decimals: number
-): string =>
-  (parseFloat(balance.toString()) * 10 ** (-1 * networkDecimals)).toFixed(
-    decimals
-  )
-
-interface ETHToXXProps {
-  network: Network
-}
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,
@@ -66,7 +55,7 @@ const estimateGasBridgeDeposit = async (
   }
 }
 
-const ETHToXX: React.FC<ETHToXXProps> = ({ network }) => {
+const ETHToXX: React.FC = () => {
   // Hooks
   const { address } = useAccount()
   const { publicClient } = useConfig()
@@ -91,7 +80,7 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ network }) => {
   const setValue = useCallback((value: number | null) => {
     setInput(value)
     if (value) {
-      setTransferValue(BigInt(value * 10 ** (network.token?.decimals || 9)))
+      setTransferValue(BigInt(value * 10 ** ethereumMainnet.token.decimals))
     }
   }, [])
 
@@ -173,7 +162,7 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ network }) => {
       setWrappedXXBalance('0')
     } else if (wrappedXXBal !== undefined) {
       setWrappedXXBalance(
-        formatBalance(wrappedXXBal as bigint, network.token?.decimals || 9, 4)
+        formatBalance(wrappedXXBal as bigint, ethereumMainnet.token.decimals, 4)
       )
     }
   }, [wrappedXXBal, wrappedXXError, wrappedXXLoading])
@@ -289,16 +278,16 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ network }) => {
             <Typography>{address}</Typography>
             <Typography>ETH Balance: </Typography>
             <Typography>
-              {ethBalance} {network.gasToken.code}
+              {ethBalance} {ethereumMainnet.gasToken.code}
             </Typography>
             <Typography>Wrapped XX Balance: </Typography>
             <Typography>
-              {wrappedXXBalance} {network.token?.code || ''}
+              {wrappedXXBalance} {ethereumMainnet.token.code}
             </Typography>
             <Divider />
             <Stack direction="row" padding={2} justifyContent="center">
               <CurrencyInputField
-                network={network}
+                code={ethereumMainnet.token.code}
                 balance={parseFloat(wrappedXXBalance)}
                 value={input}
                 setValue={setValue}
@@ -340,7 +329,9 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ network }) => {
               }}
             />
             <Typography>Native XX Balance: </Typography>
-            <Typography>{xxBalance} XX</Typography>
+            <Typography>
+              {xxBalance} {xxNetwork.gasToken.code}
+            </Typography>
           </Stack>
           <Divider />
           <Stack sx={{ textAlign: 'left', paddingLeft: '10px' }}>
@@ -356,7 +347,7 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ network }) => {
             <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
               {fees === '0'
                 ? 'Fill in valid amount and recipient to estimate fees'
-                : `~ ${fees} ${network.gasToken.code}`}
+                : `~ ${fees} ${ethereumMainnet.gasToken.code}`}
             </Typography>
           </Stack>
           <Stack direction="row" padding={2} justifyContent="center">

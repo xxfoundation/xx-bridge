@@ -1,3 +1,6 @@
+import xxLogo from '@/assets/currencies/xx.jpeg'
+import ethLogo from '@/assets/currencies/eth.png'
+
 export const WRAPPED_XX_ADDRESS =
   process.env.WRAPPED_XX_ADDRESS || '0x3f709398808af36ADBA86ACC617FeB7F5B7B193E'
 
@@ -27,3 +30,28 @@ export const GAS_ESTIMATE_DEPOSIT = 80000
 
 export const MAX_UINT256 =
   '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+
+// Network definitions
+export const ethereumMainnet = {
+  name: 'Ethereum Mainnet',
+  gasToken: {
+    code: 'ETH',
+    symbol: ethLogo,
+    decimals: 18
+  },
+  token: {
+    address: WRAPPED_XX_ADDRESS,
+    code: 'wXX',
+    symbol: xxLogo,
+    decimals: 9
+  }
+}
+
+export const xxNetwork = {
+  name: 'xx network',
+  gasToken: {
+    code: 'XX',
+    symbol: xxLogo,
+    decimals: 9
+  }
+}

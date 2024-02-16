@@ -16,6 +16,15 @@ export interface Network {
   }
 }
 
+export const formatBalance = (
+  balance: bigint | string,
+  networkDecimals: number,
+  decimals: number
+): string =>
+  (parseFloat(balance.toString()) * 10 ** (-1 * networkDecimals)).toFixed(
+    decimals
+  )
+
 // Check if an address is a valid xx network address
 export const isValidXXNetworkAddress = (address: string) => {
   // Quit early if hex string
