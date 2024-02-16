@@ -17,24 +17,24 @@ export const getETHBalance = () => {
 
 export const getWrappedXXBalance = (contract: string) => {
   const { address } = useAccount()
-  const { data, isError, isLoading } = useContractRead({
+  const { data, isError, isLoading, refetch } = useContractRead({
     address: contract as `0x${string}`,
     abi: IERC20.abi,
     functionName: 'balanceOf',
     args: [address]
   })
-  return { data, isError, isLoading }
+  return { data, isError, isLoading, refetch }
 }
 
 export const getWrappedXXAllowance = (contract: string, who: string) => {
   const { address } = useAccount()
-  const { data, isError, isLoading } = useContractRead({
+  const { data, isError, isLoading, refetch } = useContractRead({
     address: contract as `0x${string}`,
     abi: IERC20.abi,
     functionName: 'allowance',
     args: [address, who]
   })
-  return { data, isError, isLoading }
+  return { data, isError, isLoading, refetch }
 }
 
 export const estimateGasApprove = (
@@ -43,12 +43,12 @@ export const estimateGasApprove = (
   amount: string
 ) => {
   const { address } = useAccount()
-  const { data, isError, isLoading } = usePrepareContractWrite({
+  const { config } = usePrepareContractWrite({
     address: contract as `0x${string}`,
     account: address,
     abi: IERC20.abi,
     functionName: 'approve',
     args: [who, amount]
   })
-  return { data, isError, isLoading }
+  return config
 }

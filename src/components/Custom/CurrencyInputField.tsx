@@ -3,6 +3,7 @@ import { Stack } from '@mui/system'
 import { useState, useEffect } from 'react'
 import StyledButton from './StyledButton'
 import { Network } from '@/utils'
+import { set } from 'lodash'
 
 interface CurrencyInputFieldProps {
   network: Network
@@ -17,13 +18,15 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
   value,
   setValue
 }) => {
-  const [exceedsBalance, setExceedsBalance] = useState<boolean>(false)
+  const [error, setError] = useState<string>()
 
   useEffect(() => {
     if (value && value > balance) {
-      setExceedsBalance(true)
+      setError('Exceeds balance')
+    } else if (value && value < 1) {
+      setError('Minimum amount is 1')
     } else {
-      setExceedsBalance(false)
+      setError(undefined)
     }
   }, [value, network])
 
@@ -35,14 +38,14 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
         spacing={1}
         alignItems="center"
         sx={{
-          backgroundColor: exceedsBalance ? 'error.main' : 'background.paper',
+          backgroundColor: error ? 'error.main' : 'background.paper',
           padding: '10px',
           borderRadius: '30px',
           height: '25px'
         }}
       >
         <InputBase
-          placeholder="0"
+          placeholder="1"
           endAdornment={network.token ? network.token.code : network.gasToken.code}
           type="number"
           inputProps={{ min: 0 }}
@@ -67,9 +70,9 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
           Max
         </StyledButton>
       </Stack>
-      {exceedsBalance && (
+      {error && (
         <Typography sx={{ color: 'error.light', fontSize: '13px' }}>
-          Exceeds balance
+          {error}
         </Typography>
       )}
     </Stack>

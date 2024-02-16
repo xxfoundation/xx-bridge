@@ -8,6 +8,7 @@ import ethLogo from '@/assets/currencies/eth.png'
 import ApiProvider from '../plugins/substrate/components/ApiProvider.tsx'
 import Loading from '@/components/Utils/Loading.tsx'
 import ETHToXX from '@/components/Bridge/ETHToXX.tsx'
+import { WRAPPED_XX_ADDRESS } from '@/consts.ts'
 
 const from = {
   name: 'Ethereum Mainnet',
@@ -16,10 +17,10 @@ const from = {
     symbol: ethLogo
   },
   token: {
-    address: '0x3f709398808af36ADBA86ACC617FeB7F5B7B193E',
+    address: WRAPPED_XX_ADDRESS,
     code: 'wXX',
     symbol: xxLogo,
-    decimals: 
+    decimals: 9
   }
 }
 
@@ -67,7 +68,10 @@ const Bridge: React.FC = () => {
                   setSwitching={switchNetworks}
                 />
               </Stack>
-              { fromXX ? <XXToETH network={source} /> : <ETHToXX network={source} />}
+              { fromXX ?
+                <XXToETH network={source} /> :
+                <ETHToXX network={source} />
+              }
             </>
           )}
           {switching && (

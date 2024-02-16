@@ -7,6 +7,7 @@ import { InjectedConnector } from 'wagmi/connectors/injected'
 import { MetaMaskConnector } from 'wagmi/connectors/metaMask'
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
 import { createConfig } from 'wagmi'
+import { defineChain } from 'viem'
 
 const projectId = process.env.WALLET_CONNECT_PROJECT_ID || ''
 
@@ -17,8 +18,33 @@ const projectId = process.env.WALLET_CONNECT_PROJECT_ID || ''
 //   icons: ['https://avatars.githubusercontent.com/u/37784886']
 // }
 
+export const localConfig = {
+  name: 'Local',
+  network: 'homestead',
+  id: 9296,
+  rpcUrls: {
+    public: {
+      http: ['http://localhost:8545'],
+    },
+    default: {
+      http: ['http://localhost:8545'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Local',
+      url: '',
+    },
+  },
+  nativeCurrency: {
+    name: 'ETH',
+    symbol: 'ETH',
+    decimals: 18,
+  }
+}
+
 const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [mainnet],
+  [mainnet, defineChain(localConfig)],
   [publicProvider()]
 )
 

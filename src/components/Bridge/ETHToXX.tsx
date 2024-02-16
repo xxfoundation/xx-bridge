@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { Divider, InputBase, Stack, Typography } from '@mui/material'
+import { Divider, Stack, TextField, Typography } from '@mui/material'
 import { useAccount } from 'wagmi'
 import StyledButton from '../Custom/StyledButton'
 import { Network, isValidXXNetworkAddress } from '@/utils'
 import CurrencyInputField from '../Custom/CurrencyInputField'
-import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
-import { getETHBalance, getWrappedXXBalance } from '@/hooks/useETHCalls'
+import { estimateGasApprove, getETHBalance, getWrappedXXAllowance, getWrappedXXBalance } from '@/hooks/useETHCalls'
+import { BRIDGE_ERC20_HANDLER_ADDRESS, MAX_UINT256 } from '@/consts'
 
 const formatBalance = (
   balance: bigint | string,
@@ -24,13 +24,14 @@ interface ETHToXXProps {
 const ETHToXX: React.FC<ETHToXXProps> = ({ network }) => {
   const { address } = useAccount()
   const { selectedAccount } = useAccounts()
-  const { api } = useApi()
   const [input, setInput] = useState<number | null>(null)
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
   const [recipient, setRecipient] = useState<string>('')
+  const [recipientError, setRecipientError] = useState<string | undefined>()
   const [ethBalance, setEthBalance] = useState<string>('0')
   const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
-  const [insufficientTransfer, setInsufficientTransfer] = useState<boolean>(false)
+  const [needAllowance, setNeedAllowance] = useState<boolean>(false)
+  const [startTransfer, setStartTransfer] = useState<boolean>(false)
 
   // Set recipient to xx account if connected
   useEffect(() => {
@@ -41,52 +42,90 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ network }) => {
 
   // Validate recipient
   const validateRecipient = useCallback((value: string) => {
-    isValidXXNetworkAddress(value) ? setRecipient(value) : setRecipient('')
+    if (!isValidXXNetworkAddress(value)) {
+      setRecipientError('Invalid address')
+    } else {
+      setRecipientError(undefined)
+    }
+    setRecipient(value)
   }, [])
 
   // Get account balances
 
   // ETH
-  const { data: ethBal, isError: ethError, isLoading: ethLoading } = getETHBalance()
+  const {
+    data: ethBal,
+    isError: ethError,
+    isLoading: ethLoading
+  } = getETHBalance()
   useEffect(() => {
     // TODO loading?
     if (ethError) {
       // TODO:
+      setEthBalance('0')
     } else {
-      if (ethBal) {
+      if (ethBal !== undefined) {
+        // When the balance is updated refetch wrapped xx ones
         setEthBalance(formatBalance(ethBal.value, ethBal.decimals, 4))
       }
     }
   }, [ethBal, ethError, ethLoading])
-  console.log(`ETH balance: ${ethBalance}`)
 
   // Wrapped xx
-  const { data: wrappedXXBal, isError: wrappedXXError, isLoading: wrappedXXLoading } = getWrappedXXBalance(network.token?.address || '')
+
+  // Balance
+  const {
+    data: wrappedXXBal,
+    isError: wrappedXXError,
+    isLoading: wrappedXXLoading
+  } = getWrappedXXBalance(network.token?.address || '')
   useEffect(() => {
     // TODO loading?
     if (wrappedXXError) {
       // TODO:
+      setWrappedXXBalance('0')
     } else {
-      if (wrappedXXBal) {
+      if (wrappedXXBal !== undefined) {
         setWrappedXXBalance(formatBalance(wrappedXXBal as bigint, network.token?.decimals || 9, 4))
       }
     }
   }, [wrappedXXBal, wrappedXXError, wrappedXXLoading])
-  console.log(`Wrapped XX balance: ${wrappedXXBalance}`)
 
-  // Check recipient native xx existential deposit if sending less than 1 wXX
+  // Allowance
+  const {
+    data: wrappedXXAllowance,
+    isError: wrappedXXAllowanceError,
+    isLoading: wrappedXXAllowanceLoading
+  } = getWrappedXXAllowance(network.token?.address || '', BRIDGE_ERC20_HANDLER_ADDRESS)
   useEffect(() => {
-    if (recipient && input !== null) {
-      api?.query.system.account(recipient)
-        .then((info) => {
-          const balance = info.data.free.add(info.data.reserved);
-          if (input < 1 && balance.lt(api?.consts.balances.existentialDeposit)) {
-            setInsufficientTransfer(true)
-          }
-        })
-        .catch((error) => console.error(error));
+    // TODO loading?
+    if (wrappedXXAllowanceError) {
+      // TODO:
+      setNeedAllowance(false)
+    } else {
+      if (wrappedXXAllowance !== undefined && input) {
+        const val = wrappedXXAllowance as bigint
+        if (parseFloat(val.toString()) < input) {
+          setNeedAllowance(true)
+        } else {
+          setNeedAllowance(false)
+        }
+      } else {
+        setNeedAllowance(false)
+      }
     }
-  }, [recipient, input, api?.query?.system?.account]);
+  }, [wrappedXXAllowance, wrappedXXAllowanceError, wrappedXXAllowanceLoading, input])
+
+  // TODO: Compute fees
+
+  // Check if transfer is allowed
+  useEffect(() => {
+    if (input && recipient && !recipientError) {
+      setAllowTransfer(true)
+    } else {
+      setAllowTransfer(false)
+    }
+  }, [input, recipient, recipientError])
 
   return (
     <Stack
@@ -97,7 +136,12 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ network }) => {
       }}
     >
       <Stack direction="column" padding={2} justifyContent="center">
-        <Typography>Amount</Typography>
+        <Typography>From: </Typography>
+        <Typography>{address}</Typography>
+        <Typography>ETH Balance: </Typography>
+        <Typography>{ethBalance} {network.gasToken.code}</Typography>
+        <Typography>Wrapped XX Balance: </Typography>
+        <Typography>{wrappedXXBalance} {network.token?.code || ''}</Typography>
         <Stack direction="row" padding={2} justifyContent="center">
           <CurrencyInputField
             network={network}
@@ -105,25 +149,38 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ network }) => {
             value={input}
             setValue={setInput}
           />
-          <Typography>Balance: </Typography>
-          <Typography>{ethBalance} {network.gasToken.code}</Typography>
         </Stack>
       </Stack>
-      <Typography>Recipient</Typography>
-      <InputBase
-        placeholder={'6...'}
-        type="string"
-        sx={{
-          width: '100%',
-          paddingLeft: '10px',
-          color: 'primary.contrastText',
-          fontWeight: 'bold'
-        }}
-        value={recipient}
-        onChange={e => {
-          validateRecipient(e.target.value)
-        }}
-      />
+      <Stack direction="column" spacing={2} padding={2} justifyContent="center">
+        <Typography>Recipient</Typography>
+        <TextField
+          label="Enter xx address"
+          placeholder="6..."
+          variant="outlined"
+          value={recipient}
+          error={!!recipientError}
+          helperText={recipientError || ''}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            validateRecipient(event.target.value)
+          }}
+          sx={{
+            width: '100%',
+            marginBottom: '1em',
+            input: {
+              color: 'text.primary',
+              '::placeholder': {
+                opacity: 0.5
+              }
+            },
+            label: {
+              color: 'rgb(0, 255, 255, 0.5)'
+            },
+            border: '0.5px solid',
+            borderColor: 'background.paper',
+            borderRadius: '8px'
+          }}
+        />
+      </Stack>
       <Divider />
       <Stack sx={{ textAlign: 'left', paddingLeft: '10px' }}>
         <Typography
@@ -138,12 +195,13 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ network }) => {
         <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
           ~ 0.0001 {network.gasToken.code}
         </Typography>
-        <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
-          ~ 0.0001 {network.gasToken.code}
-        </Typography>
       </Stack>
       <Stack direction="row" padding={2} justifyContent="center">
-        <StyledButton fullWidth disabled={!allowTransfer}>
+        <StyledButton
+          fullWidth
+          disabled={!allowTransfer}
+          onClick={() => setStartTransfer(true)}
+        >
           Transfer
         </StyledButton>
       </Stack>
