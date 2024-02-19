@@ -1,14 +1,21 @@
 import { Typography, Stack, Divider, TextField } from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
-import { useAccount, useBalance, useContractRead } from 'wagmi'
+import { useAccount, useBalance, useContractRead, useFeeData } from 'wagmi'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
-import IERC20 from '../../contracts/IERC20.json'
+import contracts from '@/contracts'
 import { formatBalance, isETHAddress } from '@/utils'
-import { WRAPPED_XX_ADDRESS, ethereumMainnet, xxNetwork } from '@/consts'
+import {
+  BRIDGE_ID_ETH_MAINNET,
+  GAS_ESTIMATE_RELAYER_FEE,
+  RELAYER_FEE,
+  WRAPPED_XX_ADDRESS,
+  ethereumMainnet,
+  xxNetwork
+} from '@/consts'
 import CurrencyInputField from '../Custom/CurrencyInputField'
 import StyledButton from '../Custom/StyledButton'
-import TransferETHToXX from './TransferETHToXX'
+import TransferXXToETH from './TransferXXToETH'
 
 const XXToETH: React.FC = () => {
   const { address } = useAccount()
@@ -17,6 +24,7 @@ const XXToETH: React.FC = () => {
   const [noxx, setNoxx] = useState<boolean>(false)
   const [input, setInput] = useState<number | null>(null)
   const [transferValue, setTransferValue] = useState<bigint>(BigInt(0))
+  const [valueError, setError] = useState<string | undefined>()
   const [recipient, setRecipient] = useState<string>('')
   const [recipientError, setRecipientError] = useState<string | undefined>()
   const [xxBalance, setXXBalance] = useState<string>('0')
@@ -24,6 +32,9 @@ const XXToETH: React.FC = () => {
   const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
   const [startTransfer, setStartTransfer] = useState<boolean>(false)
+  const [gasPrice, setGasPrice] = useState<number>()
+  const [fees, setFees] = useState<string>('0')
+  const [xxFee, setXXFee] = useState<string>('0')
 
   // Can't send xx -> eth when no xx account is available
   useEffect(() => {
@@ -35,12 +46,22 @@ const XXToETH: React.FC = () => {
   }, [startTransfer, selectedAccount])
 
   // Value computation
-  const setValue = useCallback((value: number | null) => {
-    setInput(value)
-    if (value) {
-      setTransferValue(BigInt(value * 10 ** xxNetwork.gasToken.decimals))
-    }
-  }, [])
+  const setValue = useCallback(
+    (value: number | null) => {
+      if (value !== null && value > parseFloat(xxBalance)) {
+        setError('Exceeds balance')
+      } else if (value !== null && value < 1) {
+        setError('Minimum amount is 1')
+      } else {
+        setError(undefined)
+        if (value) {
+          setTransferValue(BigInt(value * 10 ** xxNetwork.gasToken.decimals))
+        }
+      }
+      setInput(value)
+    },
+    [xxBalance]
+  )
 
   // Set recipient to ETH account
   useEffect(() => {
@@ -58,6 +79,24 @@ const XXToETH: React.FC = () => {
     }
     setRecipient(value)
   }, [])
+
+  // Network fees
+  const {
+    data: feeData,
+    isError: feeError,
+    isLoading: feeLoading
+  } = useFeeData({
+    watch: true
+  })
+  useEffect(() => {
+    // TODO loading?
+    if (feeError) {
+      // TODO:
+    } else if (feeData !== undefined && feeData.gasPrice) {
+      // Add 10% for faster txs
+      setGasPrice(Number(feeData.gasPrice) * 1.1)
+    }
+  }, [feeData, feeError, feeLoading])
 
   // Balances
 
@@ -100,10 +139,10 @@ const XXToETH: React.FC = () => {
     isLoading: wrappedXXLoading,
     refetch: refetchWrappedXX
   } = useContractRead({
-    address: WRAPPED_XX_ADDRESS as `0x${string}`,
-    abi: IERC20.abi,
+    address: WRAPPED_XX_ADDRESS,
+    abi: contracts.ierc20Abi,
     functionName: 'balanceOf',
-    args: [recipient]
+    args: [recipient as `0x${string}`]
   })
   useEffect(() => {
     if (recipient && !recipientError) {
@@ -113,11 +152,7 @@ const XXToETH: React.FC = () => {
         setWrappedXXBalance('0')
       } else if (wrappedXXBal !== undefined) {
         setWrappedXXBalance(
-          formatBalance(
-            wrappedXXBal as bigint,
-            ethereumMainnet.token?.decimals || 9,
-            4
-          )
+          formatBalance(wrappedXXBal, ethereumMainnet.token?.decimals || 9, 4)
         )
       }
     }
@@ -129,14 +164,46 @@ const XXToETH: React.FC = () => {
     recipientError
   ])
 
+  // Set fees
+  useEffect(() => {
+    if (
+      api &&
+      allowTransfer &&
+      gasPrice &&
+      transferValue &&
+      recipient &&
+      selectedAccount
+    ) {
+      // Gas fee + relayer fee
+      const fee =
+        BigInt(GAS_ESTIMATE_RELAYER_FEE * gasPrice) +
+        BigInt(RELAYER_FEE * 10 ** 18)
+      setFees(formatBalance(fee, 18, 6))
+      // Tx fee for xx swap.transferNative call
+      const extrinsic = api.tx.swap.transferNative(
+        transferValue,
+        recipient,
+        BRIDGE_ID_ETH_MAINNET
+      )
+      extrinsic.paymentInfo(selectedAccount.address).then(({ partialFee }) => {
+        setXXFee(
+          formatBalance(partialFee.toString(), xxNetwork.gasToken.decimals, 6)
+        )
+      })
+    } else {
+      setFees('0')
+      setXXFee('0')
+    }
+  }, [api, allowTransfer, gasPrice, transferValue, recipient, selectedAccount])
+
   // Check if transfer is allowed
   useEffect(() => {
-    if (transferValue && recipient && !recipientError) {
+    if (transferValue && !valueError && recipient && !recipientError) {
       setAllowTransfer(true)
     } else {
       setAllowTransfer(false)
     }
-  }, [transferValue, recipient, recipientError])
+  }, [transferValue, valueError, recipient, recipientError])
 
   // Reset
   const reset = useCallback(() => {
@@ -194,6 +261,7 @@ const XXToETH: React.FC = () => {
                 balance={parseFloat(xxBalance)}
                 value={input}
                 setValue={setValue}
+                error={valueError}
               />
             </Stack>
           </Stack>
@@ -238,20 +306,34 @@ const XXToETH: React.FC = () => {
           </Stack>
           <Divider />
           <Stack sx={{ textAlign: 'left', paddingLeft: '10px' }}>
-            <Typography
-              sx={{
-                fontWeight: 'bold',
-                fontSize: '15px',
-                color: 'text.primary'
-              }}
+            <Stack direction="column">
+              <Typography
+                sx={{
+                  fontWeight: 'bold',
+                  fontSize: '15px',
+                  color: 'text.primary'
+                }}
+              >
+                Estimated fees
+              </Typography>
+              <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
+                {fees === '0' &&
+                  'Fill in valid amount and recipient to estimate fees'}
+              </Typography>
+            </Stack>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              paddingLeft={1}
+              paddingRight={2}
             >
-              Estimated fees
-            </Typography>
-            {/* <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
-              {fees === '0'
-                ? 'Fill in valid amount and recipient to estimate fees'
-                : `~ ${fees} ${network.gasToken.code}`}
-            </Typography> */}
+              <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
+                {xxFee !== '0' && `~ ${xxFee} ${xxNetwork.gasToken.code}`}
+              </Typography>
+              <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
+                {fees !== '0' && `~ ${fees} ${ethereumMainnet.gasToken.code}`}
+              </Typography>
+            </Stack>
           </Stack>
           <Stack direction="row" padding={2} justifyContent="center">
             <StyledButton
@@ -265,9 +347,7 @@ const XXToETH: React.FC = () => {
         </>
       )}
       {!noxx && startTransfer && (
-        // TODO: change this component to the reverse flow
-        <TransferETHToXX
-          approve={false}
+        <TransferXXToETH
           recipient={recipient}
           amount={transferValue}
           reset={reset}

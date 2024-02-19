@@ -7,7 +7,7 @@ import {
   useWaitForTransaction
 } from 'wagmi'
 import Loading from '../Utils/Loading'
-import Bridge from '../../contracts/Bridge.json'
+import contracts from '@/contracts'
 import {
   BRIDGE_ADDRESS,
   BRIDGE_ID_XXNETWORK,
@@ -53,8 +53,8 @@ const Deposit: React.FC<DepositProps> = ({
   const deposit = encodeBridgeDeposit(recipient, amount)
   const { config: configDeposit, error: errorDeposit } =
     usePrepareContractWrite({
-      address: BRIDGE_ADDRESS as `0x${string}`,
-      abi: Bridge.abi,
+      address: BRIDGE_ADDRESS,
+      abi: contracts.bridgeAbi,
       functionName: 'deposit',
       args: [BRIDGE_ID_XXNETWORK, BRIDGE_RESOURCE_ID_XX, deposit],
       account: address

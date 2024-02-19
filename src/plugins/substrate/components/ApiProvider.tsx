@@ -1,9 +1,9 @@
+import '@xxnetwork/types'
+
 import { FC, useEffect, useCallback, useMemo, useState } from 'react'
-import '@polkadot/api-augment'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import { TypeRegistry } from '@polkadot/types/create'
 import { Box } from '@mui/material'
-
 import ApiContext, { ApiContextType } from './ApiContext'
 import Error from './Error'
 import { WithChildren } from '../types'

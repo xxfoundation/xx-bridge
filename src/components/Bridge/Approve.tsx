@@ -7,7 +7,7 @@ import {
   useWaitForTransaction
 } from 'wagmi'
 import Loading from '../Utils/Loading'
-import IERC20 from '../../contracts/IERC20.json'
+import contracts from '@/contracts'
 import {
   BRIDGE_ERC20_HANDLER_ADDRESS,
   MAX_UINT256,
@@ -44,8 +44,8 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
   // Approval call
   const { config: configApprove, error: errorApprove } =
     usePrepareContractWrite({
-      address: WRAPPED_XX_ADDRESS as `0x${string}`,
-      abi: IERC20.abi,
+      address: WRAPPED_XX_ADDRESS,
+      abi: contracts.ierc20Abi,
       functionName: 'approve',
       args: [BRIDGE_ERC20_HANDLER_ADDRESS, MAX_UINT256],
       account: address

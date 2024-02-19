@@ -29,8 +29,7 @@ import {
   xxNetwork
 } from '@/consts'
 import TransferETHToXX from './TransferETHToXX'
-import IERC20 from '../../contracts/IERC20.json'
-import Bridge from '../../contracts/Bridge.json'
+import contracts from '@/contracts'
 import useApi from '@/plugins/substrate/hooks/useApi'
 
 const estimateGasBridgeDeposit = async (
@@ -43,8 +42,8 @@ const estimateGasBridgeDeposit = async (
   const data = encodeBridgeDeposit(to, amount)
   try {
     const gas = await client.estimateContractGas({
-      address: BRIDGE_ADDRESS as `0x${string}`,
-      abi: Bridge.abi,
+      address: BRIDGE_ADDRESS,
+      abi: contracts.bridgeAbi,
       functionName: 'deposit',
       args: [BRIDGE_ID_XXNETWORK, BRIDGE_RESOURCE_ID_XX, data],
       account: address || '0x'
@@ -65,6 +64,7 @@ const ETHToXX: React.FC = () => {
   // State
   const [input, setInput] = useState<number | null>(null)
   const [transferValue, setTransferValue] = useState<bigint>(BigInt(0))
+  const [valueError, setError] = useState<string | undefined>()
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
   const [recipient, setRecipient] = useState<string>('')
   const [recipientError, setRecipientError] = useState<string | undefined>()
@@ -77,12 +77,22 @@ const ETHToXX: React.FC = () => {
   const [fees, setFees] = useState<string>('0')
 
   // Value computation
-  const setValue = useCallback((value: number | null) => {
-    setInput(value)
-    if (value) {
-      setTransferValue(BigInt(value * 10 ** ethereumMainnet.token.decimals))
-    }
-  }, [])
+  const setValue = useCallback(
+    (value: number | null) => {
+      if (value !== null && value > parseFloat(wrappedXXBalance)) {
+        setError('Exceeds balance')
+      } else if (value !== null && value < 1) {
+        setError('Minimum amount is 1')
+      } else {
+        setError(undefined)
+        if (value) {
+          setTransferValue(BigInt(value * 10 ** ethereumMainnet.token.decimals))
+        }
+      }
+      setInput(value)
+    },
+    [wrappedXXBalance]
+  )
 
   // Set recipient to xx account if connected
   useEffect(() => {
@@ -150,10 +160,10 @@ const ETHToXX: React.FC = () => {
     isLoading: wrappedXXLoading,
     refetch: refetchWrappedXX
   } = useContractRead({
-    address: WRAPPED_XX_ADDRESS as `0x${string}`,
-    abi: IERC20.abi,
+    address: WRAPPED_XX_ADDRESS,
+    abi: contracts.ierc20Abi,
     functionName: 'balanceOf',
-    args: [address]
+    args: [address as `0x${string}`]
   })
   useEffect(() => {
     // TODO loading?
@@ -162,7 +172,7 @@ const ETHToXX: React.FC = () => {
       setWrappedXXBalance('0')
     } else if (wrappedXXBal !== undefined) {
       setWrappedXXBalance(
-        formatBalance(wrappedXXBal as bigint, ethereumMainnet.token.decimals, 4)
+        formatBalance(wrappedXXBal, ethereumMainnet.token.decimals, 4)
       )
     }
   }, [wrappedXXBal, wrappedXXError, wrappedXXLoading])
@@ -174,10 +184,10 @@ const ETHToXX: React.FC = () => {
     isLoading: wrappedXXAllowanceLoading,
     refetch: refetchAllowance
   } = useContractRead({
-    address: WRAPPED_XX_ADDRESS as `0x${string}`,
-    abi: IERC20.abi,
+    address: WRAPPED_XX_ADDRESS,
+    abi: contracts.ierc20Abi,
     functionName: 'allowance',
-    args: [address, BRIDGE_ERC20_HANDLER_ADDRESS]
+    args: [address as `0x${string}`, BRIDGE_ERC20_HANDLER_ADDRESS]
   })
   useEffect(() => {
     // TODO loading?
@@ -185,8 +195,7 @@ const ETHToXX: React.FC = () => {
       // TODO:
       setNeedAllowance(false)
     } else if (wrappedXXAllowance !== undefined && input) {
-      const val = wrappedXXAllowance as bigint
-      if (parseFloat(val.toString()) < input) {
+      if (parseFloat(wrappedXXAllowance.toString()) < input) {
         setNeedAllowance(true)
       } else {
         setNeedAllowance(false)
@@ -245,12 +254,12 @@ const ETHToXX: React.FC = () => {
 
   // Check if transfer is allowed
   useEffect(() => {
-    if (transferValue && recipient && !recipientError) {
+    if (transferValue && !valueError && recipient && !recipientError) {
       setAllowTransfer(true)
     } else {
       setAllowTransfer(false)
     }
-  }, [transferValue, recipient, recipientError])
+  }, [transferValue, valueError, recipient, recipientError])
 
   // Reset
   const reset = useCallback(() => {
@@ -291,6 +300,7 @@ const ETHToXX: React.FC = () => {
                 balance={parseFloat(wrappedXXBalance)}
                 value={input}
                 setValue={setValue}
+                error={valueError}
               />
             </Stack>
           </Stack>
