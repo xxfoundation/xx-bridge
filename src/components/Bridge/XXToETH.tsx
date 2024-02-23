@@ -105,7 +105,10 @@ const XXToETH: React.FC = () => {
     if (selectedAccount) {
       api?.query?.system?.account(selectedAccount.address).then(({ data }) => {
         if (data) {
-          const balance = data.free.add(data.reserved)
+          const frozen = data.miscFrozen.gt(data.feeFrozen)
+            ? data.miscFrozen
+            : data.feeFrozen
+          const balance = data.free.sub(frozen)
           setXXBalance(formatBalance(balance.toString(), 9, 4))
         }
       })
@@ -244,7 +247,7 @@ const XXToETH: React.FC = () => {
           <Stack direction="column" padding={2} justifyContent="center">
             <Typography>From: </Typography>
             <Typography>{selectedAccount?.address}</Typography>
-            <Typography>Native xx Balance: </Typography>
+            <Typography>Available xx Balance: </Typography>
             <Typography>
               {xxBalance} {xxNetwork.gasToken.code}
             </Typography>
