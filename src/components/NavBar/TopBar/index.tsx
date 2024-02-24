@@ -24,7 +24,6 @@ const TopBar: React.FC = () => {
         <Typography variant="h6" marginLeft={5}>
           xx Bridge
         </Typography>
-        <div />
         <Wallets />
       </Toolbar>
     </AppBar>

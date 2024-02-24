@@ -24,7 +24,6 @@ const App: React.FC = () => (
           width: '100vw'
         }}
       >
-        {' '}
         <BrowserRouter>
           <AppRouter />
         </BrowserRouter>

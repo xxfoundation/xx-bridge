@@ -1,46 +1,51 @@
-import React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material'
 
-import useIsMountedRef from './useIsMountedRef';
+import useIsMountedRef from './useIsMountedRef'
 
 type UseToggle = [
   boolean,
   {
-    icon: React.ReactElement;
-    set: (active: boolean) => void;
-    toggle: () => void;
-    toggleOn: () => void;
-    toggleOff: () => void;
+    icon: React.ReactElement
+    set: (active: boolean) => void
+    toggle: () => void
+    toggleOn: () => void
+    toggleOff: () => void
   }
-];
+]
 
-const useToggle = (defaultValue = false, onToggle?: (isActive: boolean) => void): UseToggle => {
-  const mountedRef = useIsMountedRef();
-  const [isActive, setActive] = useState(defaultValue);
+const useToggle = (
+  defaultValue = false,
+  onToggle?: (isActive: boolean) => void
+): UseToggle => {
+  const mountedRef = useIsMountedRef()
+  const [isActive, setActive] = useState(defaultValue)
 
   const toggle = useCallback((): void => {
     if (mountedRef.current) {
-      setActive((active) => !active);
+      setActive(active => !active)
     }
-  }, [mountedRef]);
+  }, [mountedRef])
 
   const set = useCallback(
     (active: boolean): void => {
       if (mountedRef.current) {
-        setActive(active);
+        setActive(active)
       }
     },
     [mountedRef]
-  );
+  )
 
-  const toggleOn = useCallback(() => set(true), [set]);
+  const toggleOn = useCallback(() => set(true), [set])
 
-  const toggleOff = useCallback(() => set(false), [set]);
+  const toggleOff = useCallback(() => set(false), [set])
 
-  useEffect(() => onToggle && onToggle(isActive), [isActive, onToggle]);
+  useEffect(() => onToggle && onToggle(isActive), [isActive, onToggle])
 
-  const icon = useMemo(() => (isActive ? <KeyboardArrowUp /> : <KeyboardArrowDown />), [isActive]);
+  const icon = useMemo(
+    () => (isActive ? <KeyboardArrowUp /> : <KeyboardArrowDown />),
+    [isActive]
+  )
 
   return useMemo(
     () => [
@@ -54,7 +59,7 @@ const useToggle = (defaultValue = false, onToggle?: (isActive: boolean) => void)
       }
     ],
     [isActive, icon, set, toggle, toggleOn, toggleOff]
-  );
+  )
 }
 
-export default useToggle;
+export default useToggle

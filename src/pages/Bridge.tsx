@@ -28,40 +28,32 @@ const Bridge: React.FC = () => {
 
   return (
     <ApiProvider>
-      <StyledStack direction="column" spacing="40px" centerWidth centerHeight>
-        <Stack spacing={6}>
-          {!switching && (
-            <>
-              <Stack
-                sx={{
-                  width: '640px',
-                  backgroundColor: 'background.dark',
-                  borderRadius: '18px'
-                }}
-              >
-                <NetworkInfo
-                  source={source}
-                  dest={dest}
-                  setSwitching={switchNetworks}
-                />
-              </Stack>
-              {fromXX ? <XXToETH /> : <ETHToXX />}
-            </>
-          )}
-          {switching && (
+      <StyledStack direction="column" spacing="10px" centerWidth centerHeight>
+        {switching ? (
+          <Stack direction="column" spacing={2} padding={5} alignItems="center">
+            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+              Switching Networks
+            </Typography>
+            <Loading size="sm2" />
+          </Stack>
+        ) : (
+          <>
             <Stack
-              direction="column"
-              spacing={2}
-              padding={5}
-              alignItems="center"
+              sx={{
+                width: '640px',
+                backgroundColor: 'background.dark',
+                borderRadius: '18px'
+              }}
             >
-              <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                Switching Networks
-              </Typography>
-              <Loading size="sm2" />
+              <NetworkInfo
+                source={source}
+                dest={dest}
+                setSwitching={switchNetworks}
+              />
             </Stack>
-          )}
-        </Stack>
+            {fromXX ? <XXToETH /> : <ETHToXX />}
+          </>
+        )}
       </StyledStack>
     </ApiProvider>
   )

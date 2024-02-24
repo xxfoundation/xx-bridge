@@ -38,6 +38,7 @@ const getStyles = (styleParams: StyleParams) => ({
     },
     // since topBar has position fixed we need to define margin-top
     marginTop: styleParams.topBarHeight,
+    padding: '50px 0',
     height: `calc(100vh - ${styleParams.topBarHeight} - ${styleParams.footerHeight})`,
     backgroundColor: theme.palette.background.paper
   },

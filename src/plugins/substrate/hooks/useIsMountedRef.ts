@@ -1,19 +1,19 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react'
 
-export type MountedRef = React.MutableRefObject<boolean>;
+export type MountedRef = React.MutableRefObject<boolean>
 
 function useIsMountedRef(): MountedRef {
-  const isMounted = useRef(false);
+  const isMounted = useRef(false)
 
   useEffect((): (() => void) => {
-    isMounted.current = true;
+    isMounted.current = true
 
     return (): void => {
-      isMounted.current = false;
-    };
-  }, []);
+      isMounted.current = false
+    }
+  }, [])
 
-  return isMounted;
+  return isMounted
 }
 
-export default useIsMountedRef;
+export default useIsMountedRef

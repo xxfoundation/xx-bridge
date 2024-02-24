@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link, Typography, useMediaQuery } from '@mui/material'
+import { Typography, useMediaQuery } from '@mui/material'
 import landscape from '../assets/logo/png/xxbridge.png'
 
 import ImageWrapper from '../components/Custom/ImageWrapper'

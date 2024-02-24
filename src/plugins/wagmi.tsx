@@ -24,22 +24,22 @@ export const localConfig = {
   id: 9296,
   rpcUrls: {
     public: {
-      http: ['http://localhost:8545'],
+      http: ['http://localhost:8545']
     },
     default: {
-      http: ['http://localhost:8545'],
-    },
+      http: ['http://localhost:8545']
+    }
   },
   blockExplorers: {
     default: {
       name: 'Local',
-      url: '',
-    },
+      url: ''
+    }
   },
   nativeCurrency: {
     name: 'ETH',
     symbol: 'ETH',
-    decimals: 18,
+    decimals: 18
   }
 }
 
