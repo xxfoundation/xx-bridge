@@ -4,7 +4,7 @@ import { SI, SI_MID } from '@polkadot/util/format/si'
 import { BN } from '@polkadot/util/bn'
 import React from 'react'
 
-import { stripNonDigits } from '../../utils'
+import stripNonDigits from '../../utils'
 
 const defaultDecimals = 9
 

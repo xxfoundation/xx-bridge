@@ -2,7 +2,7 @@ import React from 'react'
 import { BN } from '@polkadot/util/bn'
 
 import { formatBalance } from './formatter'
-import { stripNonDigits } from '../../utils'
+import stripNonDigits from '../../utils'
 import { CustomTooltip } from '../Tooltip'
 
 interface Props {
