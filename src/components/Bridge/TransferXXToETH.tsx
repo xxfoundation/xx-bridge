@@ -1,6 +1,6 @@
 import { Stack, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useAccount, useSendTransaction } from 'wagmi'
+import { useAccount, useSendTransaction, useWaitForTransaction } from 'wagmi'
 import Loading from '../Utils/Loading'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
@@ -18,8 +18,9 @@ enum Step {
   Init = 0,
   TransferNative = 1,
   RelayerFee = 2,
-  WaitBridge = 3,
-  Done = 4
+  WaitFee = 3,
+  WaitBridge = 4,
+  Done = 5
 }
 
 const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
@@ -87,14 +88,20 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
 
   // Relayer fee transaction
   const {
+    data: dataTx,
     sendTransaction,
-    isLoading,
     error: errorTx
   } = useSendTransaction({
     account: address,
     to: RELAYER_ADDRESS,
     value: BigInt(RELAYER_FEE * 10 ** 18),
     data: encodedNonce
+  })
+
+  // Wait for transaction
+  const { data: txReceipt, error: errorTxReceipt } = useWaitForTransaction({
+    hash: dataTx?.hash,
+    confirmations: 5
   })
 
   // Watch executed event on Bridge smart contract
@@ -133,7 +140,18 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
         case Step.RelayerFee: {
           console.log(`Paying relayer fee`)
           sendTransaction()
-          if (!errorTx && !isLoading) {
+          setStep(Step.WaitFee)
+          break
+        }
+
+        /* ---------------------------- WaitFee ---------------------------- */
+        case Step.WaitFee: {
+          if (txReceipt) {
+            if (errorTxReceipt) {
+              console.log(`Paying relayer fee failed!`)
+              resetAll()
+            }
+            console.log(`Relayer fee paid!`)
             setStep(Step.WaitBridge)
           }
           break
@@ -144,7 +162,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
           // TODO: see comments above
           setTimeout(() => {
             setStep(Step.Done)
-          }, 5000)
+          }, 10000)
           break
         }
 
@@ -170,7 +188,8 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
     step,
     nonce,
     errorTx,
-    isLoading,
+    txReceipt,
+    errorTxReceipt,
     recipient,
     amount,
     resetAll
@@ -182,7 +201,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
       {step === Step.TransferNative && (
         <Typography>Transfering native XX to Bridge ...</Typography>
       )}
-      {step === Step.RelayerFee && (
+      {(step === Step.RelayerFee || step === Step.WaitFee) && (
         <Typography>Paying Bridge Fee ...</Typography>
       )}
       {step === Step.WaitBridge && (
