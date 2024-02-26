@@ -8,6 +8,7 @@ interface StyleParams {
 
 const getStyles = (styleParams: StyleParams) => ({
   body: {
+    width: '100%',
     height: `calc(100vh - ${styleParams.footerHeight})`
   },
   topBar: {
@@ -15,7 +16,8 @@ const getStyles = (styleParams: StyleParams) => ({
     right: 0,
     width: {
       mobile: '100%',
-      tablet: `100%`
+      tablet: '100%',
+      desktop: '100%'
     },
     height: styleParams.topBarHeight,
     justifyContent: 'center',
@@ -33,13 +35,14 @@ const getStyles = (styleParams: StyleParams) => ({
   },
   outlet: {
     width: {
-      mobile: '100vw',
-      tablet: `100vw`
+      mobile: '100%',
+      tablet: '100%',
+      desktop: '100%'
     },
     // since topBar has position fixed we need to define margin-top
     marginTop: styleParams.topBarHeight,
     padding: '50px 0',
-    height: `calc(100vh - ${styleParams.topBarHeight} - ${styleParams.footerHeight})`,
+    height: `calc(100vh - ${styleParams.topBarHeight} - ${styleParams.footerHeight} + 50px)`,
     backgroundColor: theme.palette.background.paper
   },
   menuDrawer: {

@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { Divider, Stack, TextField, Typography } from '@mui/material'
+import {
+  Divider,
+  Stack,
+  TextField,
+  Typography,
+  useMediaQuery
+} from '@mui/material'
 import {
   PublicClient,
   useAccount,
@@ -13,7 +19,8 @@ import {
   convertXXAddress,
   encodeBridgeDeposit,
   formatBalance,
-  isValidXXNetworkAddress
+  isValidXXNetworkAddress,
+  shortenHash
 } from '@/utils'
 import CurrencyInputField from '../Custom/CurrencyInputField'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
@@ -31,6 +38,7 @@ import {
 import TransferETHToXX from './TransferETHToXX'
 import contracts from '@/contracts'
 import useApi from '@/plugins/substrate/hooks/useApi'
+import theme from '@/theme'
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,
@@ -75,6 +83,9 @@ const ETHToXX: React.FC = () => {
   const [startTransfer, setStartTransfer] = useState<boolean>(false)
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
+
+  // Check screen checkpoints
+  const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
 
   // Value computation
   const setValue = useCallback(
@@ -275,16 +286,15 @@ const ETHToXX: React.FC = () => {
   return (
     <Stack
       sx={{
-        width: '640px',
         backgroundColor: 'background.dark',
         borderRadius: '18px'
       }}
     >
-      {!startTransfer && (
+      {!startTransfer && address && (
         <>
           <Stack direction="column" padding={2} justifyContent="center">
             <Typography>From: </Typography>
-            <Typography>{address}</Typography>
+            <Typography>{isMobile ? shortenHash(address) : address}</Typography>
             <Typography>ETH Balance: </Typography>
             <Typography>
               {ethBalance} {ethereumMainnet.gasToken.code}

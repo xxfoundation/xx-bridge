@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import { Stack, Typography } from '@mui/material'
+import { Divider, Stack, Typography, useMediaQuery } from '@mui/material'
 import StyledStack from '../components/Custom/StyledStack'
 import NetworkInfo from '../components/Bridge/NetworkInfo'
 import { Network } from '@/utils'
@@ -8,8 +8,10 @@ import Loading from '@/components/Utils/Loading.tsx'
 import ETHToXX from '@/components/Bridge/ETHToXX.tsx'
 import XXToETH from '@/components/Bridge/XXToETH.tsx'
 import { ethereumMainnet, xxNetwork } from '@/consts.ts'
+import theme from '@/theme.ts'
 
 const Bridge: React.FC = () => {
+  const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
   const [source, setSource] = useState<Network>(ethereumMainnet)
   const [dest, setDest] = useState<Network>(xxNetwork)
   const [switching, setSwitching] = useState<boolean>(false)
@@ -28,7 +30,14 @@ const Bridge: React.FC = () => {
 
   return (
     <ApiProvider>
-      <StyledStack direction="column" spacing="10px" centerWidth centerHeight>
+      <StyledStack
+        direction="column"
+        margin="auto"
+        width={isMobile ? '90%' : '80%'}
+        height="inherit"
+        centerWidth
+        centerHeight
+      >
         {switching ? (
           <Stack direction="column" spacing={2} padding={5} alignItems="center">
             <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
@@ -37,22 +46,22 @@ const Bridge: React.FC = () => {
             <Loading size="sm2" />
           </Stack>
         ) : (
-          <>
-            <Stack
-              sx={{
-                width: '640px',
-                backgroundColor: 'background.dark',
-                borderRadius: '18px'
-              }}
-            >
-              <NetworkInfo
-                source={source}
-                dest={dest}
-                setSwitching={switchNetworks}
-              />
-            </Stack>
+          <Stack
+            sx={{
+              width: 'inherit',
+              height: 'inherit',
+              backgroundColor: 'background.dark',
+              borderRadius: '18px'
+            }}
+          >
+            <NetworkInfo
+              source={source}
+              dest={dest}
+              setSwitching={switchNetworks}
+            />
+            <Divider />
             {fromXX ? <XXToETH /> : <ETHToXX />}
-          </>
+          </Stack>
         )}
       </StyledStack>
     </ApiProvider>

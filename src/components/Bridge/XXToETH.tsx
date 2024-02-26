@@ -1,10 +1,16 @@
-import { Typography, Stack, Divider, TextField } from '@mui/material'
+import {
+  Typography,
+  Stack,
+  Divider,
+  TextField,
+  useMediaQuery
+} from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useAccount, useBalance, useContractRead, useFeeData } from 'wagmi'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import contracts from '@/contracts'
-import { formatBalance, isETHAddress } from '@/utils'
+import { formatBalance, isETHAddress, shortenHash } from '@/utils'
 import {
   BRIDGE_ID_ETH_MAINNET,
   GAS_ESTIMATE_RELAYER_FEE,
@@ -16,6 +22,7 @@ import {
 import CurrencyInputField from '../Custom/CurrencyInputField'
 import StyledButton from '../Custom/StyledButton'
 import TransferXXToETH from './TransferXXToETH'
+import theme from '@/theme'
 
 const XXToETH: React.FC = () => {
   const { address } = useAccount()
@@ -35,6 +42,9 @@ const XXToETH: React.FC = () => {
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
   const [xxFee, setXXFee] = useState<string>('0')
+
+  // Check screen checkpoints
+  const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
 
   // Can't send xx -> eth when no xx account is available
   useEffect(() => {
@@ -218,7 +228,6 @@ const XXToETH: React.FC = () => {
   return (
     <Stack
       sx={{
-        width: '640px',
         backgroundColor: 'background.dark',
         borderRadius: '18px'
       }}
@@ -239,17 +248,21 @@ const XXToETH: React.FC = () => {
           </Typography>
         </Stack>
       )}
-      {!noxx && !startTransfer && (
+      {!noxx && !startTransfer && selectedAccount?.address && (
         <>
           <Stack direction="column" padding={2} justifyContent="center">
             <Typography>From: </Typography>
-            <Typography>{selectedAccount?.address}</Typography>
+            <Typography>
+              {isMobile
+                ? shortenHash(selectedAccount?.address)
+                : selectedAccount?.address}
+            </Typography>
             <Typography>Native xx Balance: </Typography>
             <Typography>
               {xxBalance} {xxNetwork.gasToken.code}
             </Typography>
             <Typography>From (ETH): </Typography>
-            <Typography>{address}</Typography>
+            <Typography fontStyle="monospace">{address}</Typography>
             <Typography>ETH Balance: </Typography>
             <Typography>
               {ethBalance} {ethereumMainnet.gasToken.code}
