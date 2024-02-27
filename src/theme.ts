@@ -13,7 +13,7 @@ const primaryColors: PaletteColorOptions = {
 
 const secondaryColors: PaletteColorOptions = {
   main: '#746129', // Main secondary color - darker, warm tone
-  light: '#bd9f46', // Lighter shade of the secondary color
+  light: '#4f4f4f', // Lighter shade of the secondary color
   dark: '#29220e', // Darker shade of the secondary color
   contrastText: '#000' // White contrast text for readability
 }

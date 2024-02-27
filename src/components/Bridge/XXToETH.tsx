@@ -3,7 +3,8 @@ import {
   Stack,
   Divider,
   TextField,
-  useMediaQuery
+  useMediaQuery,
+  Tooltip
 } from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useAccount, useBalance, useContractRead, useFeeData } from 'wagmi'
@@ -23,6 +24,7 @@ import CurrencyInputField from '../Custom/CurrencyInputField'
 import StyledButton from '../Custom/StyledButton'
 import TransferXXToETH from './TransferXXToETH'
 import theme from '@/theme'
+import Balance from '../Custom/Balance'
 
 const XXToETH: React.FC = () => {
   const { address } = useAccount()
@@ -254,40 +256,58 @@ const XXToETH: React.FC = () => {
       {!noxx && !startTransfer && selectedAccount?.address && (
         <>
           <Stack direction="column" padding={2} justifyContent="center">
-            <Typography>From: </Typography>
-            <Typography>
-              {isMobile
-                ? shortenHash(selectedAccount?.address)
-                : selectedAccount?.address}
+            <Typography sx={{ fontWeight: 'bold' }}>From</Typography>
+            <Typography
+              sx={{
+                fontFamily: 'monospace',
+                backgroundColor: 'background.grey',
+                width: 'fit-content',
+                padding: '3px 5px',
+                borderRadius: '8px'
+              }}
+            >
+              {isMobile ? (
+                <Tooltip placement="top" title={selectedAccount?.address}>
+                  <Typography>
+                    {shortenHash(selectedAccount?.address)}
+                  </Typography>
+                </Tooltip>
+              ) : (
+                selectedAccount?.address
+              )}
             </Typography>
-            <Typography>Available xx Balance: </Typography>
-            <Typography>
-              {xxBalance} {xxNetwork.gasToken.code}
-            </Typography>
-            <Typography>From (ETH): </Typography>
-            <Typography fontStyle="monospace">{address}</Typography>
-            <Typography>ETH Balance: </Typography>
-            <Typography>
-              {ethBalance} {ethereumMainnet.gasToken.code}
-            </Typography>
-            <Divider />
-            <Stack direction="row" padding={2} justifyContent="center">
-              <CurrencyInputField
-                code={xxNetwork.gasToken.code}
-                balance={parseFloat(xxBalance)}
-                value={input}
-                setValue={setValue}
-                error={valueError}
+            <Typography sx={{ fontWeight: 'bold' }}>Balance</Typography>
+            <Stack direction="row" spacing={1}>
+              <Balance
+                icon={ethereumMainnet.token.symbol}
+                balance={
+                  <>
+                    {xxBalance} {xxNetwork.gasToken.code}
+                  </>
+                }
+                title="XX"
+              />
+              <Balance
+                icon={ethereumMainnet.gasToken.symbol}
+                balance={
+                  <>
+                    {ethBalance} {ethereumMainnet.gasToken.code}
+                  </>
+                }
+                title="ETH"
               />
             </Stack>
           </Stack>
+          <Divider />
           <Stack
             direction="column"
             spacing={2}
             padding={2}
             justifyContent="center"
           >
-            <Typography>Recipient</Typography>
+            <Typography sx={{ textAlign: 'right', fontWeight: 'bold' }}>
+              Recipient
+            </Typography>
             <TextField
               label="Enter ETH address"
               placeholder="0x..."
@@ -315,8 +335,22 @@ const XXToETH: React.FC = () => {
                 borderRadius: '8px'
               }}
             />
-            <Typography>Wrapped XX Balance: </Typography>
-            <Typography>
+          </Stack>
+          <Stack direction="row" padding={2} justifyContent="center">
+            <CurrencyInputField
+              code={xxNetwork.gasToken.code}
+              balance={parseFloat(xxBalance)}
+              value={input}
+              setValue={setValue}
+              error={valueError}
+            />
+          </Stack>
+          {/* </Stack> */}
+          <Stack alignItems="center">
+            <Typography sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+              Wrapped XX Balance
+            </Typography>
+            <Typography sx={{ fontWeight: 'bold', fontSize: '25px' }}>
               {wrappedXXBalance} {ethereumMainnet.token.code}
             </Typography>
           </Stack>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 600 141" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(1.9344,0,0,1.9344,-217.233,-136.868)">
+        <g>
+            <g>
+                <g>
+                    <path d="M161.3,85.3C162.9,88.9 163.9,92.9 163.9,97L163.9,97.4L177.5,85.3L177.5,70.9L161.3,85.3Z" style="fill:rgb(8,205,215);fill-rule:nonzero;"/>
+                    <path d="M159.6,97.1C159.6,82.7 146.7,71 130.9,71L130.9,81.8C140.6,81.8 148.5,88.4 148.8,96.6L141.5,103.1C143.5,106.5 144.7,110.3 145.2,114.3L151.7,108.5C156.3,117.3 166.2,123.3 177.6,123.3L177.6,112.5C167.6,112.4 159.6,105.5 159.6,97.1Z" style="fill:rgb(8,205,215);fill-rule:nonzero;"/>
+                    <path d="M158.9,143.3L158.9,132.5C149,132.5 141,125.6 141,117.2C141,102.8 128.1,91.1 112.3,91.1L112.3,101.9C120.7,101.9 127.8,106.9 129.7,113.6L125.9,117L118.1,124L112.3,129.1L112.3,143.5L131.9,126.1C135.8,136 146.4,143.3 158.9,143.3Z" style="fill:rgb(8,205,215);fill-rule:nonzero;"/>
+                </g>
+                <g transform="matrix(1.47274,0,0,1.47274,-132.22,-91.9028)">
+                    <g transform="matrix(48,0,0,48,378.464,147.6)">
+                    </g>
+                    <text x="215.6px" y="147.6px" style="font-family:'Montserrat-SemiBold', 'Montserrat';font-weight:600;font-size:48px;fill:white;">br<tspan x="268.448px " y="147.6px ">i</tspan>dge</text>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

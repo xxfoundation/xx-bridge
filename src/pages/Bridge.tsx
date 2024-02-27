@@ -39,7 +39,13 @@ const Bridge: React.FC = () => {
         centerHeight
       >
         {switching ? (
-          <Stack direction="column" spacing={2} padding={5} alignItems="center">
+          <Stack
+            direction="column"
+            spacing={2}
+            padding={5}
+            alignItems="center"
+            sx={{ height: '100vh' }}
+          >
             <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
               Switching Networks
             </Typography>

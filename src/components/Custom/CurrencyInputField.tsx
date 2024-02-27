@@ -18,21 +18,28 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
   setValue,
   error
 }) => (
-  <Stack marginTop="10px" spacing={1}>
+  <Stack marginTop="10px" spacing={1} alignItems="center">
+    {error && (
+      <Typography
+        sx={{ color: 'error.light', fontSize: '13px', textAlign: 'left' }}
+      >
+        {error}
+      </Typography>
+    )}
     <Stack
       direction="row"
       margin="15px 0 5px 0"
       spacing={1}
-      alignItems="center"
       sx={{
         backgroundColor: error ? 'error.main' : 'background.paper',
         padding: '10px',
         borderRadius: '30px',
-        height: '25px'
+        height: '25px',
+        maxWidth: '300px'
       }}
     >
       <InputBase
-        placeholder="1"
+        placeholder="0"
         endAdornment={code}
         type="number"
         inputProps={{ min: 0 }}
@@ -57,11 +64,10 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
         Max
       </StyledButton>
     </Stack>
-    {error && (
-      <Typography sx={{ color: 'error.light', fontSize: '13px' }}>
-        {error}
-      </Typography>
-    )}
+    <Typography sx={{ color: 'text.primary', fontSize: '13px' }}>
+      Note: Minimum transfer of 1 {code} because it is the existential deposit
+      to keep the account active in the xx network blockchain.
+    </Typography>
   </Stack>
 )
 

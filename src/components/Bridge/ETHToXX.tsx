@@ -3,6 +3,7 @@ import {
   Divider,
   Stack,
   TextField,
+  Tooltip,
   Typography,
   useMediaQuery
 } from '@mui/material'
@@ -39,6 +40,8 @@ import TransferETHToXX from './TransferETHToXX'
 import contracts from '@/contracts'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import theme from '@/theme'
+import Balance from '../Custom/Balance'
+import wrappedXXlogo from '@/assets/xxnetwork/wrappedXXlogo.png'
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,
@@ -292,35 +295,65 @@ const ETHToXX: React.FC = () => {
     >
       {!startTransfer && address && (
         <>
-          <Stack direction="column" padding={2} justifyContent="center">
-            <Typography>From: </Typography>
-            <Typography>{isMobile ? shortenHash(address) : address}</Typography>
-            <Typography>ETH Balance: </Typography>
-            <Typography>
-              {ethBalance} {ethereumMainnet.gasToken.code}
-            </Typography>
-            <Typography>Wrapped XX Balance: </Typography>
-            <Typography>
-              {wrappedXXBalance} {ethereumMainnet.token.code}
-            </Typography>
-            <Divider />
-            <Stack direction="row" padding={2} justifyContent="center">
-              <CurrencyInputField
-                code={ethereumMainnet.token.code}
-                balance={parseFloat(wrappedXXBalance)}
-                value={input}
-                setValue={setValue}
-                error={valueError}
+          <Stack
+            direction="column"
+            padding={2}
+            justifyContent="center"
+            spacing={1}
+          >
+            <Stack>
+              <Typography sx={{ fontWeight: 'bold' }}>From </Typography>
+              <Typography
+                sx={{
+                  fontFamily: 'monospace',
+                  backgroundColor: 'background.grey',
+                  width: 'fit-content',
+                  padding: '3px 5px',
+                  borderRadius: '8px'
+                }}
+              >
+                {isMobile ? (
+                  <Tooltip placement="top" title={selectedAccount?.address}>
+                    <Typography>{shortenHash(address)}</Typography>
+                  </Tooltip>
+                ) : (
+                  address
+                )}
+              </Typography>
+            </Stack>
+            <Typography sx={{ fontWeight: 'bold' }}>Balance</Typography>
+            <Stack direction="row" spacing={1}>
+              <Balance
+                icon={ethereumMainnet.gasToken.symbol}
+                balance={
+                  <>
+                    {ethBalance} {ethereumMainnet.gasToken.code}
+                  </>
+                }
+                title="ETH"
+              />
+              <Balance
+                icon={wrappedXXlogo}
+                balance={
+                  <>
+                    {wrappedXXBalance} {ethereumMainnet.token.code}
+                  </>
+                }
+                title="Wrapped XX"
               />
             </Stack>
           </Stack>
+          <Divider />
+
           <Stack
             direction="column"
             spacing={2}
             padding={2}
             justifyContent="center"
           >
-            <Typography>Recipient</Typography>
+            <Typography sx={{ textAlign: 'right', fontWeight: 'bold' }}>
+              Recipient
+            </Typography>
             <TextField
               label="Enter xx address"
               placeholder="6..."
@@ -348,8 +381,21 @@ const ETHToXX: React.FC = () => {
                 borderRadius: '8px'
               }}
             />
-            <Typography>Native XX Balance: </Typography>
-            <Typography>
+          </Stack>
+          <Stack direction="row" padding={2} justifyContent="center">
+            <CurrencyInputField
+              code={ethereumMainnet.token.code}
+              balance={parseFloat(wrappedXXBalance)}
+              value={input}
+              setValue={setValue}
+              error={valueError}
+            />
+          </Stack>
+          <Stack alignItems="center">
+            <Typography sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+              Native XX Balance
+            </Typography>
+            <Typography sx={{ fontWeight: 'bold', fontSize: '25px' }}>
               {xxBalance} {xxNetwork.gasToken.code}
             </Typography>
           </Stack>

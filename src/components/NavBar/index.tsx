@@ -42,9 +42,9 @@ export const useNavBarContext = () => {
 const NavBar: React.FC = () => {
   const { address } = useAccount()
   const [loggedInAddress] = useLocalStorage<string>('loggedInAddress')
-  const style = getStyles({ topBarHeight, drawerWidth, footerHeight })
-  const [mobileOpen, setMobileOpen] = useState(false)
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
+  const style = getStyles({ topBarHeight, drawerWidth, footerHeight, isMobile })
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)

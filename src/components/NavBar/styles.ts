@@ -4,12 +4,13 @@ interface StyleParams {
   footerHeight: string
   drawerWidth: string
   topBarHeight: string
+  isMobile: boolean
 }
 
 const getStyles = (styleParams: StyleParams) => ({
   body: {
     width: '100%',
-    height: `calc(100vh - ${styleParams.footerHeight})`
+    height: styleParams.isMobile ? '100%' : '100vh'
   },
   topBar: {
     position: 'fixed',
@@ -42,7 +43,7 @@ const getStyles = (styleParams: StyleParams) => ({
     // since topBar has position fixed we need to define margin-top
     marginTop: styleParams.topBarHeight,
     padding: '50px 0',
-    height: `calc(100vh - ${styleParams.topBarHeight} - ${styleParams.footerHeight} + 50px)`,
+    height: `100%`,
     backgroundColor: theme.palette.background.paper
   },
   menuDrawer: {

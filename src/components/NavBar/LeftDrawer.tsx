@@ -15,7 +15,7 @@ import { Home, Hub, Message, Wallet } from '@mui/icons-material'
 
 // Files
 import theme from '../../theme'
-import logo from '../../assets/logo/png/xxbridge.png'
+import logo from '../../assets/logo/svg/xxbridge.svg'
 import { useNavBarContext } from '.'
 import getStyles from './styles'
 import FooterMobile from '../Footer/FooterMobile'
@@ -84,7 +84,8 @@ const LeftDrawer: React.FC = () => {
   const { menuDrawer, menuDrawerHeader } = getStyles({
     footerHeight,
     topBarHeight,
-    drawerWidth
+    drawerWidth,
+    isMobile
   })
 
   const menuList = ['xx network', 'xx wallet', 'xx hub', 'echoexx']
@@ -134,12 +135,12 @@ const LeftDrawer: React.FC = () => {
 
   return (
     <Drawer {...drawerProps}>
-      <Stack sx={menuDrawerHeader}>
+      <Stack sx={menuDrawerHeader} alignItems="center">
         <a href="https://xx.network/" target="_blank" rel="noopener noreferrer">
-          <img src={logo} alt="logo" width="100%" />
+          <img src={logo} alt="logo" width="150px" />
         </a>
       </Stack>
-      <Divider />
+      <Divider sx={{ marginTop: '0px' }} />
       <ListMenuElements
         menuList={menuList}
         menuIcons={menuIcons}
