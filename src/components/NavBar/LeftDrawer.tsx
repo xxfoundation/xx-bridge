@@ -61,7 +61,8 @@ const ListMenuElements: React.FC<ListMenuElementsProps> = ({
             <ListItemText
               primary={text}
               sx={{
-                color: 'white'
+                color: 'white',
+                fontStyle: index === 3 ? 'italic' : 'normal'
               }}
             />
           </ListItemButton>
@@ -88,7 +89,7 @@ const LeftDrawer: React.FC = () => {
     isMobile
   })
 
-  const menuList = ['xx network', 'xx wallet', 'xx hub', 'echoexx']
+  const menuList = ['xx network', 'xx wallet', 'xx hub', 'echoexx.tech']
   const menuIcons = [
     <Home key="home" />,
     <Wallet key="wallet" />,
