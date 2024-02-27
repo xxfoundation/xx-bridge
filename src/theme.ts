@@ -123,6 +123,16 @@ const theme1 = createTheme({
           margin: '15px 0'
         }
       }
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        root: {
+          '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button':
+            {
+              display: 'none'
+            }
+        }
+      }
     }
   }
 })

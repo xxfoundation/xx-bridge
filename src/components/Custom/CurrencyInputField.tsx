@@ -42,7 +42,7 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
         placeholder="0"
         endAdornment={code}
         type="number"
-        inputProps={{ min: 0 }}
+        inputProps={{ min: 1 }}
         sx={{
           width: '100%',
           paddingLeft: '10px',
