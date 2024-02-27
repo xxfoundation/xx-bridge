@@ -321,7 +321,9 @@ const ETHToXX: React.FC = () => {
                 )}
               </Typography>
             </Stack>
-            <Typography sx={{ fontWeight: 'bold' }}>Balance</Typography>
+            <Typography sx={{ fontWeight: 'bold', paddingTop: '10px' }}>
+              Balance
+            </Typography>
             <Stack direction="row" spacing={1}>
               <Balance
                 icon={ethereumMainnet.gasToken.symbol}
@@ -351,7 +353,11 @@ const ETHToXX: React.FC = () => {
             padding={2}
             justifyContent="center"
           >
-            <Typography sx={{ textAlign: 'right', fontWeight: 'bold' }}>
+            <Typography
+              sx={{
+                fontWeight: 'bold'
+              }}
+            >
               Recipient
             </Typography>
             <TextField
