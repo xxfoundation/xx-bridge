@@ -1,4 +1,5 @@
 import xxLogo from '@/assets/currencies/xx.jpeg'
+import wxxLogo from '@/assets/currencies/wxx.svg'
 import ethLogo from '@/assets/currencies/eth.png'
 
 // Known addresses
@@ -58,7 +59,7 @@ export const ethereumMainnet = {
   token: {
     address: WRAPPED_XX_ADDRESS,
     code: 'wXX',
-    symbol: xxLogo,
+    symbol: wxxLogo,
     decimals: 9
   }
 }

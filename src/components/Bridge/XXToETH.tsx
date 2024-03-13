@@ -281,7 +281,7 @@ const XXToETH: React.FC = () => {
             </Typography>
             <Stack direction="row" spacing={1}>
               <Balance
-                icon={ethereumMainnet.token.symbol}
+                icon={xxNetwork.gasToken.symbol}
                 balance={
                   <>
                     {xxBalance} {xxNetwork.gasToken.code}

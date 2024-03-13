@@ -41,7 +41,6 @@ import contracts from '@/contracts'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import theme from '@/theme'
 import Balance from '../Custom/Balance'
-import wrappedXXlogo from '@/assets/xxnetwork/wrappedXXlogo.png'
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,
@@ -335,7 +334,7 @@ const ETHToXX: React.FC = () => {
                 title="ETH"
               />
               <Balance
-                icon={wrappedXXlogo}
+                icon={ethereumMainnet.token.symbol}
                 balance={
                   <>
                     {wrappedXXBalance} {ethereumMainnet.token.code}
