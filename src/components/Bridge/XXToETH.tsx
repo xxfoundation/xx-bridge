@@ -14,8 +14,8 @@ import contracts from '@/contracts'
 import { formatBalance, isETHAddress, shortenHash } from '@/utils'
 import {
   BRIDGE_ID_ETH_MAINNET,
+  BRIDGE_RELAYER_FEE_ADDRESS,
   GAS_ESTIMATE_RELAYER_FEE,
-  RELAYER_FEE,
   WRAPPED_XX_ADDRESS,
   ethereumMainnet,
   xxNetwork
@@ -110,6 +110,17 @@ const XXToETH: React.FC = () => {
     }
   }, [feeData, feeError, feeLoading])
 
+  // Get current relayer fee from contract
+  const {
+    data: relayerFee
+    // isError: relayerFeeError, // TODO: use this?
+    // isLoading: relayerFeeLoading, // TODO: use this?
+  } = useContractRead({
+    address: BRIDGE_RELAYER_FEE_ADDRESS,
+    abi: contracts.relayerFeeAbi,
+    functionName: 'currentFee'
+  })
+
   // Balances
 
   // Native xx
@@ -187,12 +198,11 @@ const XXToETH: React.FC = () => {
       gasPrice &&
       transferValue &&
       recipient &&
-      selectedAccount
+      selectedAccount &&
+      relayerFee
     ) {
       // Gas fee + relayer fee
-      const fee =
-        BigInt(GAS_ESTIMATE_RELAYER_FEE * gasPrice) +
-        BigInt(RELAYER_FEE * 10 ** 18)
+      const fee = BigInt(GAS_ESTIMATE_RELAYER_FEE * gasPrice) + relayerFee
       setFees(formatBalance(fee, 18, 6))
       // Tx fee for xx swap.transferNative call
       const extrinsic = api.tx.swap.transferNative(
@@ -209,7 +219,15 @@ const XXToETH: React.FC = () => {
       setFees('0')
       setXXFee('0')
     }
-  }, [api, allowTransfer, gasPrice, transferValue, recipient, selectedAccount])
+  }, [
+    api,
+    allowTransfer,
+    gasPrice,
+    transferValue,
+    recipient,
+    selectedAccount,
+    relayerFee
+  ])
 
   // Check if transfer is allowed
   useEffect(() => {

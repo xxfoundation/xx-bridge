@@ -57,11 +57,6 @@ export const encodeBridgeDeposit = (
   return `0x${deposit}${recipientLen}${recipient}`
 }
 
-export const encodeNonce = (nonce: bigint): `0x${string}` => {
-  const nonceHex = `0000000000000000${nonce.toString(16)}`.slice(-16)
-  return `0x${nonceHex}`
-}
-
 const camelToKebabCase = (str: string): string =>
   `--${str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`
 

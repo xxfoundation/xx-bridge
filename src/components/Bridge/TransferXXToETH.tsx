@@ -1,11 +1,17 @@
 import { Stack, Typography } from '@mui/material'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useAccount, useSendTransaction, useWaitForTransaction } from 'wagmi'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useAccount,
+  useContractRead,
+  useContractWrite,
+  usePrepareContractWrite,
+  useWaitForTransaction
+} from 'wagmi'
 import Loading from '../Utils/Loading'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
-import { BRIDGE_ID_ETH_MAINNET, RELAYER_ADDRESS, RELAYER_FEE } from '@/consts'
-import { encodeNonce } from '@/utils'
+import { BRIDGE_ID_ETH_MAINNET, BRIDGE_RELAYER_FEE_ADDRESS } from '@/consts'
+import contracts from '@/contracts'
 
 interface TransferXXToETHProps {
   recipient: string
@@ -80,27 +86,35 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
     }
   }, [api, step, sent, selectedAccount, recipient, amount, getSigner])
 
-  // Encoded nonce
-  const encodedNonce = useMemo(
-    () => (nonce !== undefined ? encodeNonce(nonce) : '0x'),
-    [nonce]
-  )
-
-  // Relayer fee transaction
+  // Get current relayer fee from contract
   const {
-    data: dataTx,
-    sendTransaction,
-    error: errorTx
-  } = useSendTransaction({
-    account: address,
-    to: RELAYER_ADDRESS,
-    value: BigInt(RELAYER_FEE * 10 ** 18),
-    data: encodedNonce
+    data: relayerFee,
+    isError: relayerFeeError
+    // isLoading: relayerFeeLoading, // TODO: use this?
+  } = useContractRead({
+    address: BRIDGE_RELAYER_FEE_ADDRESS,
+    abi: contracts.relayerFeeAbi,
+    functionName: 'currentFee'
   })
+
+  // Relayer fee payment transaction
+  const { config: configPayFee, error: errorPayFee } = usePrepareContractWrite({
+    address: BRIDGE_RELAYER_FEE_ADDRESS,
+    abi: contracts.relayerFeeAbi,
+    functionName: 'payFee',
+    args: [nonce || BigInt(0)],
+    account: address,
+    value: relayerFee || BigInt(0)
+  })
+  const {
+    data: payFeeData,
+    write: callPayFee
+    // isLoading: payFeeLoading // TODO: use this?
+  } = useContractWrite(configPayFee)
 
   // Wait for transaction
   const { data: txReceipt, error: errorTxReceipt } = useWaitForTransaction({
-    hash: dataTx?.hash,
+    hash: payFeeData?.hash,
     confirmations: 5
   })
 
@@ -138,9 +152,19 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
 
         /* ---------------------------- RelayerFee ---------------------------- */
         case Step.RelayerFee: {
-          console.log(`Paying relayer fee`)
-          sendTransaction()
-          setStep(Step.WaitFee)
+          if (relayerFeeError) {
+            console.error('Error getting relayer fee', relayerFeeError)
+            resetAll()
+          }
+          if (errorPayFee) {
+            console.error('Error executing payFee', errorPayFee)
+            resetAll()
+          }
+          if (callPayFee) {
+            console.log(`Paying relayer fee`)
+            callPayFee()
+            setStep(Step.WaitFee)
+          }
           break
         }
 
@@ -179,7 +203,13 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
           throw new Error(`Unknown step: ${step}`)
       }
     }
-    if (api && selectedAccount && recipient !== '' && amount !== undefined) {
+    if (
+      api &&
+      selectedAccount &&
+      recipient !== '' &&
+      amount !== undefined &&
+      relayerFee !== undefined
+    ) {
       executeStep()
     }
   }, [
@@ -187,7 +217,10 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
     selectedAccount,
     step,
     nonce,
-    errorTx,
+    relayerFee,
+    relayerFeeError,
+    errorPayFee,
+    callPayFee,
     txReceipt,
     errorTxReceipt,
     recipient,
