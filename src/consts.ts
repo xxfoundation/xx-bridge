@@ -35,7 +35,7 @@ export const GAS_ESTIMATE_APPROVE = 50000
 export const GAS_ESTIMATE_DEPOSIT = 80000
 
 // This is a rough estimate of the gas required to pay the relayer fee.
-export const GAS_ESTIMATE_RELAYER_FEE = 28000
+export const GAS_ESTIMATE_RELAYER_FEE = 29000
 
 export const MAX_UINT256 = BigInt(
   '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'

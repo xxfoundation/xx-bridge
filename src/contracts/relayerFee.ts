@@ -25,15 +25,27 @@ const abi = [
     inputs: [
       {
         indexed: true,
-        internalType: 'uint256',
-        name: 'amount',
-        type: 'uint256'
+        internalType: 'address',
+        name: 'who',
+        type: 'address'
+      },
+      {
+        indexed: true,
+        internalType: 'uint8',
+        name: 'domain',
+        type: 'uint8'
       },
       {
         indexed: true,
         internalType: 'uint64',
         name: 'nonce',
         type: 'uint64'
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256'
       }
     ],
     name: 'FeePaid',
@@ -262,6 +274,11 @@ const abi = [
   },
   {
     inputs: [
+      {
+        internalType: 'uint8',
+        name: 'domain',
+        type: 'uint8'
+      },
       {
         internalType: 'uint64',
         name: 'nonce',

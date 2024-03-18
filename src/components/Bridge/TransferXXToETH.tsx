@@ -10,7 +10,11 @@ import {
 import Loading from '../Utils/Loading'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
-import { BRIDGE_ID_ETH_MAINNET, BRIDGE_RELAYER_FEE_ADDRESS } from '@/consts'
+import {
+  BRIDGE_ID_ETH_MAINNET,
+  BRIDGE_ID_XXNETWORK,
+  BRIDGE_RELAYER_FEE_ADDRESS
+} from '@/consts'
 import contracts from '@/contracts'
 
 interface TransferXXToETHProps {
@@ -102,7 +106,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
     address: BRIDGE_RELAYER_FEE_ADDRESS,
     abi: contracts.relayerFeeAbi,
     functionName: 'payFee',
-    args: [nonce || BigInt(0)],
+    args: [BRIDGE_ID_XXNETWORK, nonce || BigInt(0)],
     account: address,
     value: relayerFee || BigInt(0)
   })
