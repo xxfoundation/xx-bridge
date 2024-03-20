@@ -34,7 +34,7 @@ export const localConfig = {
   blockExplorers: {
     default: {
       name: 'Bridge Dev',
-      url: ''
+      url: httpUrl
     }
   },
   nativeCurrency: {

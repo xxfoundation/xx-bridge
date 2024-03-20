@@ -1,19 +1,11 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState
-} from 'react'
+import React, { createContext, useContext, useMemo, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Box, Stack, useMediaQuery } from '@mui/material'
 
 // Files
-import { useAccount } from 'wagmi'
 import TopBar from './TopBar'
 import LeftDrawer from './LeftDrawer'
 import getStyles from './styles'
-import useLocalStorage from '@/hooks/useLocalStorage'
 import Footer from '../Footer'
 import theme from '@/theme'
 
@@ -40,8 +32,6 @@ export const useNavBarContext = () => {
 }
 
 const NavBar: React.FC = () => {
-  const { address } = useAccount()
-  const [loggedInAddress] = useLocalStorage<string>('loggedInAddress')
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
   const style = getStyles({ topBarHeight, drawerWidth, footerHeight, isMobile })
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -49,14 +39,6 @@ const NavBar: React.FC = () => {
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
   }
-
-  useEffect(() => {
-    // This will run when `address` or `isConnected` changes
-    if (loggedInAddress && loggedInAddress !== address) {
-      console.log(`Account changed from ${loggedInAddress} to ${address}`)
-      console.log('Logging out...')
-    }
-  }, [address, loggedInAddress])
 
   const contextValue = useMemo(
     () => ({

@@ -4,9 +4,9 @@ import { Menu as MenuIcon } from '@mui/icons-material'
 // Files
 import { useNavBarContext } from '..'
 import getStyles from '../styles'
-import Wallets from './Wallets'
 import theme from '@/theme'
 import xxBridgeLogo from '@/assets/logo/svg/xxbridge.svg'
+import Wallets from './Wallets'
 
 const TopBar: React.FC = () => {
   const { footerHeight, topBarHeight, drawerWidth, handleDrawerToggle } =
