@@ -273,30 +273,36 @@ const XXToETH: React.FC = () => {
       )}
       {!noxx && !startTransfer && selectedAccount?.address && (
         <>
-          <Stack direction="column" padding={2} justifyContent="center">
-            <Typography sx={{ fontWeight: 'bold' }}>From</Typography>
-            <Typography
-              sx={{
-                fontFamily: 'monospace',
-                backgroundColor: 'background.grey',
-                width: 'fit-content',
-                padding: '3px 5px',
-                borderRadius: '8px'
-              }}
-            >
-              {isMobile ? (
-                <Tooltip placement="top" title={selectedAccount?.address}>
-                  <Typography>
-                    {shortenHash(selectedAccount?.address)}
-                  </Typography>
-                </Tooltip>
-              ) : (
-                selectedAccount?.address
-              )}
-            </Typography>
-            <Typography sx={{ fontWeight: 'bold', paddingTop: '10px' }}>
-              Balance
-            </Typography>
+          <Stack
+            direction="column"
+            justifyContent="center"
+            padding={2}
+            spacing={2}
+          >
+            <Stack direction="column" spacing={1}>
+              <Typography sx={{ fontWeight: 'bold', fontSize: '20px' }}>
+                Sender
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: 'monospace',
+                  backgroundColor: 'background.grey',
+                  width: 'fit-content',
+                  padding: '3px 5px',
+                  borderRadius: '8px'
+                }}
+              >
+                {isMobile ? (
+                  <Tooltip placement="top" title={selectedAccount?.address}>
+                    <Typography>
+                      {shortenHash(selectedAccount?.address)}
+                    </Typography>
+                  </Tooltip>
+                ) : (
+                  selectedAccount?.address
+                )}
+              </Typography>
+            </Stack>
             <Stack direction="row" spacing={1}>
               <Balance
                 icon={xxNetwork.gasToken.symbol}
@@ -325,20 +331,32 @@ const XXToETH: React.FC = () => {
             padding={2}
             justifyContent="center"
           >
-            <Typography
-              sx={{
-                fontWeight: 'bold'
-              }}
+            <Stack
+              flexDirection="row"
+              justifyContent="space-between"
+              alignItems="baseline"
             >
-              Recipient
-            </Typography>
+              <Typography
+                sx={{
+                  fontWeight: 'bold',
+                  fontSize: '20px'
+                }}
+              >
+                Recipient
+              </Typography>
+              <Typography sx={{ fontSize: '14px' }} alignSelf="baseline">
+                Balance:{' '}
+                <b>
+                  {wrappedXXBalance} {ethereumMainnet.token.code}
+                </b>
+              </Typography>
+            </Stack>
             <TextField
-              label="Enter ETH address"
               placeholder="0x..."
-              variant="outlined"
+              variant="standard"
               value={recipient}
               error={!!recipientError}
-              helperText={recipientError || ''}
+              helperText={recipientError || 'Enter ETH address'}
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 validateRecipient(event.target.value)
               }}
@@ -348,15 +366,9 @@ const XXToETH: React.FC = () => {
                 input: {
                   color: 'text.primary',
                   '::placeholder': {
-                    opacity: 0.5
+                    opacity: 0.7
                   }
-                },
-                label: {
-                  color: 'rgb(255, 255, 255, 0.5)'
-                },
-                border: '0.5px solid',
-                borderColor: 'background.paper',
-                borderRadius: '8px'
+                }
               }}
             />
           </Stack>
@@ -369,28 +381,17 @@ const XXToETH: React.FC = () => {
               error={valueError}
             />
           </Stack>
-          {/* </Stack> */}
-          <Stack alignItems="center">
-            <Typography sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-              Wrapped XX Balance
-            </Typography>
-            <Typography sx={{ fontWeight: 'bold', fontSize: '25px' }}>
-              {wrappedXXBalance} {ethereumMainnet.token.code}
-            </Typography>
-          </Stack>
           <Divider />
           <Stack sx={{ textAlign: 'left', paddingLeft: '10px' }}>
-            <Stack direction="column">
+            <Stack direction="column" padding={2}>
               <Typography
                 sx={{
-                  fontWeight: 'bold',
-                  fontSize: '15px',
-                  color: 'text.primary'
+                  fontWeight: 'bold'
                 }}
               >
                 Estimated fees
               </Typography>
-              <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
+              <Typography sx={{ fontSize: '14px', color: 'text.primary' }}>
                 {fees === '0' &&
                   'Fill in valid amount and recipient to estimate fees'}
               </Typography>

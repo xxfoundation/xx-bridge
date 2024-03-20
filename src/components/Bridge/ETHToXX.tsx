@@ -296,12 +296,14 @@ const ETHToXX: React.FC = () => {
         <>
           <Stack
             direction="column"
-            padding={2}
             justifyContent="center"
-            spacing={1}
+            padding={2}
+            spacing={2}
           >
-            <Stack>
-              <Typography sx={{ fontWeight: 'bold' }}>From </Typography>
+            <Stack direction="column" spacing={1}>
+              <Typography sx={{ fontWeight: 'bold', fontSize: '20px' }}>
+                Sender
+              </Typography>
               <Typography
                 sx={{
                   fontFamily: 'monospace',
@@ -312,7 +314,7 @@ const ETHToXX: React.FC = () => {
                 }}
               >
                 {isMobile ? (
-                  <Tooltip placement="top" title={selectedAccount?.address}>
+                  <Tooltip placement="top" title={address}>
                     <Typography>{shortenHash(address)}</Typography>
                   </Tooltip>
                 ) : (
@@ -320,9 +322,6 @@ const ETHToXX: React.FC = () => {
                 )}
               </Typography>
             </Stack>
-            <Typography sx={{ fontWeight: 'bold', paddingTop: '10px' }}>
-              Balance
-            </Typography>
             <Stack direction="row" spacing={1}>
               <Balance
                 icon={ethereumMainnet.gasToken.symbol}
@@ -345,27 +344,38 @@ const ETHToXX: React.FC = () => {
             </Stack>
           </Stack>
           <Divider />
-
           <Stack
             direction="column"
             spacing={2}
             padding={2}
             justifyContent="center"
           >
-            <Typography
-              sx={{
-                fontWeight: 'bold'
-              }}
+            <Stack
+              flexDirection="row"
+              justifyContent="space-between"
+              alignItems="baseline"
             >
-              Recipient
-            </Typography>
+              <Typography
+                sx={{
+                  fontWeight: 'bold',
+                  fontSize: '20px'
+                }}
+              >
+                Recipient
+              </Typography>
+              <Typography sx={{ fontSize: '14px' }} alignSelf="baseline">
+                Balance:{' '}
+                <b>
+                  {xxBalance} {xxNetwork.gasToken.code}
+                </b>
+              </Typography>
+            </Stack>
             <TextField
-              label="Enter xx address"
               placeholder="6..."
-              variant="outlined"
+              variant="standard"
               value={recipient}
               error={!!recipientError}
-              helperText={recipientError || ''}
+              helperText={recipientError || 'Enter xx network address'}
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 validateRecipient(event.target.value)
               }}
@@ -375,15 +385,9 @@ const ETHToXX: React.FC = () => {
                 input: {
                   color: 'text.primary',
                   '::placeholder': {
-                    opacity: 0.5
+                    opacity: 0.7
                   }
-                },
-                label: {
-                  color: 'rgb(0, 255, 255, 0.5)'
-                },
-                border: '0.5px solid',
-                borderColor: 'background.paper',
-                borderRadius: '8px'
+                }
               }}
             />
           </Stack>
@@ -396,26 +400,16 @@ const ETHToXX: React.FC = () => {
               error={valueError}
             />
           </Stack>
-          <Stack alignItems="center">
-            <Typography sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-              Native XX Balance
-            </Typography>
-            <Typography sx={{ fontWeight: 'bold', fontSize: '25px' }}>
-              {xxBalance} {xxNetwork.gasToken.code}
-            </Typography>
-          </Stack>
           <Divider />
-          <Stack sx={{ textAlign: 'left', paddingLeft: '10px' }}>
+          <Stack direction="column" padding={2}>
             <Typography
               sx={{
-                fontWeight: 'bold',
-                fontSize: '15px',
-                color: 'text.primary'
+                fontWeight: 'bold'
               }}
             >
               Estimated fees
             </Typography>
-            <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
+            <Typography sx={{ fontSize: '14px', color: 'text.primary' }}>
               {fees === '0'
                 ? 'Fill in valid amount and recipient to estimate fees'
                 : `~ ${fees} ${ethereumMainnet.gasToken.code}`}

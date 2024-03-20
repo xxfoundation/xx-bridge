@@ -35,12 +35,17 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
         padding: '10px',
         borderRadius: '30px',
         height: '25px',
-        maxWidth: '300px'
+        maxWidth: '300px',
+        alignItems: 'center'
       }}
     >
       <InputBase
         placeholder="0"
-        endAdornment={code}
+        endAdornment={
+          <Typography sx={{ color: 'text.primary', fontSize: '0.9em' }}>
+            {code}
+          </Typography>
+        }
         type="number"
         inputProps={{ min: 1 }}
         sx={{
