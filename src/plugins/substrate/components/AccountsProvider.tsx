@@ -9,6 +9,7 @@ import type {
 import { web3AccountsSubscribe, web3Enable } from '@polkadot/extension-dapp'
 import { WithChildren } from '../types'
 import AccountsContext, { AccountsContextType } from './AccountsContext'
+import { isValidXXNetworkAddress } from '@/utils'
 
 const AccountsProvider: FC<WithChildren> = ({ children }) => {
   // Loading
@@ -24,6 +25,15 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
   const [selectedAccount, setSelectedAccount] =
     useState<InjectedAccountWithMeta>()
 
+  const subscribedAccounts = useCallback(
+    (accs: InjectedAccountWithMeta[]) => {
+      setAccounts(
+        accs.filter(acc => isValidXXNetworkAddress(acc.address) && acc.meta)
+      )
+    },
+    [accounts]
+  )
+
   // Load extensions
   useEffect(() => {
     web3Enable('xx bridge').then(ext => {
@@ -38,9 +48,11 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
   // Subscribe to account changes
   useEffect(() => {
     if (!subscribed && extensions !== undefined) {
-      web3AccountsSubscribe(setAccounts, { ss58Format: 55 }).catch(err => {
-        console.error(err)
-      })
+      web3AccountsSubscribe(subscribedAccounts, { ss58Format: 55 }).catch(
+        err => {
+          console.error(err)
+        }
+      )
       setSubscribed(true)
     }
   }, [subscribed, extensions])
