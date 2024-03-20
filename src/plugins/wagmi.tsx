@@ -10,6 +10,7 @@ import { createConfig } from 'wagmi'
 import { defineChain } from 'viem'
 
 const projectId = process.env.WALLET_CONNECT_PROJECT_ID || ''
+const httpUrl = process.env.ETH_API_URL || 'http://localhost:8545'
 
 // const metadata = {
 //   name: 'Web3Modal',
@@ -19,20 +20,20 @@ const projectId = process.env.WALLET_CONNECT_PROJECT_ID || ''
 // }
 
 export const localConfig = {
-  name: 'Local',
+  name: 'Bridge Dev',
   network: 'homestead',
   id: 9296,
   rpcUrls: {
     public: {
-      http: ['http://localhost:8545']
+      http: [httpUrl]
     },
     default: {
-      http: ['http://localhost:8545']
+      http: [httpUrl]
     }
   },
   blockExplorers: {
     default: {
-      name: 'Local',
+      name: 'Bridge Dev',
       url: ''
     }
   },

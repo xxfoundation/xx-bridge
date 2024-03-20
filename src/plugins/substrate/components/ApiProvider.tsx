@@ -29,7 +29,7 @@ const ApiProvider: FC<WithChildren> = ({ children }) => {
   useEffect(() => {
     if (!api) {
       console.log('Connecting to xx network blockchain')
-      const provider = new WsProvider(process.env.REACT_APP_API_URL)
+      const provider = new WsProvider(process.env.XX_API_URL)
       setApi(
         new ApiPromise({
           provider,
