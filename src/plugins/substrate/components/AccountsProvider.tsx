@@ -12,13 +12,10 @@ import AccountsContext, { AccountsContextType } from './AccountsContext'
 import { isValidXXNetworkAddress } from '@/utils'
 
 const AccountsProvider: FC<WithChildren> = ({ children }) => {
-  // Loading
-  const [loading, setLoading] = useState(true)
-  // Extensions
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | undefined>()
   const [extensions, setExtensions] = useState<InjectedExtension[]>([])
-  // Subscribed
   const [subscribed, setSubscribed] = useState(false)
-  // Accounts
   const [accounts, setAccounts] = useState<InjectedAccountWithMeta[]>([])
 
   // Selected account
@@ -34,20 +31,23 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
     [accounts]
   )
 
-  // Load extensions
-  useEffect(() => {
-    web3Enable('xx bridge').then(ext => {
-      if (ext.length === 0) {
-        console.log('no extensions')
+  const connectWallet = useCallback(async () => {
+    setLoading(true)
+    try {
+      console.log('Connecting wallet')
+      const ext = await web3Enable('xx bridge')
+      if (!ext) {
+        throw new Error('No extensions found')
       }
       setExtensions(ext)
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message)
+      console.log('Error connecting wallet', err.message)
       setLoading(false)
-    })
-  }, [])
+    }
 
-  // Subscribe to account changes
-  useEffect(() => {
-    if (!subscribed && extensions !== undefined) {
+    if (!subscribed) {
       web3AccountsSubscribe(subscribedAccounts, { ss58Format: 55 }).catch(
         err => {
           console.error(err)
@@ -55,7 +55,8 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
       )
       setSubscribed(true)
     }
-  }, [subscribed, extensions])
+    setLoading(false)
+  }, [subscribed, subscribedAccounts])
 
   // Select an account by address
   const selectAccount = useCallback(
@@ -65,6 +66,13 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
     },
     [accounts]
   )
+
+  // Select the first account if no account is selected
+  useEffect(() => {
+    if (accounts.length > 0 && !selectedAccount) {
+      setSelectedAccount(accounts[0])
+    }
+  }, [accounts, selectedAccount])
 
   // Get the signer for the current selected account
   //
@@ -84,13 +92,24 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
   const context = useMemo<AccountsContextType>(
     () => ({
       loading,
+      error,
       extensions,
       accounts,
       selectedAccount,
       selectAccount,
-      getSigner
+      getSigner,
+      connectWallet
     }),
-    [loading, extensions, accounts, getSigner]
+    [
+      loading,
+      error,
+      extensions,
+      accounts,
+      selectedAccount,
+      selectAccount,
+      getSigner,
+      connectWallet
+    ]
   )
 
   return (

@@ -27,8 +27,8 @@ const ConnectPage: React.FC = () => {
       {isMobile ? (
         <MobileMessage />
       ) : (
-        <StyledStack direction="column" spacing="40px" centerWidth centerHeight>
-          <ImageWrapper src={landscape} alt="Logo with slogan" width="70%" />
+        <StyledStack direction="column" spacing="50px" centerWidth centerHeight>
+          <ImageWrapper src={landscape} alt="Logo with slogan" width="10%" />
           <Login />
         </StyledStack>
       )}

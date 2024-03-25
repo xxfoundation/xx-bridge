@@ -28,7 +28,7 @@ import Balance from '../Custom/Balance'
 
 const XXToETH: React.FC = () => {
   const { address } = useAccount()
-  const { selectedAccount } = useAccounts()
+  const { selectedAccount, connectWallet } = useAccounts()
   const { api } = useApi()
   const [noxx, setNoxx] = useState<boolean>(false)
   const [input, setInput] = useState<number | null>(null)
@@ -269,6 +269,7 @@ const XXToETH: React.FC = () => {
             Please install Subwallet or Polkadot-js extension and reload the
             page in order to connect your account and transfer native xx
           </Typography>
+          <StyledButton onClick={connectWallet}>Connect xx Wallet</StyledButton>
         </Stack>
       )}
       {!noxx && !startTransfer && selectedAccount?.address && (

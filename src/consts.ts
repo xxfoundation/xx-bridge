@@ -50,6 +50,7 @@ export const ethereumMainnet = {
     decimals: 18
   },
   token: {
+    name: 'Wrapped XX',
     address: WRAPPED_XX_ADDRESS,
     code: 'wXX',
     symbol: wxxLogo,

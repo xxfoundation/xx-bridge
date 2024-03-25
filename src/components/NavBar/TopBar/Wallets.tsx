@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react'
-import { NativeSelect, Stack } from '@mui/material'
+import React, { useCallback, useEffect } from 'react'
+import { CircularProgress, NativeSelect, Stack } from '@mui/material'
 import { useAccount } from 'wagmi'
+import { AutorenewRounded } from '@mui/icons-material'
+import { InjectedAccountWithMeta } from '@polkadot/extension-inject/types'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 
 const shortenHash = (hash: string, size: number = 6): string =>
@@ -9,9 +11,43 @@ const shortenHash = (hash: string, size: number = 6): string =>
 const truncateString = (str: string, length: number = 15): string =>
   str.length > length ? `${str.substring(0, length)}...` : str
 
+interface WalletSelectorParams {
+  accounts: InjectedAccountWithMeta[]
+  selectedAccount: InjectedAccountWithMeta
+  selectAccount: (address: string) => void
+}
+
+export const WalletSelector: React.FC<WalletSelectorParams> = ({
+  accounts,
+  selectedAccount,
+  selectAccount
+}) => (
+  <NativeSelect
+    value={selectedAccount?.address || ''}
+    onChange={e => selectAccount(e.target.value)}
+  >
+    {accounts.map(account => (
+      <option key={account.address} value={account.address}>
+        {`${truncateString(account.meta.name || 'No name')} (${shortenHash(account.address)})`}
+      </option>
+    ))}
+  </NativeSelect>
+)
+
 const Wallets: React.FC = () => {
   const { address } = useAccount()
-  const { extensions, accounts, selectedAccount, selectAccount } = useAccounts()
+  const {
+    loading,
+    extensions,
+    accounts,
+    selectedAccount,
+    connectWallet,
+    selectAccount
+  } = useAccounts()
+
+  const handleXxLogin = useCallback(async () => {
+    await connectWallet()
+  }, [connectWallet])
 
   // Select account 0 if no account is selected
   useEffect(() => {
@@ -23,23 +59,43 @@ const Wallets: React.FC = () => {
   return (
     <Stack direction="row" gap="10px" key={address} alignItems="center">
       {extensions.length !== 0 && accounts.length > 0 && (
-        <>
-          <NativeSelect
-            value={selectedAccount?.address || ''}
-            onChange={e => selectAccount(e.target.value)}
-          >
-            {accounts.map(account => (
-              <option key={account.address} value={account.address}>
-                {`${truncateString(account.meta.name || 'No name')} (${shortenHash(account.address)})`}
-              </option>
-            ))}
-          </NativeSelect>
-        </>
+        <NativeSelect
+          value={selectedAccount?.address || ''}
+          onChange={e => selectAccount(e.target.value)}
+        >
+          {accounts.map(account => (
+            <option key={account.address} value={account.address}>
+              {`${truncateString(account.meta.name || 'No name')} (${shortenHash(account.address)})`}
+            </option>
+          ))}
+        </NativeSelect>
       )}
-      {extensions.length !== 0 && accounts.length === 0 && (
-        <div>Extension found, but no accounts connected</div>
+      {(extensions.length === 0 || !accounts) && (
+        <Stack direction="row" gap="10px" alignItems="center">
+          <AutorenewRounded
+            onClick={handleXxLogin}
+            sx={{
+              display: loading ? 'none' : 'block',
+              borderRadius: '50%',
+              padding: '5px',
+              '&:hover': {
+                backgroundColor: 'primary.main'
+              }
+            }}
+          />
+          <CircularProgress
+            size={20}
+            sx={{
+              padding: '5px',
+              display: loading ? 'block' : 'none'
+            }}
+          />
+          {extensions.length !== 0 && accounts.length === 0 && (
+            <div>Extension found, but no accounts connected</div>
+          )}
+          {extensions.length === 0 && <div>xx network wallet not found</div>}
+        </Stack>
       )}
-      {extensions.length === 0 && <div>No wallet extension found</div>}
       <div
         onClick={() => {
           const modal = document.querySelector('body > w3m-modal:nth-child(5)')

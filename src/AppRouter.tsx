@@ -6,7 +6,6 @@ import NotFound from './pages/NotFound'
 // Files
 import Bridge from './pages/Bridge.tsx'
 import NavBar from './components/NavBar/index.tsx'
-import AccountsProvider from './plugins/substrate/components/AccountsProvider.tsx'
 import { useSwitchToSupportedNetwork } from './hooks/useWagmi.ts'
 import { localConfig } from './plugins/wagmi.tsx'
 import Loading from './components/Utils/Loading.tsx'
@@ -39,7 +38,7 @@ const AppRouter: React.FC = () => {
         <Route
           path="/"
           element={
-            <AccountsProvider>
+            <>
               {isLoading ? (
                 <Loading
                   sx={{
@@ -53,7 +52,7 @@ const AppRouter: React.FC = () => {
               ) : (
                 <NavBar />
               )}
-            </AccountsProvider>
+            </>
           }
         >
           <Route path="/" element={<Bridge />} />

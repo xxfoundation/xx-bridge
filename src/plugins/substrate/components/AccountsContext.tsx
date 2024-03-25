@@ -7,11 +7,13 @@ import { Signer } from '@polkadot/api/types'
 
 export type AccountsContextType = {
   loading: boolean
+  error: string | undefined
   extensions: InjectedExtension[]
   accounts: InjectedAccountWithMeta[]
   selectedAccount?: InjectedAccountWithMeta
   selectAccount: (address: string) => void
   getSigner(): Signer | undefined
+  connectWallet(): Promise<void>
 }
 
 const AccountsContext: React.Context<AccountsContextType> = React.createContext(
