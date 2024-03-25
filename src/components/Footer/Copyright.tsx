@@ -1,6 +1,6 @@
 import { Link, Typography } from '@mui/material'
 import React from 'react'
-import StyledStack from '../Custom/StyledStack'
+import StyledStack from '../custom/StyledStack'
 
 const Copyright: React.FC = () => (
   <StyledStack endHeight centerWidth>

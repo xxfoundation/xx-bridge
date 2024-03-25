@@ -3,6 +3,7 @@ import { CircularProgress, NativeSelect, Stack } from '@mui/material'
 import { useAccount } from 'wagmi'
 import { AutorenewRounded } from '@mui/icons-material'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
+import EvmWallet from '@/components/custom/Wallets/EvmWallet'
 
 const shortenHash = (hash: string, size: number = 6): string =>
   `${hash.slice(0, size)}...${hash.slice(-size)}`
@@ -72,28 +73,7 @@ const Wallets: React.FC = () => {
           {extensions.length === 0 && <div>xx network wallet not found</div>}
         </Stack>
       )}
-      <div
-        onClick={() => {
-          const modal = document.querySelector('body > w3m-modal:nth-child(5)')
-          if (modal) {
-            ;(modal as HTMLElement).style.zIndex = '10000'
-            ;(modal as HTMLElement).style.backgroundColor = 'rgb(0,0,0,0.7)'
-          }
-
-          const router = modal?.shadowRoot?.querySelector('w3m-router')
-          const accountView =
-            router?.shadowRoot?.querySelector('w3m-account-view')
-          const listItem = accountView?.shadowRoot?.querySelector(
-            'wui-flex:nth-child(2) > wui-list-item:nth-child(2)'
-          )
-
-          if (listItem) {
-            ;(listItem as HTMLElement).style.display = 'none'
-          }
-        }}
-      >
-        <w3m-account-button />
-      </div>
+      <EvmWallet disconnectButton />
     </Stack>
   )
 }

@@ -1,8 +1,8 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Typography } from '@mui/material'
-import StyledStack from '../components/Custom/StyledStack'
-import StyledButton from '../components/Custom/StyledButton'
+import StyledStack from '../components/custom/StyledStack'
+import StyledButton from '../components/custom/StyledButton'
 
 const NotFound: React.FC = () => {
   const navigate = useNavigate()

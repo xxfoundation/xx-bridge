@@ -1,73 +1,129 @@
 import { Tooltip, Typography } from '@mui/material'
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useEnsName } from 'wagmi'
+import { Stack, TypographyProps } from '@mui/system'
+import { Block, Check, CopyAll } from '@mui/icons-material'
 import { shortenHash, truncateString } from '@/utils'
+import WrappedIcon from './WrappedIcon'
+import DisplayAvatar from './DisplayAvatar'
 
 export const placeholderAddressDisplay = 'Unknown Address'
 
-interface DisplayAddressProps {
+interface DisplayAddressProps extends TypographyProps {
+  notComponent?: boolean
   address: string | undefined
+  withAvatar?: boolean
   showAll?: boolean
-  preferAddressOverName?: boolean
+  label?: boolean
   truncateSize?: number
   nickname?: string
-  noTooltip?: boolean
+  tooltip?: boolean
+  blocked?: boolean
+  placement?: 'top' | 'bottom' | 'left' | 'right'
+  copy?: boolean
 }
 
-const DisplayAddress: React.FC<DisplayAddressProps> = ({
+const DisplayAddress: React.FC<DisplayAddressProps> | string = ({
+  notComponent = false,
   address,
+  withAvatar = false,
   showAll = false,
-  preferAddressOverName = false,
-  truncateSize = 15,
-  nickname = '',
-  noTooltip = false
+  label = false,
+  truncateSize = 20,
+  tooltip = false,
+  blocked,
+  placement = 'right',
+  copy = false,
+  ...props
 }) => {
-  const ensName = useEnsName({ address: address as `0x${string}` }).data
+  const ensName = useEnsName({
+    address: address as `0x${string}`,
+    chainId: 1
+  }).data
+
+  const [copied, setCopied] = useState<boolean>(false)
+  useEffect(() => {
+    if (copied) {
+      const timeout = setTimeout(() => {
+        setCopied(false)
+      }, 2000)
+      return () => clearTimeout(timeout)
+    }
+    return () => {}
+  }, [copied])
+
+  const processStr = (str: string) =>
+    showAll ? str : truncateString(str, truncateSize)
+
+  const processAddr = (addr: string | undefined) => {
+    if (addr === placeholderAddressDisplay || !addr) {
+      return placeholderAddressDisplay
+    }
+    return showAll ? addr : shortenHash(addr)
+  }
 
   const displayAddress = useMemo(() => {
-    if (nickname) {
-      return showAll ? nickname : truncateString(nickname, truncateSize)
-    }
     if (ensName) {
-      return showAll ? ensName : truncateString(ensName, truncateSize)
+      return processStr(label ? ensName : processStr(ensName))
     }
-    if (address === placeholderAddressDisplay || !address) {
-      return placeholderAddressDisplay
+    if (!ensName) {
+      return processAddr(address)
     }
-    return showAll ? address : shortenHash(address)
-  }, [nickname, ensName, address])
+    return processAddr(address)
+  }, [label, ensName, address])
 
-  const displayPreferedAddress = useMemo(() => {
-    if (nickname && ensName) {
-      return showAll ? ensName : truncateString(ensName, truncateSize)
-    }
-    if (!nickname && !ensName) {
-      return ''
-    }
-    if (address === placeholderAddressDisplay || !address) {
-      return placeholderAddressDisplay
-    }
-    return showAll ? address : shortenHash(address)
-  }, [nickname, ensName, address])
+  const displayValue = useMemo(
+    () => (
+      <Stack direction="row" spacing={1} justifyContent="center">
+        <Typography
+          variant="body1"
+          fontFamily={ensName ? 'inherit' : 'monospace'}
+          {...props}
+        >
+          {displayAddress}
+        </Typography>
+        {blocked && <Block fontSize="small" />}
+      </Stack>
+    ),
+    [displayAddress, props, ensName, label]
+  )
 
-  return noTooltip ? (
-    <Typography
-      variant="body1"
-      fontWeight="bold"
-      fontFamily={ensName ? 'inherit' : 'monospace'}
-    >
-      {preferAddressOverName ? displayPreferedAddress : displayAddress}
-    </Typography>
-  ) : (
-    <Tooltip title={address} placement="right">
-      <Typography
-        variant="body1"
-        fontWeight="bold"
-        fontFamily={ensName ? 'inherit' : 'monospace'}
+  if (notComponent) {
+    return displayAddress
+  }
+
+  return (
+    <>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        justifyContent="flex-start"
       >
-        {preferAddressOverName ? displayPreferedAddress : displayAddress}
-      </Typography>
-    </Tooltip>
+        {withAvatar && address && (
+          <DisplayAvatar address={address} size="small" />
+        )}
+        {tooltip ? (
+          <Tooltip title={address} placement={placement}>
+            {displayValue}
+          </Tooltip>
+        ) : (
+          displayValue
+        )}
+        {copy &&
+          (copied ? (
+            <Check fontSize="small" />
+          ) : (
+            <WrappedIcon
+              icon={<CopyAll />}
+              onClick={() => {
+                navigator.clipboard.writeText(address as string)
+                setCopied(true)
+              }}
+            />
+          ))}
+      </Stack>
+    </>
   )
 }
 

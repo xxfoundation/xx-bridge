@@ -3,7 +3,7 @@ import React from 'react'
 import { X, Telegram } from '@mui/icons-material'
 import discordLogo from '@/assets/socials/discord.svg'
 import xxNetworkLogo from '@/assets/xxnetwork/xxnetworkLogo.svg'
-import StyledStack from '../Custom/StyledStack'
+import StyledStack from '../custom/StyledStack'
 
 const FooterMobile: React.FC = () => (
   <StyledStack endHeight centerWidth>

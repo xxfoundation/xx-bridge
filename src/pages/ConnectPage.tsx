@@ -2,10 +2,10 @@ import React from 'react'
 import { Typography, useMediaQuery } from '@mui/material'
 import landscape from '../assets/logo/png/xxbridge.png'
 
-import ImageWrapper from '../components/Custom/ImageWrapper'
-import StyledStack from '../components/Custom/StyledStack'
+import ImageWrapper from '../components/custom/ImageWrapper'
+import StyledStack from '../components/custom/StyledStack'
 import Login from '../components/User/Login'
-import xxbridge from '@/components/Custom/XXBridge'
+import xxbridge from '@/components/custom/XXBridge'
 
 const MobileMessage: React.FC = () => (
   <StyledStack centerHeight centerWidth>

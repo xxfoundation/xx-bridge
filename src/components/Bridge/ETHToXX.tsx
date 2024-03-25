@@ -15,7 +15,7 @@ import {
   useContractRead,
   useFeeData
 } from 'wagmi'
-import StyledButton from '../Custom/StyledButton'
+import StyledButton from '../custom/StyledButton'
 import {
   convertXXAddress,
   encodeBridgeDeposit,
@@ -23,7 +23,7 @@ import {
   isValidXXNetworkAddress,
   shortenHash
 } from '@/utils'
-import CurrencyInputField from '../Custom/CurrencyInputField'
+import CurrencyInputField from '../custom/CurrencyInputField'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import {
   GAS_ESTIMATE_APPROVE,
@@ -40,7 +40,7 @@ import TransferETHToXX from './TransferETHToXX'
 import contracts from '@/contracts'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import theme from '@/theme'
-import Balance from '../Custom/Balance'
+import Balance from '../custom/Balance'
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,

@@ -1,5 +1,5 @@
 import { Alert, Stack } from '@mui/material'
-import { ConnectEthereumNetwork, walletStyles } from '../Custom/WalletUtils'
+import { walletStyles, ConnectEthereumNetwork } from '../custom/Wallets/Utils'
 
 const Login = () => (
   <Stack

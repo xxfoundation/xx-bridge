@@ -5,8 +5,8 @@ import { useCallback } from 'react'
 import { InjectedAccountWithMeta } from '@polkadot/extension-inject/types'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import { xxNetwork, ethereumMainnet } from '@/consts'
-import StyledButton from './StyledButton'
 import { truncateString, shortenHash } from '@/utils'
+import StyledButton from '@/components/custom/StyledButton'
 
 /* -------------------------------------------------------------------------- */
 /*                                   Styles                                   */

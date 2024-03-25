@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { Divider, Stack, Typography, useMediaQuery } from '@mui/material'
-import StyledStack from '../components/Custom/StyledStack'
+import StyledStack from '../components/custom/StyledStack.tsx'
 import NetworkInfo from '../components/Bridge/NetworkInfo'
 import { Network } from '@/utils'
 import ApiProvider from '../plugins/substrate/components/ApiProvider.tsx'

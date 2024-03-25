@@ -20,11 +20,11 @@ import {
   ethereumMainnet,
   xxNetwork
 } from '@/consts'
-import CurrencyInputField from '../Custom/CurrencyInputField'
-import StyledButton from '../Custom/StyledButton'
+import CurrencyInputField from '../custom/CurrencyInputField'
+import StyledButton from '../custom/StyledButton'
 import TransferXXToETH from './TransferXXToETH'
 import theme from '@/theme'
-import Balance from '../Custom/Balance'
+import Balance from '../custom/Balance'
 
 const XXToETH: React.FC = () => {
   const { address } = useAccount()
