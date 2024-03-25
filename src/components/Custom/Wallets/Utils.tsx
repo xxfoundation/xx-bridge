@@ -1,12 +1,17 @@
-import { CircularProgress, NativeSelect } from '@mui/material'
+import { Box, CircularProgress, NativeSelect } from '@mui/material'
 import { Stack } from '@mui/system'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { disconnect } from 'wagmi/actions'
 import { useCallback } from 'react'
 import { InjectedAccountWithMeta } from '@polkadot/extension-inject/types'
+import { Cancel } from '@mui/icons-material'
+import { useAccount } from 'wagmi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
-import { xxNetwork, ethereumMainnet } from '@/consts'
+import { xxNetwork, ethereumMainnet, Network } from '@/consts'
 import { truncateString, shortenHash } from '@/utils'
 import StyledButton from '@/components/custom/StyledButton'
+import useSessionStorage from '@/hooks/useSessionStorage'
+import WrappedIcon from '../WrappedIcon'
 
 /* -------------------------------------------------------------------------- */
 /*                                   Styles                                   */
@@ -82,6 +87,51 @@ export const WalletSelector: React.FC<WalletSelectorParams> = ({
 )
 
 /* -------------------------------------------------------------------------- */
+/*                             General Components                             */
+/* -------------------------------------------------------------------------- */
+
+export const NetworkLogo: React.FC<{
+  network: Network
+  onClick?: () => {}
+}> = ({ network, onClick }) => (
+  <Box onClick={onClick}>
+    <img
+      src={network.gasToken.symbol}
+      width={30}
+      height={30}
+      style={{ borderRadius: '50%' }}
+      alt={network.gasToken.code}
+    />
+  </Box>
+)
+
+export const MobileWalletsDisplay: React.FC = () => {
+  const [fromXX] = useSessionStorage<boolean>('fromNative')
+  const { isConnected } = useAccount()
+  const { selectedAccount } = useAccounts()
+  return (
+    <Stack direction="row" gap="5px">
+      <Stack
+        direction={fromXX ? 'row' : 'row-reverse'}
+        gap="5px"
+        alignItems="center"
+      >
+        {selectedAccount && selectedAccount.address && (
+          <NetworkLogo network={xxNetwork} />
+        )}
+        {isConnected && <NetworkLogo network={ethereumMainnet} />}
+      </Stack>
+      <WrappedIcon
+        icon={<Cancel />}
+        onClick={() => {
+          disconnect()
+        }}
+      />
+    </Stack>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
 /*                            Substrate Components                            */
 /* -------------------------------------------------------------------------- */
 
@@ -129,13 +179,7 @@ export const ConnectSubstrateNetwork: React.FC<{
           )}
         </Stack>
       )}
-      <img
-        src={xxNetwork.gasToken.symbol}
-        width={30}
-        height={30}
-        style={{ borderRadius: '50%' }}
-        alt={xxNetwork.gasToken.code}
-      />
+      <NetworkLogo network={xxNetwork} />
     </Stack>
   )
 }

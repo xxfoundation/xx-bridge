@@ -41,8 +41,24 @@ export const MAX_UINT256 = BigInt(
   '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
 )
 
+export type Network = {
+  name: string
+  gasToken: {
+    code: string
+    symbol: string
+    decimals: number
+  }
+  token?: {
+    name: string
+    address: string
+    code: string
+    symbol: string
+    decimals: number
+  }
+}
+
 // Network definitions
-export const ethereumMainnet = {
+export const ethereumMainnet: Network = {
   name: 'Ethereum Mainnet',
   gasToken: {
     code: 'ETH',
@@ -58,7 +74,7 @@ export const ethereumMainnet = {
   }
 }
 
-export const xxNetwork = {
+export const xxNetwork: Network = {
   name: 'xx network',
   gasToken: {
     code: 'XX',

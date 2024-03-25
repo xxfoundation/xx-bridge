@@ -9,13 +9,14 @@ import ETHToXX from '@/components/Bridge/ETHToXX.tsx'
 import XXToETH from '@/components/Bridge/XXToETH.tsx'
 import { ethereumMainnet, xxNetwork } from '@/consts.ts'
 import theme from '@/theme.ts'
+import useSessionStorage from '@/hooks/useSessionStorage.ts'
 
 const Bridge: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
   const [source, setSource] = useState<Network>(ethereumMainnet)
   const [dest, setDest] = useState<Network>(xxNetwork)
   const [switching, setSwitching] = useState<boolean>(false)
-  const [fromXX, setFromXX] = useState<boolean>(false)
+  const [fromXX, setFromXX] = useSessionStorage<boolean>('fromNative', false)
 
   // Switch networks
   const switchNetworks = useCallback(() => {

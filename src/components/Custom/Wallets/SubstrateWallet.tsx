@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect } from 'react'
 import { CircularProgress, NativeSelect, Stack } from '@mui/material'
-import { useAccount } from 'wagmi'
 import { AutorenewRounded } from '@mui/icons-material'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
-import EvmWallet from '@/components/custom/Wallets/EvmWallet'
 
 const shortenHash = (hash: string, size: number = 6): string =>
   `${hash.slice(0, size)}...${hash.slice(-size)}`
@@ -11,8 +9,7 @@ const shortenHash = (hash: string, size: number = 6): string =>
 const truncateString = (str: string, length: number = 15): string =>
   str.length > length ? `${str.substring(0, length)}...` : str
 
-const Wallets: React.FC = () => {
-  const { address } = useAccount()
+const SubstrateWallet: React.FC = () => {
   const {
     loading,
     extensions,
@@ -34,8 +31,8 @@ const Wallets: React.FC = () => {
   }, [accounts, selectedAccount, selectAccount])
 
   return (
-    <Stack direction="row" gap="10px" key={address} alignItems="center">
-      {extensions.length !== 0 && accounts.length > 0 && (
+    <Stack direction="row" gap="10px" alignItems="center">
+      {extensions.length !== 0 && accounts.length > 0 ? (
         <NativeSelect
           value={selectedAccount?.address || ''}
           onChange={e => selectAccount(e.target.value)}
@@ -46,8 +43,7 @@ const Wallets: React.FC = () => {
             </option>
           ))}
         </NativeSelect>
-      )}
-      {(extensions.length === 0 || !accounts) && (
+      ) : (
         <Stack direction="row" gap="10px" alignItems="center">
           <AutorenewRounded
             onClick={handleXxLogin}
@@ -73,9 +69,8 @@ const Wallets: React.FC = () => {
           {extensions.length === 0 && <div>xx network wallet not found</div>}
         </Stack>
       )}
-      <EvmWallet disconnectButton />
     </Stack>
   )
 }
 
-export default Wallets
+export default SubstrateWallet

@@ -30,9 +30,12 @@ const getStyles = (styleParams: StyleParams) => ({
       color: theme.palette.primary.contrastText
     }
   },
-  topBarMenuButton: {
-    marginRight: 2,
-    display: { tablet: 'none' }
+  topBarLogo: {
+    width: '100px',
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)'
   },
   outlet: {
     width: {
