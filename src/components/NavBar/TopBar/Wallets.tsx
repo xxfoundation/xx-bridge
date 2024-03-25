@@ -2,7 +2,6 @@ import React, { useCallback, useEffect } from 'react'
 import { CircularProgress, NativeSelect, Stack } from '@mui/material'
 import { useAccount } from 'wagmi'
 import { AutorenewRounded } from '@mui/icons-material'
-import { InjectedAccountWithMeta } from '@polkadot/extension-inject/types'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 
 const shortenHash = (hash: string, size: number = 6): string =>
@@ -10,29 +9,6 @@ const shortenHash = (hash: string, size: number = 6): string =>
 
 const truncateString = (str: string, length: number = 15): string =>
   str.length > length ? `${str.substring(0, length)}...` : str
-
-interface WalletSelectorParams {
-  accounts: InjectedAccountWithMeta[]
-  selectedAccount: InjectedAccountWithMeta
-  selectAccount: (address: string) => void
-}
-
-export const WalletSelector: React.FC<WalletSelectorParams> = ({
-  accounts,
-  selectedAccount,
-  selectAccount
-}) => (
-  <NativeSelect
-    value={selectedAccount?.address || ''}
-    onChange={e => selectAccount(e.target.value)}
-  >
-    {accounts.map(account => (
-      <option key={account.address} value={account.address}>
-        {`${truncateString(account.meta.name || 'No name')} (${shortenHash(account.address)})`}
-      </option>
-    ))}
-  </NativeSelect>
-)
 
 const Wallets: React.FC = () => {
   const { address } = useAccount()
