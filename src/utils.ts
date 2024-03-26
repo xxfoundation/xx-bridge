@@ -93,7 +93,6 @@ export const createStyleVariables = (cssPropertyValue: object) => {
       const value = cssProperty[1] as string
       const name = camelToKebabCase(key)
       const style = { [name]: value }
-      console.log(style)
       return style
     })
     .reduce((acc, cur) => ({ ...acc, ...cur }), {})

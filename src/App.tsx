@@ -6,6 +6,7 @@ import { WagmiConfig } from 'wagmi'
 import { init as initWagmi, wagmiConfig } from './plugins/wagmi.tsx'
 import AppRouter from './AppRouter.tsx'
 import AccountsProvider from './plugins/substrate/components/AccountsProvider.tsx'
+import ApiProvider from './plugins/substrate/components/ApiProvider.tsx'
 
 // Initialize wagmi
 try {
@@ -27,7 +28,9 @@ const App: React.FC = () => (
       >
         <BrowserRouter>
           <AccountsProvider>
-            <AppRouter />
+            <ApiProvider>
+              <AppRouter />
+            </ApiProvider>
           </AccountsProvider>
         </BrowserRouter>
       </div>

@@ -1,22 +1,28 @@
 // Copyright 2023 @paritytech/polkadot-staking-dashboard authors & contributors
 // SPDX-License-Identifier: GPL-3.0-only
 
-import { FC, useCallback, useEffect, useMemo, useState } from 'react'
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   InjectedAccountWithMeta,
-  InjectedExtension
+  InjectedExtension,
+  Unsubcall
 } from '@polkadot/extension-inject/types'
 import { web3AccountsSubscribe, web3Enable } from '@polkadot/extension-dapp'
 import { WithChildren } from '../types'
 import AccountsContext, { AccountsContextType } from './AccountsContext'
 import { isValidXXNetworkAddress } from '@/utils'
+import useSessionStorage from '@/hooks/useSessionStorage'
 
 const AccountsProvider: FC<WithChildren> = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | undefined>()
   const [extensions, setExtensions] = useState<InjectedExtension[]>([])
   const [subscribed, setSubscribed] = useState(false)
-  const [accounts, setAccounts] = useState<InjectedAccountWithMeta[]>([])
+  const accountsUnsubscriber = useRef<Unsubcall>()
+  const [accounts, setAccounts] = useSessionStorage<InjectedAccountWithMeta[]>(
+    'substrateAccounts',
+    []
+  )
 
   // Selected account
   const [selectedAccount, setSelectedAccount] =
@@ -34,7 +40,6 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
   const connectWallet = useCallback(async () => {
     setLoading(true)
     try {
-      console.log('Connecting wallet')
       const ext = await web3Enable('xx bridge')
       if (!ext) {
         throw new Error('No extensions found')
@@ -43,16 +48,17 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
     } catch (err: any) {
       console.error(err)
       setError(err.message)
-      console.log('Error connecting wallet', err.message)
       setLoading(false)
     }
 
     if (!subscribed) {
-      web3AccountsSubscribe(subscribedAccounts, { ss58Format: 55 }).catch(
-        err => {
+      web3AccountsSubscribe(subscribedAccounts, { ss58Format: 55 })
+        .then(res => {
+          accountsUnsubscriber.current = res
+        })
+        .catch(err => {
           console.error(err)
-        }
-      )
+        })
       setSubscribed(true)
     }
     setLoading(false)

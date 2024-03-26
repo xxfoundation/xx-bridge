@@ -91,14 +91,21 @@ export const WalletSelector: React.FC<WalletSelectorParams> = ({
 /* -------------------------------------------------------------------------- */
 
 export const NetworkLogo: React.FC<{
-  network: Network
+  network: Network | Omit<Network, 'token'>
+  textSize?: boolean
   onClick?: () => {}
-}> = ({ network, onClick }) => (
-  <Box onClick={onClick}>
+}> = ({ network, textSize, onClick }) => (
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center'
+    }}
+    onClick={onClick}
+  >
     <img
       src={network.gasToken.symbol}
-      width={30}
-      height={30}
+      height={textSize ? '25px' : 30}
+      width={textSize ? 'auto' : 30}
       style={{ borderRadius: '50%' }}
       alt={network.gasToken.code}
     />

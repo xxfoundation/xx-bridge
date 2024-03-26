@@ -2,6 +2,8 @@ import React, { useMemo } from 'react'
 import { useEnsAvatar, useEnsName } from 'wagmi'
 import { Avatar } from '@mui/material'
 import defaultAvatar from '@/assets/avatar/profile.svg'
+import { NetworkLogo } from './Wallets/Utils'
+import { ethereumMainnet } from '@/consts'
 
 interface DisplayAvatarProps {
   address: string
@@ -45,17 +47,23 @@ const DisplayAvatar: React.FC<DisplayAvatarProps> = ({
   )
 
   return (
-    <Avatar
-      {...props}
-      style={{
-        border: 'none',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-    >
-      {avatarImg}
-    </Avatar>
+    <>
+      {ensAvatar ? (
+        <Avatar
+          {...props}
+          style={{
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          {avatarImg}
+        </Avatar>
+      ) : (
+        <NetworkLogo network={ethereumMainnet} textSize />
+      )}
+    </>
   )
 }
 

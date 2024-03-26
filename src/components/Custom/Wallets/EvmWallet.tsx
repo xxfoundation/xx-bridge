@@ -1,7 +1,6 @@
-import { Stack } from '@mui/material'
-import React, { useEffect, useMemo, useState } from 'react'
-import { useAccount, useBalance, useNetwork } from 'wagmi'
-import { Box } from '@mui/system'
+import { Divider, Stack, Typography } from '@mui/material'
+import React, { useEffect, useState } from 'react'
+import { useAccount, useBalance } from 'wagmi'
 import { Cancel } from '@mui/icons-material'
 import { disconnect } from 'wagmi/actions'
 import { formatBalance } from '@/utils'
@@ -20,15 +19,12 @@ const EvmWallet: React.FC<EvmWalletProps> = ({
   showAll = false
 }) => {
   const { address } = useAccount()
-  const { chain } = useNetwork()
   const { data } = useBalance({
     address,
     watch: true
   })
 
   const [balance, setBalance] = useState<string | undefined>()
-  const isGoerli = useMemo(() => chain?.name === 'Goerli', [chain])
-  const symbol = useMemo(() => chain?.nativeCurrency?.symbol, [chain])
 
   useEffect(() => {
     if (data) {
@@ -43,36 +39,39 @@ const EvmWallet: React.FC<EvmWalletProps> = ({
         display: 'flex',
         alignItems: 'center',
         borderRadius: '16px',
-        padding: '5px',
+        padding: '5px 10px',
         backgroundColor: 'background.grey',
         color: 'text.primary',
-        fontSize: '0.9em'
+        fontSize: '0.9em',
+        gap: '10px'
       }}
     >
-      {showBalance && balance && (
-        <Box
-          sx={{
-            padding: '10px'
-          }}
-        >
-          {balance} {isGoerli ? `Goerli${symbol}` : symbol}
-        </Box>
-      )}
-      <Box
+      <DisplayAddress
+        withAvatar
+        address={address}
+        truncateSize={30}
+        textTransform="none"
+        placement="bottom"
+        fontStyle="bold"
+        fontSize="15px"
+        showAll={showAll}
+        tooltip
+      />
+      <Divider
+        orientation="vertical"
+        flexItem
         sx={{
-          paddingRight: '5px'
+          height: '1em',
+          width: '1px',
+          backgroundColor: 'text.primary'
         }}
-      >
-        <DisplayAddress
-          withAvatar
-          address={address}
-          truncateSize={30}
-          textTransform="none"
-          placement="bottom"
-          fontStyle="bold"
-          showAll={showAll}
-        />
-      </Box>
+      />
+      {showBalance && balance && (
+        <Typography>
+          {balance}
+          {' ETH'}
+        </Typography>
+      )}
       {disconnectButton && (
         <WrappedIcon
           icon={<Cancel />}

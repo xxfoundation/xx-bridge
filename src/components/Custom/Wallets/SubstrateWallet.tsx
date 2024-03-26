@@ -1,13 +1,51 @@
-import React, { useCallback, useEffect } from 'react'
-import { CircularProgress, NativeSelect, Stack } from '@mui/material'
+import React, { useCallback, useEffect, useState } from 'react'
+import { CircularProgress, NativeSelect, Stack, Tooltip } from '@mui/material'
 import { AutorenewRounded } from '@mui/icons-material'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
-
-const shortenHash = (hash: string, size: number = 6): string =>
-  `${hash.slice(0, size)}...${hash.slice(-size)}`
+import { NetworkLogo } from './Utils'
+import { xxNetwork } from '@/consts'
+import useSessionStorage from '@/hooks/useSessionStorage'
+import useApi from '@/plugins/substrate/hooks/useApi'
+import { formatBalance } from '@/utils'
 
 const truncateString = (str: string, length: number = 15): string =>
   str.length > length ? `${str.substring(0, length)}...` : str
+
+const BalanceDisplay: React.FC<{ addr: string | undefined }> = ({ addr }) => {
+  const { api } = useApi()
+
+  const [xxBalance, setXXBalance] = useState<string>('0')
+
+  useEffect(() => {
+    if (api && addr) {
+      api?.query?.system
+        ?.account(addr)
+        .then(({ data }) => {
+          if (data) {
+            const balance = data.free.add(data.reserved)
+            setXXBalance(formatBalance(balance.toString(), 9, 4))
+          }
+        })
+        .catch(console.error)
+    }
+  }, [api, addr])
+
+  return (
+    <Stack
+      direction="row"
+      gap="10px"
+      sx={{
+        padding: '10px',
+        borderRadius: '10px',
+        backgroundColor: 'background.grey',
+        color: 'text.primary'
+      }}
+    >
+      {`${xxBalance || '0'}`}
+      <NetworkLogo network={xxNetwork} textSize />
+    </Stack>
+  )
+}
 
 const SubstrateWallet: React.FC = () => {
   const {
@@ -18,6 +56,8 @@ const SubstrateWallet: React.FC = () => {
     connectWallet,
     selectAccount
   } = useAccounts()
+
+  const [fromXX] = useSessionStorage('fromNative')
 
   const handleXxLogin = useCallback(async () => {
     await connectWallet()
@@ -31,18 +71,45 @@ const SubstrateWallet: React.FC = () => {
   }, [accounts, selectedAccount, selectAccount])
 
   return (
-    <Stack direction="row" gap="10px" alignItems="center">
+    <Stack
+      direction={fromXX ? 'row' : 'row-reverse'}
+      gap="10px"
+      alignItems="center"
+    >
       {extensions.length !== 0 && accounts.length > 0 ? (
-        <NativeSelect
-          value={selectedAccount?.address || ''}
-          onChange={e => selectAccount(e.target.value)}
-        >
-          {accounts.map(account => (
-            <option key={account.address} value={account.address}>
-              {`${truncateString(account.meta.name || 'No name')} (${shortenHash(account.address)})`}
-            </option>
-          ))}
-        </NativeSelect>
+        <>
+          {selectedAccount && (
+            <BalanceDisplay addr={selectedAccount?.address} />
+          )}
+          <Tooltip
+            key={selectedAccount?.address}
+            title={selectedAccount?.address || ''}
+            sx={{
+              fontSize: '0.9em',
+              fontFamily: 'monospace'
+            }}
+          >
+            <NativeSelect
+              value={selectedAccount?.address || ''}
+              onChange={e => selectAccount(e.target.value)}
+              sx={{
+                padding: '11px 10px',
+                borderRadius: '10px',
+                backgroundColor: 'background.grey',
+                color: 'text.primary',
+                select: {
+                  padding: 0
+                }
+              }}
+            >
+              {accounts.map(account => (
+                <option key={account.address} value={account.address}>
+                  {`[${account.meta.source || '?'}] ${truncateString(account.meta.name || 'No name')}`}
+                </option>
+              ))}
+            </NativeSelect>
+          </Tooltip>
+        </>
       ) : (
         <Stack direction="row" gap="10px" alignItems="center">
           <AutorenewRounded

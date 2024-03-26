@@ -96,7 +96,7 @@ const DisplayAddress: React.FC<DisplayAddressProps> | string = ({
     <>
       <Stack
         direction="row"
-        spacing={1}
+        spacing="10px"
         alignItems="center"
         justifyContent="flex-start"
       >

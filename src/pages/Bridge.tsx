@@ -3,7 +3,6 @@ import { Divider, Stack, Typography, useMediaQuery } from '@mui/material'
 import StyledStack from '../components/custom/StyledStack.tsx'
 import NetworkInfo from '../components/Bridge/NetworkInfo'
 import { Network } from '@/utils'
-import ApiProvider from '../plugins/substrate/components/ApiProvider.tsx'
 import Loading from '@/components/Utils/Loading.tsx'
 import ETHToXX from '@/components/Bridge/ETHToXX.tsx'
 import XXToETH from '@/components/Bridge/XXToETH.tsx'
@@ -30,48 +29,46 @@ const Bridge: React.FC = () => {
   }, [fromXX, source, dest])
 
   return (
-    <ApiProvider>
-      <StyledStack
-        direction="column"
-        margin="auto"
-        width={isMobile ? '90%' : '80%'}
-        height="inherit"
-        centerWidth
-        centerHeight
-      >
-        {switching ? (
-          <Stack
-            direction="column"
-            spacing={2}
-            padding={5}
-            alignItems="center"
-            sx={{ height: '100vh' }}
-          >
-            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-              Switching Networks
-            </Typography>
-            <Loading size="sm2" />
-          </Stack>
-        ) : (
-          <Stack
-            sx={{
-              width: 'inherit',
-              height: 'inherit',
-              backgroundColor: 'background.dark',
-              borderRadius: '18px'
-            }}
-          >
-            <NetworkInfo
-              source={source}
-              dest={dest}
-              setSwitching={switchNetworks}
-            />
-            <Divider />
-            {fromXX ? <XXToETH /> : <ETHToXX />}
-          </Stack>
-        )}
-      </StyledStack>
-    </ApiProvider>
+    <StyledStack
+      direction="column"
+      margin="auto"
+      width={isMobile ? '90%' : '80%'}
+      height="inherit"
+      centerWidth
+      centerHeight
+    >
+      {switching ? (
+        <Stack
+          direction="column"
+          spacing={2}
+          padding={5}
+          alignItems="center"
+          sx={{ height: '100vh' }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+            Switching Networks
+          </Typography>
+          <Loading size="sm2" />
+        </Stack>
+      ) : (
+        <Stack
+          sx={{
+            width: 'inherit',
+            height: 'inherit',
+            backgroundColor: 'background.dark',
+            borderRadius: '18px'
+          }}
+        >
+          <NetworkInfo
+            source={source}
+            dest={dest}
+            setSwitching={switchNetworks}
+          />
+          <Divider />
+          {fromXX ? <XXToETH /> : <ETHToXX />}
+        </Stack>
+      )}
+    </StyledStack>
   )
 }
 

@@ -48,7 +48,7 @@ export type Network = {
     symbol: string
     decimals: number
   }
-  token?: {
+  token: {
     name: string
     address: string
     code: string
@@ -74,7 +74,7 @@ export const ethereumMainnet: Network = {
   }
 }
 
-export const xxNetwork: Network = {
+export const xxNetwork: Omit<Network, 'token'> = {
   name: 'xx network',
   gasToken: {
     code: 'XX',

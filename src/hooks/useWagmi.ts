@@ -54,14 +54,12 @@ export const useSwitchToSupportedNetwork = () => {
         chains &&
         !supportedNetworkIds.map(network => network.id).includes(chain.id)
       ) {
-        console.log('switching network')
         const res = await addNetworkChain(localConfig)
         if (!res) {
           console.error('Error adding network')
           return
         }
         await switchNetworkAsync?.(id)
-        console.log('network switched')
       }
     },
     [chain, chains, switchNetworkAsync]
