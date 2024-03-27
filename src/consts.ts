@@ -41,6 +41,11 @@ export const MAX_UINT256 = BigInt(
   '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
 )
 
+export const BRIDGE_SPENDING_LIMIT = BigInt(
+  // 1 billion * 1e9 in hexadecimal
+  '0xDE0B6B3A7640000'
+)
+
 export type Network = {
   name: string
   gasToken: {

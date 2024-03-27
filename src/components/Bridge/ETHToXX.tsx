@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Divider,
   Stack,
@@ -41,6 +41,7 @@ import contracts from '@/contracts'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import theme from '@/theme'
 import Balance from '../custom/Balance'
+import Loading from '../Utils/Loading'
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,
@@ -48,7 +49,6 @@ const estimateGasBridgeDeposit = async (
   to: string,
   amount: bigint
 ): Promise<bigint | undefined> => {
-  // Encode the deposit data
   const data = encodeBridgeDeposit(to, amount)
   try {
     const gas = await client.estimateContractGas({
@@ -59,8 +59,8 @@ const estimateGasBridgeDeposit = async (
       account: address || '0x'
     })
     return gas
-  } catch (error) {
-    return undefined
+  } catch (error: any) {
+    throw new Error(`Error estimating gas: ${error.message}`)
   }
 }
 
@@ -81,7 +81,8 @@ const ETHToXX: React.FC = () => {
   const [ethBalance, setEthBalance] = useState<string>('0')
   const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
   const [xxBalance, setXXBalance] = useState<string>('0')
-  const [needAllowance, setNeedAllowance] = useState<boolean>(false)
+  const [allowance, setAllowance] = useState<string>()
+  const [needApprove, setNeedApprove] = useState<boolean>(false)
   const [startTransfer, setStartTransfer] = useState<boolean>(false)
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
@@ -100,6 +101,8 @@ const ETHToXX: React.FC = () => {
         setError(undefined)
         if (value) {
           setTransferValue(BigInt(value * 10 ** ethereumMainnet.token.decimals))
+        } else {
+          setTransferValue(BigInt(0))
         }
       }
       setInput(value)
@@ -125,50 +128,37 @@ const ETHToXX: React.FC = () => {
   }, [])
 
   // Network fees
-  const {
-    data: feeData,
-    isError: feeError,
-    isLoading: feeLoading
-  } = useFeeData({
-    watch: true
-  })
-  useEffect(() => {
-    // TODO loading?
-    if (feeError) {
-      // TODO:
-    } else if (feeData !== undefined && feeData.gasPrice) {
-      // Add 10% for faster txs
-      setGasPrice(Number(feeData.gasPrice) * 1.1)
+  const { isError: feeError, isLoading: feeLoading } = useFeeData({
+    watch: true,
+    onSuccess: (data: any) => {
+      if (data && data.gasPrice) {
+        // Add 10% for faster txs
+        setGasPrice(Number(data.gasPrice) * 1.1)
+      }
     }
-  }, [feeData, feeError, feeLoading])
+  })
 
-  // Get account balances
+  /* -------------------------------------------------------------------------- */
+  /*                            Get account balances                            */
+  /* -------------------------------------------------------------------------- */
 
   // ETH
-  const {
-    data: ethBal,
-    isError: ethError,
-    isLoading: ethLoading
-  } = useBalance({
+  const { isError: ethError, isLoading: ethLoading } = useBalance({
     address,
-    watch: true
-  })
-  useEffect(() => {
-    // TODO loading?
-    if (ethError) {
-      // TODO:
+    watch: true,
+    onSuccess: (data: any) => {
+      if (data) {
+        setEthBalance(formatBalance(data.value, data.decimals, 4))
+      }
+    },
+    onError: (error: Error) => {
+      console.error('Error fetching ETH balance', error)
       setEthBalance('0')
-    } else if (ethBal !== undefined) {
-      // When the balance is updated refetch wrapped xx ones
-      setEthBalance(formatBalance(ethBal.value, ethBal.decimals, 4))
     }
-  }, [ethBal, ethError, ethLoading])
-
-  // Wrapped xx
+  })
 
   // Balance
   const {
-    data: wrappedXXBal,
     isError: wrappedXXError,
     isLoading: wrappedXXLoading,
     refetch: refetchWrappedXX
@@ -176,23 +166,23 @@ const ETHToXX: React.FC = () => {
     address: WRAPPED_XX_ADDRESS,
     abi: contracts.ierc20Abi,
     functionName: 'balanceOf',
-    args: [address as `0x${string}`]
-  })
-  useEffect(() => {
-    // TODO loading?
-    if (wrappedXXError) {
-      // TODO:
+    args: [address as `0x${string}`],
+    watch: true,
+    onSuccess: (data: any) => {
+      if (data !== undefined) {
+        setWrappedXXBalance(
+          formatBalance(data.toString(), ethereumMainnet.token.decimals, 4)
+        )
+      }
+    },
+    onError: (error: Error) => {
+      console.error('Error fetching wrapped XX balance', error)
       setWrappedXXBalance('0')
-    } else if (wrappedXXBal !== undefined) {
-      setWrappedXXBalance(
-        formatBalance(wrappedXXBal, ethereumMainnet.token.decimals, 4)
-      )
     }
-  }, [wrappedXXBal, wrappedXXError, wrappedXXLoading])
+  })
 
   // Allowance
   const {
-    data: wrappedXXAllowance,
     isError: wrappedXXAllowanceError,
     isLoading: wrappedXXAllowanceLoading,
     refetch: refetchAllowance
@@ -200,28 +190,29 @@ const ETHToXX: React.FC = () => {
     address: WRAPPED_XX_ADDRESS,
     abi: contracts.ierc20Abi,
     functionName: 'allowance',
-    args: [address as `0x${string}`, BRIDGE_ERC20_HANDLER_ADDRESS]
-  })
-  useEffect(() => {
-    // TODO loading?
-    if (wrappedXXAllowanceError) {
-      // TODO:
-      setNeedAllowance(false)
-    } else if (wrappedXXAllowance !== undefined && input) {
-      if (parseFloat(wrappedXXAllowance.toString()) < input) {
-        setNeedAllowance(true)
-      } else {
-        setNeedAllowance(false)
+    args: [address as `0x${string}`, BRIDGE_ERC20_HANDLER_ADDRESS],
+    watch: true,
+    onSuccess: (data: any) => {
+      if (data !== undefined) {
+        setAllowance(data.toString())
       }
-    } else {
-      setNeedAllowance(false)
+    },
+    onError: (error: Error) => {
+      console.error('Error fetching allowance', error)
+      setAllowance(undefined)
     }
-  }, [
-    wrappedXXAllowance,
-    wrappedXXAllowanceError,
-    wrappedXXAllowanceLoading,
-    input
-  ])
+  })
+
+  // Check if needs approve
+  useEffect(() => {
+    if (allowance && input) {
+      if (parseFloat(allowance) < input) {
+        setNeedApprove(true)
+      } else {
+        setNeedApprove(false)
+      }
+    }
+  }, [allowance, input])
 
   // Native xx (when recipient set)
   useEffect(() => {
@@ -241,7 +232,7 @@ const ETHToXX: React.FC = () => {
       // If need approve call, then can't estimate bridge deposit since it will
       // fail without the allowance
       // This way, just use the fixed more conservative gas estimates
-      if (needAllowance) {
+      if (needApprove) {
         const fee = (GAS_ESTIMATE_APPROVE + GAS_ESTIMATE_DEPOSIT) * gasPrice
         setFees(formatBalance(BigInt(fee), 18, 6))
       } else if (transferValue && recipient) {
@@ -250,29 +241,82 @@ const ETHToXX: React.FC = () => {
           address,
           convertXXAddress(recipient),
           transferValue
-        ).then(gas => {
-          if (gas) {
-            console.log('Bridge gas estimate', gas)
-            const fee = Number(gas) * gasPrice
-            setFees(formatBalance(BigInt(fee), 18, 6))
-          } else {
+        )
+          .then(gas => {
+            if (gas) {
+              console.log('Bridge gas estimate', gas)
+              const fee = Number(gas) * gasPrice
+              setFees(formatBalance(BigInt(fee), 18, 6))
+            } else {
+              console.error('Error estimating gas: gas returned undefined')
+              setFees('0')
+            }
+          })
+          .catch((err: any) => {
+            console.error(err.message)
             setFees('0')
-          }
-        })
+          })
       }
     } else {
       setFees('0')
     }
-  }, [needAllowance, transferValue, recipient, allowTransfer, gasPrice])
+  }, [needApprove, transferValue, recipient, allowTransfer, gasPrice])
+
+  // Update loading state
+  const loadingState = useMemo(() => {
+    switch (true) {
+      case ethLoading:
+        return 'Fetching ETH balance'
+      case wrappedXXLoading:
+        return 'Fetching Wrapped XX balance'
+      case wrappedXXAllowanceLoading:
+        return 'Fetching Wrapped XX allowance'
+      case feeLoading:
+        return 'Fetching network fees'
+      default:
+        return ''
+    }
+  }, [ethLoading, wrappedXXLoading, wrappedXXAllowanceLoading, feeLoading])
+
+  // Update error state
+  const errorState = useMemo(() => {
+    if (ethError) {
+      return 'Error fetching ETH balance'
+    }
+    if (wrappedXXError) {
+      return 'Error fetching Wrapped XX balance'
+    }
+    if (wrappedXXAllowanceError) {
+      return 'Error fetching Wrapped XX allowance'
+    }
+    if (feeError) {
+      return 'Error fetching network fees'
+    }
+    return ''
+  }, [ethError, wrappedXXError, wrappedXXAllowanceError, feeError])
 
   // Check if transfer is allowed
   useEffect(() => {
-    if (transferValue && !valueError && recipient && !recipientError) {
+    if (
+      transferValue &&
+      !valueError &&
+      recipient &&
+      !recipientError &&
+      !loadingState &&
+      !errorState
+    ) {
       setAllowTransfer(true)
     } else {
       setAllowTransfer(false)
     }
-  }, [transferValue, valueError, recipient, recipientError])
+  }, [
+    transferValue,
+    valueError,
+    recipient,
+    recipientError,
+    loadingState,
+    errorState
+  ])
 
   // Reset
   const reset = useCallback(() => {
@@ -292,6 +336,48 @@ const ETHToXX: React.FC = () => {
         borderRadius: '18px'
       }}
     >
+      {loadingState && (
+        <Loading
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: '#000',
+            opacity: 0.8,
+            zIndex: 1000,
+            borderRadius: '10px',
+            padding: '10%'
+          }}
+        >
+          {loadingState}
+        </Loading>
+      )}
+      {errorState && (
+        <Stack
+          direction="column"
+          spacing="10px"
+          justifyContent="center"
+          alignItems="center"
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: '#000',
+            opacity: 0.8,
+            zIndex: 1000,
+            borderRadius: '10px',
+            padding: '10%'
+          }}
+        >
+          <Typography variant="h4" fontWeight="bold">
+            Error
+          </Typography>
+          <Typography>{errorState}</Typography>
+          <StyledButton onClick={reset}>Retry</StyledButton>
+        </Stack>
+      )}
       {!startTransfer && address && (
         <>
           <Stack
@@ -325,20 +411,12 @@ const ETHToXX: React.FC = () => {
             <Stack direction="row" spacing={1}>
               <Balance
                 icon={ethereumMainnet.gasToken.symbol}
-                balance={
-                  <>
-                    {ethBalance} {ethereumMainnet.gasToken.code}
-                  </>
-                }
+                balance={<>{ethBalance}</>}
                 title="ETH"
               />
               <Balance
                 icon={ethereumMainnet.token.symbol}
-                balance={
-                  <>
-                    {wrappedXXBalance} {ethereumMainnet.token.code}
-                  </>
-                }
+                balance={<>{wrappedXXBalance}</>}
                 title="Wrapped XX"
               />
             </Stack>
@@ -428,7 +506,7 @@ const ETHToXX: React.FC = () => {
       )}
       {startTransfer && (
         <TransferETHToXX
-          approve={needAllowance}
+          approve={needApprove}
           recipient={convertXXAddress(recipient)}
           amount={transferValue}
           reset={reset}

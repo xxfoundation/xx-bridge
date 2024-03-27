@@ -16,12 +16,78 @@ export interface Network {
   }
 }
 
+/**
+ * Formats a number to a string with a suffix
+ * @param {number} value - The first number.
+ * @returns {string} - The converted value into string.
+ * @example const value = 1000
+ * const result = formatValueToSuffix(value)
+ * console.log(result) // 1K
+ */
+const formatValueToSuffix = (
+  value: number,
+  maxDigits: number = 4,
+  decimalDigits: number = 2
+) => {
+  const formatNumber = (num: number, forceDecimal: boolean) => {
+    let numStr = num.toFixed(forceDecimal ? decimalDigits : 0)
+    const [intPart, decPart] = numStr.split('.')
+    if (intPart.length > maxDigits) {
+      // If integer part is longer than maxDigits, truncate and use decimal part
+      const requiredIntDigits = Math.min(intPart.length, maxDigits)
+      const formattedIntPart = intPart.substring(0, requiredIntDigits)
+      const formattedDecPart = decPart
+        ? decPart.substring(0, decimalDigits)
+        : ''
+      numStr =
+        formattedIntPart + (formattedDecPart ? `.${formattedDecPart}` : '')
+    }
+
+    return numStr
+  }
+
+  // Less than 1000, just return the number
+  if (value < 1000) return formatNumber(value, true)
+
+  // Thousands
+  if (value < 1000000) {
+    // Check if the integer part of value is longer than maxDigits
+    if (Math.floor(value).toString().length > maxDigits) {
+      return `${formatNumber(value / 1000, true)}K`
+    }
+
+    // Check if the integer part of kValue is longer than maxDigits
+    if (Math.floor(value / 1000).toString().length > maxDigits) {
+      return `${formatNumber(value / 1000, true)}K`
+    }
+
+    // Integer part is not longer than maxDigits so display entire value
+    return `${formatNumber(value, true)}`
+  }
+
+  // Millions
+  // Check if the integer part of value is longer than maxDigits
+  if (Math.floor(value).toString().length > maxDigits) {
+    return `${formatNumber(value / 1000000, true)}M`
+  }
+
+  // Check if the integer part of kValue is longer than maxDigits
+  if (Math.floor(value / 1000000).toString().length > maxDigits) {
+    return `${formatNumber(value / 1000000, true)}M`
+  }
+
+  // Integer part is not longer than maxDigits so display entire value
+  return `${formatNumber(value, true)}M`
+}
+
 export const formatBalance = (
   balance: bigint | string,
   networkDecimals: number,
-  decimals: number
+  decimals: number = 2
 ): string =>
-  (parseFloat(balance.toString()) * 10 ** (-1 * networkDecimals)).toFixed(
+  formatValueToSuffix(
+    parseFloat(balance.toString()) * 10 ** (-1 * networkDecimals),
+    4,
     decimals
   )
 

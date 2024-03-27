@@ -1,5 +1,5 @@
 import { FC, ReactNode } from 'react'
-import { Box, BoxProps, styled, keyframes } from '@mui/material'
+import { BoxProps, styled, keyframes, Stack } from '@mui/material'
 
 type WithChildren = {
   children?: ReactNode
@@ -101,9 +101,10 @@ const Loading: FC<Props & BoxProps> = ({
     {loading === false ? (
       children
     ) : (
-      <Box
-        {...rest}
+      <Stack
         sx={{
+          flexDirection: 'column',
+          gap: '2rem',
           justifyContent: 'center',
           alignItems: 'center',
           display: 'flex',
@@ -112,7 +113,8 @@ const Loading: FC<Props & BoxProps> = ({
         }}
       >
         <StyledInline size={size} variant={variant} />
-      </Box>
+        {children}
+      </Stack>
     )}
   </>
 )

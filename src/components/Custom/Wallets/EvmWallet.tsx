@@ -28,7 +28,7 @@ const EvmWallet: React.FC<EvmWalletProps> = ({
 
   useEffect(() => {
     if (data) {
-      setBalance(formatBalance(data.value, data.decimals, 4))
+      setBalance(formatBalance(data.value, data.decimals, 2))
     }
   }, [data])
 

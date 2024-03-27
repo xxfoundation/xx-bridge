@@ -16,7 +16,10 @@ import useSessionStorage from '@/hooks/useSessionStorage'
 const AccountsProvider: FC<WithChildren> = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | undefined>()
-  const [extensions, setExtensions] = useState<InjectedExtension[]>([])
+  const [extensions, setExtensions] = useSessionStorage<InjectedExtension[]>(
+    'connectedExtensions',
+    []
+  )
   const [subscribed, setSubscribed] = useState(false)
   const accountsUnsubscriber = useRef<Unsubcall>()
   const [accounts, setAccounts] = useSessionStorage<InjectedAccountWithMeta[]>(

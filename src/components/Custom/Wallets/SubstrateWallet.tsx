@@ -11,24 +11,24 @@ import { formatBalance } from '@/utils'
 const truncateString = (str: string, length: number = 15): string =>
   str.length > length ? `${str.substring(0, length)}...` : str
 
-const BalanceDisplay: React.FC<{ addr: string | undefined }> = ({ addr }) => {
-  const { api } = useApi()
+const BalanceDisplay: React.FC<{ addr: string }> = ({ addr }) => {
+  const { ready, api } = useApi()
 
-  const [xxBalance, setXXBalance] = useState<string>('0')
+  const [xxBalance, setXXBalance] = useState<string | undefined>()
 
   useEffect(() => {
-    if (api && addr) {
+    if (api) {
       api?.query?.system
         ?.account(addr)
         .then(({ data }) => {
           if (data) {
             const balance = data.free.add(data.reserved)
-            setXXBalance(formatBalance(balance.toString(), 9, 4))
+            setXXBalance(formatBalance(balance.toString(), 9, 2))
           }
         })
         .catch(console.error)
     }
-  }, [api, addr])
+  }, [api, ready])
 
   return (
     <Stack
@@ -41,7 +41,7 @@ const BalanceDisplay: React.FC<{ addr: string | undefined }> = ({ addr }) => {
         color: 'text.primary'
       }}
     >
-      {`${xxBalance || '0'}`}
+      <>{!ready ? <CircularProgress size={20} /> : xxBalance}</>
       <NetworkLogo network={xxNetwork} textSize />
     </Stack>
   )
@@ -70,6 +70,8 @@ const SubstrateWallet: React.FC = () => {
     }
   }, [accounts, selectedAccount, selectAccount])
 
+  console.log('extensions', extensions)
+
   return (
     <Stack
       direction={fromXX ? 'row' : 'row-reverse'}
@@ -78,8 +80,8 @@ const SubstrateWallet: React.FC = () => {
     >
       {extensions.length !== 0 && accounts.length > 0 ? (
         <>
-          {selectedAccount && (
-            <BalanceDisplay addr={selectedAccount?.address} />
+          {selectedAccount && selectedAccount.address && (
+            <BalanceDisplay addr={selectedAccount.address} />
           )}
           <Tooltip
             key={selectedAccount?.address}
