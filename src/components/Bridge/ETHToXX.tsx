@@ -246,7 +246,7 @@ const ETHToXX: React.FC = () => {
             if (gas) {
               console.log('Bridge gas estimate', gas)
               const fee = Number(gas) * gasPrice
-              setFees(formatBalance(BigInt(fee), 18, 6))
+              setFees(formatBalance(BigInt(fee.toFixed(0)), 18, 6))
             } else {
               console.error('Error estimating gas: gas returned undefined')
               setFees('0')

@@ -202,7 +202,8 @@ const XXToETH: React.FC = () => {
       relayerFee
     ) {
       // Gas fee + relayer fee
-      const fee = BigInt(GAS_ESTIMATE_RELAYER_FEE * gasPrice) + relayerFee
+      const fee =
+        BigInt((GAS_ESTIMATE_RELAYER_FEE * gasPrice).toFixed(0)) + relayerFee
       setFees(formatBalance(fee, 18, 6))
       // Tx fee for xx swap.transferNative call
       const extrinsic = api.tx.swap.transferNative(
