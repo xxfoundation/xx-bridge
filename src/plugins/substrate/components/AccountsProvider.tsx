@@ -1,11 +1,10 @@
 // Copyright 2023 @paritytech/polkadot-staking-dashboard authors & contributors
 // SPDX-License-Identifier: GPL-3.0-only
 
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FC, useCallback, useEffect, useMemo, useState } from 'react'
 import type {
   InjectedAccountWithMeta,
-  InjectedExtension,
-  Unsubcall
+  InjectedExtension
 } from '@polkadot/extension-inject/types'
 import { web3AccountsSubscribe, web3Enable } from '@polkadot/extension-dapp'
 import { WithChildren } from '../types'
@@ -21,7 +20,6 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
     []
   )
   const [subscribed, setSubscribed] = useState(false)
-  const accountsUnsubscriber = useRef<Unsubcall>()
   const [accounts, setAccounts] = useSessionStorage<InjectedAccountWithMeta[]>(
     'substrateAccounts',
     []
@@ -55,13 +53,11 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
     }
 
     if (!subscribed) {
-      web3AccountsSubscribe(subscribedAccounts, { ss58Format: 55 })
-        .then(res => {
-          accountsUnsubscriber.current = res
-        })
-        .catch(err => {
+      web3AccountsSubscribe(subscribedAccounts, { ss58Format: 55 }).catch(
+        err => {
           console.error(err)
-        })
+        }
+      )
       setSubscribed(true)
     }
     setLoading(false)

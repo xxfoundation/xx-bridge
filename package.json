@@ -20,6 +20,7 @@
     "qa:fix": "npm run-script lint:fix && npm run-script prettier:fix"
   },
   "dependencies": {
+    "@apollo/client": "^3.9.9",
     "@emotion/cache": "^11.11.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
@@ -35,6 +36,8 @@
     "@polkadot/util": "10.4.2",
     "@web3modal/wagmi": "^3.3.2",
     "@xxnetwork/types": "^1.0.4",
+    "graphql": "^16.8.1",
+    "graphql-ws": "^5.16.0",
     "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

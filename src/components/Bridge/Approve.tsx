@@ -1,11 +1,7 @@
 import { Stack, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
-import {
-  useAccount,
-  usePrepareContractWrite,
-  useContractWrite,
-  useWaitForTransaction
-} from 'wagmi'
+import { useAccount, usePrepareContractWrite, useContractWrite } from 'wagmi'
+import { waitForTransaction } from 'wagmi/actions'
 import Loading from '../Utils/Loading'
 import contracts from '@/contracts'
 import {
@@ -50,18 +46,39 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
       args: [BRIDGE_ERC20_HANDLER_ADDRESS, BRIDGE_SPENDING_LIMIT],
       account: address
     })
-  const {
-    data: approveData,
-    write: callApprove,
-    isLoading: approveLoading
-  } = useContractWrite(configApprove)
+  const { writeAsync: callApprove, isLoading: approveLoading } =
+    useContractWrite(configApprove)
 
-  // Wait for approve transaction
-  const { data: approveReceipt, error: errorWaitApprove } =
-    useWaitForTransaction({
-      hash: approveData?.hash || '0x',
-      confirmations: 5
-    })
+  // Approval promise
+  const approvePromise = useCallback(async () => {
+    setStep(Step.Sign)
+    if (callApprove) {
+      console.log(`Executing approval`)
+      callApprove()
+        .then(async data => {
+          if (data?.hash) {
+            try {
+              const approveReceipt = await waitForTransaction({
+                hash: data.hash,
+                confirmations: 5
+              })
+              if (approveReceipt) {
+                console.log(`Approval complete!`)
+                setStep(Step.Done)
+              }
+            } catch (err) {
+              console.error(`Error waiting for approval:`, err)
+              resetAll()
+            }
+          }
+        })
+        .catch(err => {
+          console.error(`Error executing approval:`, err)
+          resetAll()
+        })
+      setStep(Step.Sign)
+    }
+  }, [callApprove])
 
   // State machine
   useEffect(() => {
@@ -78,11 +95,7 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
           console.error('Error executing approve', errorApprove)
           resetAll()
         }
-        if (callApprove) {
-          console.log(`Executing approval`)
-          callApprove()
-          setStep(Step.Sign)
-        }
+        approvePromise()
         break
       }
 
@@ -98,20 +111,12 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
 
       /* ---------------------------- Wait ---------------------------- */
       case Step.Wait: {
-        if (errorWaitApprove) {
-          console.log(`Approval failed!`)
-          resetAll()
-        }
-        if (approveReceipt) {
-          console.log(`Approval complete!`)
-          setStep(Step.Done)
-        }
+        // noop
         break
       }
 
       /* ---------------------------- Done ---------------------------- */
       case Step.Done: {
-        // TODO: confirm with XX indexer
         done()
         break
       }
@@ -120,16 +125,7 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
       default:
         throw new Error(`Unknown step: ${step}`)
     }
-  }, [
-    step,
-    errorApprove,
-    callApprove,
-    approveLoading,
-    approveReceipt,
-    errorWaitApprove,
-    resetAll,
-    done
-  ])
+  }, [step, errorApprove, callApprove, approveLoading, resetAll, done])
 
   return (
     <Stack direction="column" spacing="20px" padding={2} alignItems="center">

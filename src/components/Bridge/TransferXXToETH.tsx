@@ -7,6 +7,7 @@ import {
   usePrepareContractWrite,
   useWaitForTransaction
 } from 'wagmi'
+import { useSubscription } from '@apollo/client'
 import Loading from '../Utils/Loading'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
@@ -16,6 +17,10 @@ import {
   BRIDGE_RELAYER_FEE_ADDRESS
 } from '@/consts'
 import contracts from '@/contracts'
+import {
+  SUB_PROPOSAL_EVENTS,
+  SubProposalEvents
+} from '@/plugins/apollo/schemas'
 
 interface TransferXXToETHProps {
   recipient: string
@@ -123,17 +128,25 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
   })
 
   // Watch executed event on Bridge smart contract
-  // TODO: test if this is not working properly only with local GETH instance
-  // TODO: find a more reliable way to do this (custom squid indexer?)
-  // useContractEvent({
-  //   address: BRIDGE_ADDRESS,
-  //   abi: bridgeAbi,
-  //   eventName: 'ProposalEvent',
-  //   listener: (data) => {
-  //     console.log(`ProposalEvent: ${JSON.stringify(data)}`)
-  //     setStep(Step.Done)
-  //   }
-  // })
+  const {
+    data: proposalEvent,
+    loading: loadingProposalEvent,
+    error: errorProposalEvent
+  } = useSubscription<SubProposalEvents>(SUB_PROPOSAL_EVENTS, {
+    variables: {
+      where: {
+        _and: [{ status: { _eq: 'Executed' } }, { nonce: { _eq: '1' } }]
+      }
+    }
+  })
+
+  useEffect(() => {
+    console.log(`ProposalEvent: ${JSON.stringify(proposalEvent)}`)
+    if (proposalEvent && !loadingProposalEvent && !errorProposalEvent) {
+      console.log('ProposalEvent received!')
+      setStep(Step.Done)
+    }
+  }, [proposalEvent])
 
   // State machine
   useEffect(() => {

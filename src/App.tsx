@@ -3,10 +3,12 @@ import './App.css'
 import React from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { WagmiConfig } from 'wagmi'
+import { ApolloProvider } from '@apollo/client'
 import { init as initWagmi, wagmiConfig } from './plugins/wagmi.tsx'
 import AppRouter from './AppRouter.tsx'
 import AccountsProvider from './plugins/substrate/components/AccountsProvider.tsx'
 import ApiProvider from './plugins/substrate/components/ApiProvider.tsx'
+import evmClient from './plugins/apollo/evm.ts'
 
 // Initialize wagmi
 try {
@@ -27,11 +29,13 @@ const App: React.FC = () => (
         }}
       >
         <BrowserRouter>
-          <AccountsProvider>
-            <ApiProvider>
-              <AppRouter />
-            </ApiProvider>
-          </AccountsProvider>
+          <ApolloProvider client={evmClient}>
+            <AccountsProvider>
+              <ApiProvider>
+                <AppRouter />
+              </ApiProvider>
+            </AccountsProvider>
+          </ApolloProvider>
         </BrowserRouter>
       </div>
     </div>
