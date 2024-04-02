@@ -1,11 +1,7 @@
 import { Stack, Typography } from '@mui/material'
-import React, { useCallback, useEffect, useState } from 'react'
-import {
-  useAccount,
-  usePrepareContractWrite,
-  useContractWrite,
-  useWaitForTransaction
-} from 'wagmi'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useAccount, usePrepareContractWrite, useContractWrite } from 'wagmi'
+import { waitForTransaction } from 'wagmi/actions'
 import Loading from '../Utils/Loading'
 import contracts from '@/contracts'
 import {
@@ -22,24 +18,41 @@ interface DepositProps {
   done: () => void
 }
 
-// Steps
-enum Step {
-  Prompt = 0,
-  Sign = 1,
-  Wait = 2,
-  Done = 3
+enum State {
+  Init = 0,
+  Prompt = 1,
+  Sign = 2,
+  Wait = 3,
+  Done = 4
 }
 
-// TODO: link this steps with the ones in TransferETHToXX.tsx
-type DepositStatus =
-  | 'Init'
-  | 'Pending Prompt'
-  | 'Executing Deposit'
-  | 'Waiting for Deposit Signature'
-  | 'Deposit Complete'
-  | 'Deposit Failed'
-  | 'Transfer Completed'
-  | 'Unknown Error'
+type Step = {
+  state: State
+  message: string
+}
+
+const Steps: Step[] = [
+  {
+    state: State.Init,
+    message: 'Initializing deposit'
+  },
+  {
+    state: State.Prompt,
+    message: 'Prompting user to deposit'
+  },
+  {
+    state: State.Sign,
+    message: 'Signing deposit'
+  },
+  {
+    state: State.Wait,
+    message: 'Waiting for deposit block confirmations (3)'
+  },
+  {
+    state: State.Done,
+    message: 'Deposit complete. Redirecting to Deposit...'
+  }
+]
 
 const Deposit: React.FC<DepositProps> = ({
   recipient,
@@ -50,113 +63,94 @@ const Deposit: React.FC<DepositProps> = ({
   // Hooks
   const { address } = useAccount()
 
-  const [step, setStep] = useState<Step>(Step.Prompt)
-  const [status, setStatus] = useState<DepositStatus>('Init')
+  const [step, setStep] = useState<Step>(Steps[State.Init])
 
   // Reset state + call error prop
   const resetAll = useCallback(() => {
-    setStep(Step.Prompt)
+    setStep(Steps[State.Init])
     error()
   }, [error])
 
   // Bridge deposit call
-  const deposit = encodeBridgeDeposit(recipient, amount)
-  const { config: configDeposit, error: errorDeposit } =
-    usePrepareContractWrite({
-      address: BRIDGE_ADDRESS,
-      abi: contracts.bridgeAbi,
-      functionName: 'deposit',
-      args: [BRIDGE_ID_XXNETWORK, BRIDGE_RESOURCE_ID_XX, deposit],
-      account: address
-    })
+  const deposit = useMemo(
+    () => encodeBridgeDeposit(recipient, amount),
+    [recipient, amount]
+  )
+  console.log('deposit', deposit)
   const {
-    data: depositData,
-    write: callDeposit,
-    isLoading: depositLoading
-  } = useContractWrite(configDeposit)
+    config: configDeposit,
+    error: errorDeposit,
+    status: statusPrepareContractWrite
+  } = usePrepareContractWrite({
+    address: BRIDGE_ADDRESS,
+    abi: contracts.bridgeAbi,
+    functionName: 'deposit',
+    args: [BRIDGE_ID_XXNETWORK, BRIDGE_RESOURCE_ID_XX, deposit],
+    account: address
+  })
+  const { writeAsync: callDepositAsync } = useContractWrite(configDeposit)
 
-  // Wait for deposit transaction
-  const { data: depositReceipt, error: errorWaitDeposit } =
-    useWaitForTransaction({
-      hash: depositData?.hash || '0x',
-      confirmations: 5
-    })
+  // Deposit promise
+  const depositPromise = useCallback(async () => {
+    setStep(Steps[State.Sign])
+    console.log('configDeposit', configDeposit)
+    console.log(`Signing deposit...`)
+    if (callDepositAsync) {
+      console.log('here')
+      callDepositAsync()
+        .then(async data => {
+          console.log(`Deposit data:`, data)
+          if (data?.hash) {
+            setStep(Steps[State.Wait])
+            try {
+              console.log(`Waiting for approval:`, data.hash)
+              const depositReceipt = await waitForTransaction({
+                hash: data.hash,
+                confirmations: 3
+              })
+              if (depositReceipt) {
+                console.log(`Deposit receipt:`, depositReceipt)
+                setStep(Steps[State.Done])
+                setTimeout(() => {
+                  console.log(`Deposit done`)
+                  done()
+                }, 2000)
+              }
+            } catch (err) {
+              console.error(`Error waiting for deposit:`, err)
+              resetAll()
+            }
+          }
+        })
+        .catch(err => {
+          console.error(`Error executing deposit:`, err)
+          resetAll()
+        })
+    }
+  }, [callDepositAsync])
 
-  // State machine
   useEffect(() => {
-    const executeStep = async () => {
-      switch (step) {
-        /* ---------------------------- Prompt ---------------------------- */
-        case Step.Prompt: {
-          setStatus('Pending Prompt')
-          if (errorDeposit) {
-            setStatus('Deposit Failed')
-            resetAll()
-          }
-          if (callDeposit) {
-            setStatus('Executing Deposit')
-            callDeposit()
-            setStep(Step.Sign)
-          }
-          break
-        }
-
-        /* ---------------------------- Sign ---------------------------- */
-        case Step.Sign: {
-          if (depositLoading) {
-            setStatus('Waiting for Deposit Signature')
-          } else {
-            setStep(Step.Wait)
-          }
-          break
-        }
-
-        /* ---------------------------- Wait ---------------------------- */
-        case Step.Wait: {
-          if (errorWaitDeposit) {
-            setStatus('Deposit Failed')
-            resetAll()
-          }
-          if (depositReceipt) {
-            setStatus('Deposit Complete')
-            setStep(Step.Done)
-          }
-          break
-        }
-
-        /* ---------------------------- Done ---------------------------- */
-        case Step.Done: {
-          setStatus('Transfer Completed')
-          done()
-          break
-        }
-
-        /* -------------------------------------------------------------------------- */
-        default:
-          setStatus('Unknown Error')
-          throw new Error(`Unknown step: ${step}`)
-      }
+    if (errorDeposit) {
+      console.error(`Error deposit:`, errorDeposit)
+      resetAll()
+    } else if (statusPrepareContractWrite === 'success') {
+      setStep(Steps[State.Prompt])
     }
-    if (recipient !== '') {
-      executeStep()
+  }, [errorDeposit, statusPrepareContractWrite, resetAll, setStep])
+
+  useEffect(() => {
+    if (step.state === State.Prompt) {
+      console.log(`Prompting user to deposit...`)
+      depositPromise()
     }
-  }, [
-    step,
-    errorDeposit,
-    callDeposit,
-    depositLoading,
-    depositReceipt,
-    errorWaitDeposit,
-    resetAll,
-    done
-  ])
+  }, [depositPromise, step])
 
   return (
     <Stack direction="column" spacing="20px" padding={2} alignItems="center">
       <Typography variant="h5" fontWeight="bold">
         Deposit
       </Typography>
-      <Typography>{status}</Typography>
+      <Typography variant="body1">{step.message}</Typography>
       <Loading size="sm2" />
     </Stack>
   )

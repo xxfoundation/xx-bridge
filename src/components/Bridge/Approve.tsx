@@ -16,8 +16,7 @@ interface ApproveProps {
   done: () => void
 }
 
-// Steps
-enum Step {
+enum State {
   Init = 0,
   Prompt = 1,
   Sign = 2,
@@ -25,15 +24,43 @@ enum Step {
   Done = 4
 }
 
+type Step = {
+  state: State
+  message: string
+}
+
+const Steps: Step[] = [
+  {
+    state: State.Init,
+    message: 'Waiting for user to click approve'
+  },
+  {
+    state: State.Prompt,
+    message: 'Prompting user to approve spending'
+  },
+  {
+    state: State.Sign,
+    message: 'Signing approval'
+  },
+  {
+    state: State.Wait,
+    message: 'Waiting for approval block confirmations (3)'
+  },
+  {
+    state: State.Done,
+    message: 'Approval complete. Redirecting to Deposit...'
+  }
+]
+
 const Approve: React.FC<ApproveProps> = ({ error, done }) => {
   // Hooks
   const { address } = useAccount()
 
-  const [step, setStep] = useState<Step>(Step.Init)
+  const [step, setStep] = useState<Step>(Steps[State.Init])
 
   // Reset state + call error prop
   const resetAll = useCallback(() => {
-    setStep(Step.Init)
+    setStep(Steps[State.Init])
     error()
   }, [error])
 
@@ -46,25 +73,30 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
       args: [BRIDGE_ERC20_HANDLER_ADDRESS, BRIDGE_SPENDING_LIMIT],
       account: address
     })
-  const { writeAsync: callApprove, isLoading: approveLoading } =
-    useContractWrite(configApprove)
+  const { writeAsync: callApproveAsync } = useContractWrite(configApprove)
 
   // Approval promise
   const approvePromise = useCallback(async () => {
-    setStep(Step.Sign)
-    if (callApprove) {
-      console.log(`Executing approval`)
-      callApprove()
+    setStep(Steps[State.Sign])
+    if (callApproveAsync) {
+      callApproveAsync()
         .then(async data => {
+          console.log(`Approval data:`, data)
           if (data?.hash) {
+            setStep(Steps[State.Wait])
             try {
+              console.log(`Waiting for approval:`, data.hash)
               const approveReceipt = await waitForTransaction({
                 hash: data.hash,
-                confirmations: 5
+                confirmations: 3
               })
               if (approveReceipt) {
-                console.log(`Approval complete!`)
-                setStep(Step.Done)
+                console.log(`Approval receipt:`, approveReceipt)
+                setStep(Steps[State.Done])
+                setTimeout(() => {
+                  console.log(`Approval done`)
+                  done()
+                }, 2000)
               }
             } catch (err) {
               console.error(`Error waiting for approval:`, err)
@@ -76,63 +108,26 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
           console.error(`Error executing approval:`, err)
           resetAll()
         })
-      setStep(Step.Sign)
     }
-  }, [callApprove])
+  }, [callApproveAsync])
 
   // State machine
   useEffect(() => {
-    switch (step) {
-      /* ---------------------------- Prompt ---------------------------- */
-      case Step.Init: {
-        // Informational step
-        // Wait for user to click in approve button
-        break
-      }
-
-      case Step.Prompt: {
-        if (errorApprove) {
-          console.error('Error executing approve', errorApprove)
-          resetAll()
-        }
-        approvePromise()
-        break
-      }
-
-      /* ---------------------------- Sign ---------------------------- */
-      case Step.Sign: {
-        if (approveLoading) {
-          console.log(`Waiting for approval signature...`)
-        } else {
-          setStep(Step.Wait)
-        }
-        break
-      }
-
-      /* ---------------------------- Wait ---------------------------- */
-      case Step.Wait: {
-        // noop
-        break
-      }
-
-      /* ---------------------------- Done ---------------------------- */
-      case Step.Done: {
-        done()
-        break
-      }
-
-      /* -------------------------------------------------------------------------- */
-      default:
-        throw new Error(`Unknown step: ${step}`)
+    if (errorApprove) {
+      console.error(`Error approving spending:`, errorApprove)
+      resetAll()
     }
-  }, [step, errorApprove, callApprove, approveLoading, resetAll, done])
+    if (step.state === State.Prompt) {
+      approvePromise()
+    }
+  }, [errorApprove, step])
 
   return (
     <Stack direction="column" spacing="20px" padding={2} alignItems="center">
       <Typography variant="h5" fontWeight="bold">
         Approve Spending
       </Typography>
-      {step === Step.Init ? (
+      {step.state === State.Init ? (
         <>
           {' '}
           <Typography variant="body1" sx={{ width: '70%' }}>
@@ -142,7 +137,7 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
           </Typography>
           <StyledButton
             onClick={() => {
-              setStep(Step.Prompt)
+              setStep(Steps[State.Prompt])
             }}
           >
             Approve
@@ -150,9 +145,7 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
         </>
       ) : (
         <>
-          <Typography variant="body1">
-            Approving spending of wrapped XX ...
-          </Typography>
+          <Typography variant="body1">{step.message}</Typography>
           <Loading size="sm2" />
         </>
       )}

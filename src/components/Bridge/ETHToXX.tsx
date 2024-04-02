@@ -191,7 +191,6 @@ const ETHToXX: React.FC = () => {
     abi: contracts.ierc20Abi,
     functionName: 'allowance',
     args: [address as `0x${string}`, BRIDGE_ERC20_HANDLER_ADDRESS],
-    watch: true,
     onSuccess: (data: any) => {
       if (data !== undefined) {
         setAllowance(data.toString())
