@@ -7,12 +7,10 @@ import type {
   InjectedExtension
 } from '@polkadot/extension-inject/types'
 import { web3AccountsSubscribe, web3Enable } from '@polkadot/extension-dapp'
-import { BN } from '@polkadot/util'
 import { WithChildren } from '../types'
 import AccountsContext, { AccountsContextType } from './AccountsContext'
 import { isValidXXNetworkAddress } from '@/utils'
 import useSessionStorage from '@/hooks/useSessionStorage'
-import useApi from '../hooks/useApi'
 
 const AccountsProvider: FC<WithChildren> = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(false)
@@ -98,51 +96,6 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
     return undefined
   }, [accounts, extensions, selectedAccount])
 
-  /* -------------------------------------------------------------------------- */
-  /*                 Get the XX balance for the selected account                */
-  /* -------------------------------------------------------------------------- */
-  const [xxBalance, setXXBalance] = useState<BN>(new BN(0))
-  const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(true)
-  const [counter, setCounter] = useState<number>(0)
-  const [timer, setTimer] = useState<NodeJS.Timeout>()
-  const { api, ready } = useApi()
-
-  const fetchXxBalance = useCallback(() => {
-    if (api && api?.query?.system?.account && selectedAccount?.address) {
-      setIsLoadingBalance(true)
-      api.query.system
-        .account(selectedAccount.address)
-        .then(({ data }) => {
-          if (data) {
-            const balance = data.free.add(data.reserved)
-            setXXBalance(balance)
-          }
-        })
-        .catch(console.error)
-        .finally(() => setIsLoadingBalance(false))
-    }
-  }, [api, ready, selectedAccount])
-
-  useEffect(() => {
-    fetchXxBalance()
-  }, [fetchXxBalance, timer, counter])
-
-  useEffect(() => {
-    if (ready) {
-      const auxTimer = setInterval(() => {
-        setCounter(prevCounter => prevCounter + 1)
-      }, 10000)
-      setTimer(auxTimer)
-    }
-    return () => {
-      if (timer) {
-        clearInterval(timer)
-      }
-    }
-  }, [ready, setCounter, setTimer])
-
-  /* ------------------------------------ - ----------------------------------- */
-
   const context = useMemo<AccountsContextType>(
     () => ({
       loading,
@@ -152,9 +105,7 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
       selectedAccount,
       selectAccount,
       getSigner,
-      connectWallet,
-      isLoadingBalance,
-      xxBalance
+      connectWallet
     }),
     [
       loading,
@@ -164,9 +115,7 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
       selectedAccount,
       selectAccount,
       getSigner,
-      connectWallet,
-      isLoadingBalance,
-      xxBalance
+      connectWallet
     ]
   )
 

@@ -41,7 +41,6 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
     >
       <InputBase
         placeholder="0"
-        defaultValue={0}
         endAdornment={
           <Typography sx={{ color: 'text.primary', fontSize: '0.9em' }}>
             {code}

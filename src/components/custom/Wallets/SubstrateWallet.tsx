@@ -6,6 +6,7 @@ import { NetworkLogo } from './Utils'
 import { xxNetwork } from '@/consts'
 import useSessionStorage from '@/hooks/useSessionStorage'
 import { formatBalance } from '@/utils'
+import useXxBalance from '@/hooks/useXxBalance'
 
 const truncateString = (str: string, length: number = 15): string =>
   str.length > length ? `${str.substring(0, length)}...` : str
@@ -36,10 +37,10 @@ const SubstrateWallet: React.FC = () => {
     accounts,
     selectedAccount,
     connectWallet,
-    selectAccount,
-    isLoadingBalance,
-    xxBalance
+    selectAccount
   } = useAccounts()
+
+  const { isLoadingBalance, xxBalance } = useXxBalance()
 
   const [fromXX] = useSessionStorage('fromNative')
 
@@ -53,10 +54,6 @@ const SubstrateWallet: React.FC = () => {
       selectAccount(accounts[0].address)
     }
   }, [accounts, selectedAccount, selectAccount])
-
-  console.log('extensions', extensions)
-  console.log('accounts', accounts)
-  console.log('selectedAccount', selectedAccount)
 
   return (
     <Stack

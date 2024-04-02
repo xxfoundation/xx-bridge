@@ -42,6 +42,7 @@ import useApi from '@/plugins/substrate/hooks/useApi'
 import theme from '@/theme'
 import Balance from '../custom/Balance'
 import Loading from '../Utils/Loading'
+import ModalWrapper from '../Modals/ModalWrapper'
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,
@@ -157,7 +158,7 @@ const ETHToXX: React.FC = () => {
     }
   })
 
-  // Balance
+  // Wrapped XX
   const {
     isError: wrappedXXError,
     isLoading: wrappedXXLoading,
@@ -279,19 +280,18 @@ const ETHToXX: React.FC = () => {
 
   // Update error state
   const errorState = useMemo(() => {
-    if (ethError) {
-      return 'Error fetching ETH balance'
+    switch (true) {
+      case ethError:
+        return 'Error fetching ETH balance'
+      case wrappedXXError:
+        return 'Error fetching Wrapped XX balance'
+      case wrappedXXAllowanceError:
+        return 'Error fetching Wrapped XX allowance'
+      case feeError:
+        return 'Error fetching network fees'
+      default:
+        return ''
     }
-    if (wrappedXXError) {
-      return 'Error fetching Wrapped XX balance'
-    }
-    if (wrappedXXAllowanceError) {
-      return 'Error fetching Wrapped XX allowance'
-    }
-    if (feeError) {
-      return 'Error fetching network fees'
-    }
-    return ''
   }, [ethError, wrappedXXError, wrappedXXAllowanceError, feeError])
 
   // Check if transfer is allowed
@@ -335,7 +335,7 @@ const ETHToXX: React.FC = () => {
         borderRadius: '18px'
       }}
     >
-      {loadingState && (
+      <ModalWrapper open={!!loadingState} onClose={() => {}}>
         <Loading
           sx={{
             position: 'absolute',
@@ -351,8 +351,8 @@ const ETHToXX: React.FC = () => {
         >
           {loadingState}
         </Loading>
-      )}
-      {errorState && (
+      </ModalWrapper>
+      <ModalWrapper open={!!errorState} onClose={() => {}}>
         <Stack
           direction="column"
           spacing="10px"
@@ -376,7 +376,7 @@ const ETHToXX: React.FC = () => {
           <Typography>{errorState}</Typography>
           <StyledButton onClick={reset}>Retry</StyledButton>
         </Stack>
-      )}
+      </ModalWrapper>
       {!startTransfer && address && (
         <>
           <Stack

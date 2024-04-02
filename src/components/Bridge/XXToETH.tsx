@@ -6,7 +6,7 @@ import {
   useMediaQuery,
   Tooltip
 } from '@mui/material'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccount, useBalance, useContractRead, useFeeData } from 'wagmi'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
@@ -25,11 +25,18 @@ import StyledButton from '../custom/StyledButton'
 import TransferXXToETH from './TransferXXToETH'
 import theme from '@/theme'
 import Balance from '../custom/Balance'
+import ModalWrapper from '../Modals/ModalWrapper'
+import Loading from '../Utils/Loading'
+import useXxBalance from '@/hooks/useXxBalance'
 
 const XXToETH: React.FC = () => {
+  // Hooks
   const { address } = useAccount()
-  const { selectedAccount, connectWallet, xxBalance } = useAccounts()
+  const { selectedAccount, connectWallet } = useAccounts()
+  const { xxBalance } = useXxBalance()
   const { api } = useApi()
+
+  // State
   const [noxx, setNoxx] = useState<boolean>(false)
   const [input, setInput] = useState<number | null>(null)
   const [transferValue, setTransferValue] = useState<bigint>(BigInt(0))
@@ -95,57 +102,53 @@ const XXToETH: React.FC = () => {
   }, [])
 
   // Network fees
-  const {
-    data: feeData,
-    isError: feeError,
-    isLoading: feeLoading
-  } = useFeeData({
-    watch: true
-  })
-  useEffect(() => {
-    // TODO loading?
-    if (feeError) {
-      // TODO:
-    } else if (feeData !== undefined && feeData.gasPrice) {
-      // Add 10% for faster txs
-      setGasPrice(Number(feeData.gasPrice) * 1.1)
+  const { isError: feeError, isLoading: feeLoading } = useFeeData({
+    watch: true,
+    onSuccess: data => {
+      if (data.gasPrice) {
+        // Add 10% for faster txs
+        setGasPrice(Number(data.gasPrice) * 1.1)
+      }
+    },
+    onError: (error: Error) => {
+      console.error('Error fetching fee data:', error)
+      setGasPrice(undefined)
     }
-  }, [feeData, feeError, feeLoading])
+  })
 
   // Get current relayer fee from contract
   const {
-    data: relayerFee
-    // isError: relayerFeeError, // TODO: use this?
-    // isLoading: relayerFeeLoading, // TODO: use this?
+    data: relayerFee,
+    isError: relayerFeeError,
+    isLoading: relayerFeeLoading
   } = useContractRead({
     address: BRIDGE_RELAYER_FEE_ADDRESS,
     abi: contracts.relayerFeeAbi,
-    functionName: 'currentFee'
-  })
-
-  // Balance ETH
-  const {
-    data: ethBal,
-    isError: ethError,
-    isLoading: ethLoading
-  } = useBalance({
-    address,
+    functionName: 'currentFee',
     watch: true
   })
-  useEffect(() => {
-    // TODO loading?
-    if (ethError) {
-      // TODO:
+
+  /* -------------------------------------------------------------------------- */
+  /*                            Get account balances                            */
+  /* -------------------------------------------------------------------------- */
+
+  // ETH
+  const { isError: ethError, isLoading: ethLoading } = useBalance({
+    address,
+    watch: true,
+    onSuccess: (data: any) => {
+      if (data) {
+        setEthBalance(formatBalance(data.value, data.decimals, 4))
+      }
+    },
+    onError: (error: Error) => {
+      console.error('Error fetching ETH balance', error)
       setEthBalance('0')
-    } else if (ethBal !== undefined) {
-      // When the balance is updated refetch wrapped xx ones
-      setEthBalance(formatBalance(ethBal.value, ethBal.decimals, 4))
     }
-  }, [ethBal, ethError, ethLoading])
+  })
 
   // Wrapped xx (when recipient set)
   const {
-    data: wrappedXXBal,
     isError: wrappedXXError,
     isLoading: wrappedXXLoading,
     refetch: refetchWrappedXX
@@ -153,27 +156,20 @@ const XXToETH: React.FC = () => {
     address: WRAPPED_XX_ADDRESS,
     abi: contracts.ierc20Abi,
     functionName: 'balanceOf',
-    args: [recipient as `0x${string}`]
-  })
-  useEffect(() => {
-    if (recipient && !recipientError) {
-      // TODO loading?
-      if (wrappedXXError) {
-        // TODO:
-        setWrappedXXBalance('0')
-      } else if (wrappedXXBal !== undefined) {
+    args: [address as `0x${string}`],
+    watch: true,
+    onSuccess: (data: any) => {
+      if (data !== undefined) {
         setWrappedXXBalance(
-          formatBalance(wrappedXXBal, ethereumMainnet.token?.decimals || 9, 4)
+          formatBalance(data.toString(), ethereumMainnet.token.decimals, 4)
         )
       }
+    },
+    onError: (error: Error) => {
+      console.error('Error fetching wrapped XX balance', error)
+      setWrappedXXBalance('0')
     }
-  }, [
-    wrappedXXBal,
-    wrappedXXError,
-    wrappedXXLoading,
-    recipient,
-    recipientError
-  ])
+  })
 
   // Set fees
   useEffect(() => {
@@ -215,14 +211,60 @@ const XXToETH: React.FC = () => {
     relayerFee
   ])
 
+  // Update loading state
+  const loadingState = useMemo(() => {
+    switch (true) {
+      case ethLoading:
+        return 'Fetching ETH balance...'
+      case wrappedXXLoading:
+        return 'Fetching wrapped XX balance...'
+      case feeLoading:
+        return 'Fetching network fees...'
+      case relayerFeeLoading:
+        return 'Fetching relayer fee...'
+      default:
+        return ''
+    }
+  }, [ethLoading, wrappedXXLoading, feeLoading, relayerFeeLoading])
+
+  // Update error state
+  const errorState = useMemo(() => {
+    switch (true) {
+      case ethError:
+        return 'Error fetching ETH balance'
+      case wrappedXXError:
+        return 'Error fetching wrapped XX balance'
+      case feeError:
+        return 'Error fetching network fees'
+      case relayerFeeError:
+        return 'Error fetching relayer fee'
+      default:
+        return ''
+    }
+  }, [ethError, wrappedXXError, feeError, relayerFeeError])
+
   // Check if transfer is allowed
   useEffect(() => {
-    if (transferValue && !valueError && recipient && !recipientError) {
+    if (
+      transferValue &&
+      !valueError &&
+      recipient &&
+      !recipientError &&
+      !loadingState &&
+      !errorState
+    ) {
       setAllowTransfer(true)
     } else {
       setAllowTransfer(false)
     }
-  }, [transferValue, valueError, recipient, recipientError])
+  }, [
+    transferValue,
+    valueError,
+    recipient,
+    recipientError,
+    loadingState,
+    errorState
+  ])
 
   // Reset
   const reset = useCallback(() => {
@@ -241,6 +283,48 @@ const XXToETH: React.FC = () => {
         borderRadius: '18px'
       }}
     >
+      <ModalWrapper open={!!loadingState} onClose={() => {}}>
+        <Loading
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: '#000',
+            opacity: 0.8,
+            zIndex: 1000,
+            borderRadius: '10px',
+            padding: '10%'
+          }}
+        >
+          {loadingState}
+        </Loading>
+      </ModalWrapper>
+      <ModalWrapper open={!!errorState} onClose={() => {}}>
+        <Stack
+          direction="column"
+          spacing="10px"
+          justifyContent="center"
+          alignItems="center"
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: '#000',
+            opacity: 0.8,
+            zIndex: 1000,
+            borderRadius: '10px',
+            padding: '10%'
+          }}
+        >
+          <Typography variant="h4" fontWeight="bold">
+            Error
+          </Typography>
+          <Typography>{errorState}</Typography>
+          <StyledButton onClick={reset}>Retry</StyledButton>
+        </Stack>
+      </ModalWrapper>
       {noxx && (
         <Stack
           direction="column"

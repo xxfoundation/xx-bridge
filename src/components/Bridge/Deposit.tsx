@@ -76,7 +76,6 @@ const Deposit: React.FC<DepositProps> = ({
     () => encodeBridgeDeposit(recipient, amount),
     [recipient, amount]
   )
-  console.log('deposit', deposit)
   const {
     config: configDeposit,
     error: errorDeposit,
