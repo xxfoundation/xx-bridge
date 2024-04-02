@@ -135,7 +135,10 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
   } = useSubscription<SubProposalEvents>(SUB_PROPOSAL_EVENTS, {
     variables: {
       where: {
-        _and: [{ status: { _eq: 'Executed' } }, { nonce: { _eq: '1' } }]
+        _and: [
+          { status: { _eq: 'Executed' } },
+          { nonce: { _eq: JSON.stringify(nonce?.toString() ?? '') } }
+        ]
       }
     }
   })
@@ -201,9 +204,9 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
         /* ---------------------------- WaitBridge ---------------------------- */
         case Step.WaitBridge: {
           // TODO: see comments above
-          setTimeout(() => {
-            setStep(Step.Done)
-          }, 10000)
+          // setTimeout(() => {
+          //   setStep(Step.Done)
+          // }, 10000)
           break
         }
 

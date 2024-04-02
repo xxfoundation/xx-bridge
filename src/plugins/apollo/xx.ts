@@ -13,7 +13,8 @@ import { OperationDefinitionNode } from 'graphql'
 import { createClient } from 'graphql-ws'
 
 const graphqlHost =
-  process.env.XX_INDEXER_URL || 'http://localhost:4350/v1/graphql'
+  `${process.env.XX_INDEXER_URL}/v1/graphql` ||
+  'http://localhost:4350/v1/graphql'
 
 const httpLink = new HttpLink({ uri: graphqlHost })
 const wsLink = new GraphQLWsLink(
