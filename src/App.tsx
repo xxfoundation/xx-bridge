@@ -30,11 +30,11 @@ const App: React.FC = () => (
       >
         <BrowserRouter>
           <ApolloProvider client={evmClient}>
-            <AccountsProvider>
-              <ApiProvider>
+            <ApiProvider>
+              <AccountsProvider>
                 <AppRouter />
-              </ApiProvider>
-            </AccountsProvider>
+              </AccountsProvider>
+            </ApiProvider>
           </ApolloProvider>
         </BrowserRouter>
       </div>

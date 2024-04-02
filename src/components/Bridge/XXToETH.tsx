@@ -28,7 +28,7 @@ import Balance from '../custom/Balance'
 
 const XXToETH: React.FC = () => {
   const { address } = useAccount()
-  const { selectedAccount, connectWallet } = useAccounts()
+  const { selectedAccount, connectWallet, xxBalance } = useAccounts()
   const { api } = useApi()
   const [noxx, setNoxx] = useState<boolean>(false)
   const [input, setInput] = useState<number | null>(null)
@@ -36,7 +36,6 @@ const XXToETH: React.FC = () => {
   const [valueError, setError] = useState<string | undefined>()
   const [recipient, setRecipient] = useState<string>('')
   const [recipientError, setRecipientError] = useState<string | undefined>()
-  const [xxBalance, setXXBalance] = useState<string>('0')
   const [ethBalance, setEthBalance] = useState<string>('0')
   const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
@@ -60,10 +59,13 @@ const XXToETH: React.FC = () => {
   // Value computation
   const setValue = useCallback(
     (value: number | null) => {
-      if (value !== null && value > parseFloat(xxBalance)) {
+      // TODO: Parsing from BN to number can overflow if the value is bigger than Number.MAX_SAFE_INTEGER (9007199254740991) ~ 9e15 ~ 9M xx
+      if (value !== null && value > parseFloat(xxBalance.toString())) {
         setError('Exceeds balance')
       } else if (value !== null && value < 1) {
         setError('Minimum amount is 1')
+      } else if (value !== null && value > 1000000) {
+        setError('Maximum amount is 9,000,000 (9 Million) xx')
       } else {
         setError(undefined)
         if (value) {
@@ -121,24 +123,7 @@ const XXToETH: React.FC = () => {
     functionName: 'currentFee'
   })
 
-  // Balances
-
-  // Native xx
-  useEffect(() => {
-    if (selectedAccount) {
-      api?.query?.system?.account(selectedAccount.address).then(({ data }) => {
-        if (data) {
-          const frozen = data.miscFrozen.gt(data.feeFrozen)
-            ? data.miscFrozen
-            : data.feeFrozen
-          const balance = data.free.sub(frozen)
-          setXXBalance(formatBalance(balance.toString(), 9, 4))
-        }
-      })
-    }
-  }, [startTransfer, selectedAccount, api?.query?.system?.account])
-
-  // ETH
+  // Balance ETH
   const {
     data: ethBal,
     isError: ethError,
@@ -310,7 +295,8 @@ const XXToETH: React.FC = () => {
                 icon={xxNetwork.gasToken.symbol}
                 balance={
                   <>
-                    {xxBalance} {xxNetwork.gasToken.code}
+                    {formatBalance(xxBalance.toString(), 9, 4)}{' '}
+                    {xxNetwork.gasToken.code}
                   </>
                 }
                 title="XX"
@@ -377,7 +363,7 @@ const XXToETH: React.FC = () => {
           <Stack direction="row" padding={2} justifyContent="center">
             <CurrencyInputField
               code={xxNetwork.gasToken.code}
-              balance={parseFloat(xxBalance)}
+              balance={parseFloat(xxBalance.toString())}
               value={input}
               setValue={setValue}
               error={valueError}

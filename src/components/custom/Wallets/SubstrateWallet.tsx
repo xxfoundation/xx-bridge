@@ -1,51 +1,33 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import { CircularProgress, NativeSelect, Stack, Tooltip } from '@mui/material'
 import { AutorenewRounded } from '@mui/icons-material'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import { NetworkLogo } from './Utils'
 import { xxNetwork } from '@/consts'
 import useSessionStorage from '@/hooks/useSessionStorage'
-import useApi from '@/plugins/substrate/hooks/useApi'
 import { formatBalance } from '@/utils'
 
 const truncateString = (str: string, length: number = 15): string =>
   str.length > length ? `${str.substring(0, length)}...` : str
 
-const BalanceDisplay: React.FC<{ addr: string }> = ({ addr }) => {
-  const { ready, api } = useApi()
-
-  const [xxBalance, setXXBalance] = useState<string | undefined>()
-
-  useEffect(() => {
-    if (api) {
-      api?.query?.system
-        ?.account(addr)
-        .then(({ data }) => {
-          if (data) {
-            const balance = data.free.add(data.reserved)
-            setXXBalance(formatBalance(balance.toString(), 9, 2))
-          }
-        })
-        .catch(console.error)
-    }
-  }, [api, ready])
-
-  return (
-    <Stack
-      direction="row"
-      gap="10px"
-      sx={{
-        padding: '10px',
-        borderRadius: '10px',
-        backgroundColor: 'background.grey',
-        color: 'text.primary'
-      }}
-    >
-      <>{!ready ? <CircularProgress size={20} /> : xxBalance}</>
-      <NetworkLogo network={xxNetwork} textSize />
-    </Stack>
-  )
-}
+const BalanceDisplay: React.FC<{
+  setIsLoadingBalance: boolean
+  xxBalance: string
+}> = ({ setIsLoadingBalance, xxBalance }) => (
+  <Stack
+    direction="row"
+    gap="10px"
+    sx={{
+      padding: '10px',
+      borderRadius: '10px',
+      backgroundColor: 'background.grey',
+      color: 'text.primary'
+    }}
+  >
+    <>{setIsLoadingBalance ? <CircularProgress size={20} /> : xxBalance}</>
+    <NetworkLogo network={xxNetwork} textSize />
+  </Stack>
+)
 
 const SubstrateWallet: React.FC = () => {
   const {
@@ -54,7 +36,9 @@ const SubstrateWallet: React.FC = () => {
     accounts,
     selectedAccount,
     connectWallet,
-    selectAccount
+    selectAccount,
+    isLoadingBalance,
+    xxBalance
   } = useAccounts()
 
   const [fromXX] = useSessionStorage('fromNative')
@@ -71,6 +55,8 @@ const SubstrateWallet: React.FC = () => {
   }, [accounts, selectedAccount, selectAccount])
 
   console.log('extensions', extensions)
+  console.log('accounts', accounts)
+  console.log('selectedAccount', selectedAccount)
 
   return (
     <Stack
@@ -81,7 +67,10 @@ const SubstrateWallet: React.FC = () => {
       {extensions.length !== 0 && accounts.length > 0 ? (
         <>
           {selectedAccount && selectedAccount.address && (
-            <BalanceDisplay addr={selectedAccount.address} />
+            <BalanceDisplay
+              setIsLoadingBalance={isLoadingBalance}
+              xxBalance={formatBalance(xxBalance.toString(), 9, 2)}
+            />
           )}
           <Tooltip
             key={selectedAccount?.address}

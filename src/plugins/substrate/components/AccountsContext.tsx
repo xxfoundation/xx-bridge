@@ -4,6 +4,7 @@ import type {
   InjectedExtension
 } from '@polkadot/extension-inject/types'
 import { Signer } from '@polkadot/api/types'
+import { BN } from '@polkadot/util'
 
 export type AccountsContextType = {
   loading: boolean
@@ -14,6 +15,8 @@ export type AccountsContextType = {
   selectAccount: (address: string) => void
   getSigner(): Signer | undefined
   connectWallet(): Promise<void>
+  isLoadingBalance: boolean
+  xxBalance: BN
 }
 
 const AccountsContext: React.Context<AccountsContextType> = React.createContext(

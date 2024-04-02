@@ -41,6 +41,7 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
     >
       <InputBase
         placeholder="0"
+        defaultValue={0}
         endAdornment={
           <Typography sx={{ color: 'text.primary', fontSize: '0.9em' }}>
             {code}
@@ -54,11 +55,12 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
           color: 'primary.contrastText',
           fontWeight: 'bold'
         }}
-        value={value}
+        value={value || ''}
         onChange={e => {
-          setValue(Number(e.target.value))
           if (e.target.value === '') {
             setValue(null)
+          } else {
+            setValue(Number(e.target.value))
           }
         }}
       />
