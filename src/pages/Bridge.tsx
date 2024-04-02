@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react'
 import { Divider, Stack, Typography, useMediaQuery } from '@mui/material'
 import StyledStack from '../components/custom/StyledStack.tsx'
 import NetworkInfo from '../components/Bridge/NetworkInfo'
-import { Network } from '@/utils'
 import Loading from '@/components/Utils/Loading.tsx'
 import ETHToXX from '@/components/Bridge/ETHToXX.tsx'
 import XXToETH from '@/components/Bridge/XXToETH.tsx'
@@ -12,8 +11,6 @@ import useSessionStorage from '@/hooks/useSessionStorage.ts'
 
 const Bridge: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
-  const [source, setSource] = useState<Network>(ethereumMainnet)
-  const [dest, setDest] = useState<Network>(xxNetwork)
   const [switching, setSwitching] = useState<boolean>(false)
   const [fromXX, setFromXX] = useSessionStorage<boolean>('fromNative', false)
 
@@ -22,11 +19,9 @@ const Bridge: React.FC = () => {
     setSwitching(true)
     setTimeout(() => {
       setFromXX(!fromXX)
-      setSource(dest)
-      setDest(source)
       setSwitching(false)
     }, 2000)
-  }, [fromXX, source, dest])
+  }, [fromXX])
 
   return (
     <StyledStack
@@ -60,8 +55,8 @@ const Bridge: React.FC = () => {
           }}
         >
           <NetworkInfo
-            source={source}
-            dest={dest}
+            source={fromXX ? xxNetwork : ethereumMainnet}
+            dest={fromXX ? ethereumMainnet : xxNetwork}
             setSwitching={switchNetworks}
           />
           <Divider />
