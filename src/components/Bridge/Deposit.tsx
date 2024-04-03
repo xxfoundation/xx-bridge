@@ -50,7 +50,7 @@ const Steps: Step[] = [
   },
   {
     state: State.Done,
-    message: 'Deposit complete. Redirecting to Deposit...'
+    message: 'Deposit complete'
   }
 ]
 
@@ -93,10 +93,8 @@ const Deposit: React.FC<DepositProps> = ({
   // Deposit promise
   const depositPromise = useCallback(async () => {
     setStep(Steps[State.Sign])
-    console.log('configDeposit', configDeposit)
     console.log(`Signing deposit...`)
     if (callDepositAsync) {
-      console.log('here')
       callDepositAsync()
         .then(async data => {
           console.log(`Deposit data:`, data)

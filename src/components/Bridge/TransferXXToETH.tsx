@@ -48,7 +48,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
   // Hooks
   const { address } = useAccount()
   const { selectedAccount, getSigner } = useAccounts()
-  const { api } = useApi()
+  const { api, ready } = useApi()
 
   const [step, setStep] = useState<Step>(Step.Init)
   const [nonce, setNonce] = useState<bigint>()
@@ -64,7 +64,13 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
   // Transfer native extrinsic
   const sent = useRef<boolean>(false)
   useEffect(() => {
-    if (api && selectedAccount && step === Step.Init && !sent.current) {
+    if (
+      api &&
+      ready &&
+      selectedAccount &&
+      step === Step.Init &&
+      !sent.current
+    ) {
       const extrinsic = api.tx.swap.transferNative(
         amount,
         recipient,
@@ -100,7 +106,17 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
         resetAll()
       }
     }
-  }, [api, step, sent, selectedAccount, recipient, amount, setError, getSigner])
+  }, [
+    api,
+    ready,
+    step,
+    sent,
+    selectedAccount,
+    recipient,
+    amount,
+    setError,
+    getSigner
+  ])
 
   /* -------------------------------------------------------------------------- */
   /*                                    Hooks                                   */
@@ -258,6 +274,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
       direction="column"
       padding={2}
       justifyContent="center"
+      alignItems="center"
       spacing="20px"
     >
       {step === Step.TransferNative && (
@@ -265,9 +282,6 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
       )}
       {(step === Step.RelayerFee || step === Step.WaitFee) && (
         <Typography>Paying Bridge Fee...</Typography>
-      )}
-      {step === Step.WaitFee && (
-        <Typography>Waiting for fee payment block confirmations (3)</Typography>
       )}
       {step === Step.WaitBridge && (
         <Typography>

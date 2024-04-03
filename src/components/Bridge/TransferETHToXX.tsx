@@ -171,6 +171,7 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
       direction="column"
       padding={2}
       justifyContent="center"
+      alignItems="center"
       spacing="20px"
     >
       {approve && step === Step.ApproveSpend && (
