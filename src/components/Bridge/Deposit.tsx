@@ -13,7 +13,7 @@ import { encodeBridgeDeposit } from '@/utils'
 interface DepositProps {
   recipient: string
   amount: bigint
-  error: () => void
+  setError: (message: string) => void
   setDepositTxHash: (hash: string) => void
   done: () => void
 }
@@ -57,7 +57,7 @@ const Steps: Step[] = [
 const Deposit: React.FC<DepositProps> = ({
   recipient,
   amount,
-  error,
+  setError,
   setDepositTxHash,
   done
 }) => {
@@ -66,11 +66,14 @@ const Deposit: React.FC<DepositProps> = ({
 
   const [step, setStep] = useState<Step>(Steps[State.Init])
 
-  // Reset state + call error prop
-  const resetAll = useCallback(() => {
-    setStep(Steps[State.Init])
-    error()
-  }, [error])
+  // Reset state + call setError prop
+  const resetState = useCallback(
+    (msg: string) => {
+      setStep(Steps[State.Init])
+      setError(msg)
+    },
+    [setError]
+  )
 
   // Bridge deposit call
   const deposit = useMemo(
@@ -99,16 +102,16 @@ const Deposit: React.FC<DepositProps> = ({
         .then(async data => {
           console.log(`Deposit data:`, data)
           if (data?.hash) {
+            setDepositTxHash(data.hash)
             setStep(Steps[State.Wait])
             try {
-              console.log(`Waiting for approval:`, data.hash)
+              console.log(`Waiting for deposit:`, data.hash)
               const depositReceipt = await waitForTransaction({
                 hash: data.hash,
                 confirmations: 3
               })
               if (depositReceipt) {
                 console.log(`Deposit receipt:`, depositReceipt)
-                setDepositTxHash(data.hash)
                 setStep(Steps[State.Done])
                 setTimeout(() => {
                   console.log(`Deposit done`)
@@ -117,13 +120,13 @@ const Deposit: React.FC<DepositProps> = ({
               }
             } catch (err) {
               console.error(`Error waiting for deposit:`, err)
-              resetAll()
+              resetState('Deposit transaction failed')
             }
           }
         })
         .catch(err => {
           console.error(`Error executing deposit:`, err)
-          resetAll()
+          resetState('User rejected transaction signature')
         })
     }
   }, [callDepositAsync])
@@ -131,11 +134,11 @@ const Deposit: React.FC<DepositProps> = ({
   useEffect(() => {
     if (errorDeposit) {
       console.error(`Error deposit:`, errorDeposit)
-      resetAll()
+      resetState(`Error depositing: ${errorDeposit.message}`)
     } else if (statusPrepareContractWrite === 'success') {
       setStep(Steps[State.Prompt])
     }
-  }, [errorDeposit, statusPrepareContractWrite, resetAll, setStep])
+  }, [errorDeposit, statusPrepareContractWrite, resetState, setStep])
 
   useEffect(() => {
     if (step.state === State.Prompt) {

@@ -48,6 +48,7 @@ export const SUB_DEPOSIT_NONCE = gql([SUB_DEPOSIT_NONCE_QUERY])
 export type SubBridgeEvents = {
   event: {
     blockNumber: string
+    phase: string
   }[]
 }
 
@@ -55,6 +56,7 @@ const SUBSCRIBE_BRIDGE_EVENTS_QUERY = `
     subscription SubBridgeEvents($where: event_bool_exp!){
       event(where: $where) {
         blockNumber: block_number
+        phase
       }
     }
 `

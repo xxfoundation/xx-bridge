@@ -5,7 +5,8 @@ import {
   TextField,
   useMediaQuery,
   Tooltip,
-  CircularProgress
+  CircularProgress,
+  Link
 } from '@mui/material'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccount, useBalance, useContractRead, useFeeData } from 'wagmi'
@@ -34,7 +35,7 @@ import useSessionStorage from '@/hooks/useSessionStorage'
 const XXToETH: React.FC = () => {
   // Hooks
   const { address } = useAccount()
-  const { selectedAccount, connectWallet } = useAccounts()
+  const { selectedAccount, connectWallet, hasExtensions } = useAccounts()
   const { xxBalance } = useXxBalance()
   const { api } = useApi()
 
@@ -346,14 +347,40 @@ const XXToETH: React.FC = () => {
           spacing={2}
           justifyContent="center"
         >
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-            No xx account available
-          </Typography>
-          <Typography>
-            Please install Subwallet or Polkadot-js extension and reload the
-            page in order to connect your account and transfer native xx
-          </Typography>
-          <StyledButton onClick={connectWallet}>Connect xx Wallet</StyledButton>
+          {!hasExtensions && (
+            <>
+              <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                No xx wallet found
+              </Typography>
+              <Typography>
+                Please install one of the following wallets and reload the page
+                in order to connect your account and transfer native xx
+              </Typography>
+              <Stack direction="row" spacing={4} padding={1}>
+                <Link
+                  variant="h6"
+                  href="https://www.talisman.xyz/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Talisman
+                </Link>
+                <Link
+                  variant="h6"
+                  href="https://www.subwallet.app/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  SubWallet
+                </Link>
+              </Stack>
+            </>
+          )}
+          {hasExtensions && (
+            <StyledButton onClick={connectWallet}>
+              Connect xx Wallet
+            </StyledButton>
+          )}
         </Stack>
       )}
       {!noxx && !startTransfer && selectedAccount?.address && (

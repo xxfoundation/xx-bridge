@@ -1,6 +1,6 @@
 import React from 'react'
 import { Typography, useMediaQuery } from '@mui/material'
-import landscape from '../assets/logo/png/xxbridge.png'
+import xxBridgeLogo from '@/assets/logo/svg/xxbridge.svg'
 
 import ImageWrapper from '../components/custom/ImageWrapper'
 import StyledStack from '../components/custom/StyledStack'
@@ -28,7 +28,7 @@ const ConnectPage: React.FC = () => {
         <MobileMessage />
       ) : (
         <StyledStack direction="column" spacing="50px" centerWidth centerHeight>
-          <ImageWrapper src={landscape} alt="Logo with slogan" width="10%" />
+          <ImageWrapper src={xxBridgeLogo} alt="Logo with slogan" width="10%" />
           <Login />
         </StyledStack>
       )}

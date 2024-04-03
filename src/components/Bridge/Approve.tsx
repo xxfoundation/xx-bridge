@@ -12,7 +12,7 @@ import {
 import StyledButton from '../custom/StyledButton'
 
 interface ApproveProps {
-  error: () => void
+  setError: (message: string) => void
   done: () => void
 }
 
@@ -52,17 +52,20 @@ const Steps: Step[] = [
   }
 ]
 
-const Approve: React.FC<ApproveProps> = ({ error, done }) => {
+const Approve: React.FC<ApproveProps> = ({ setError, done }) => {
   // Hooks
   const { address } = useAccount()
 
   const [step, setStep] = useState<Step>(Steps[State.Init])
 
-  // Reset state + call error prop
-  const resetAll = useCallback(() => {
-    setStep(Steps[State.Init])
-    error()
-  }, [error])
+  // Reset state + call setError prop
+  const resetState = useCallback(
+    (msg: string) => {
+      setStep(Steps[State.Init])
+      setError(msg)
+    },
+    [setError]
+  )
 
   // Approval call
   const { config: configApprove, error: errorApprove } =
@@ -100,13 +103,13 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
               }
             } catch (err) {
               console.error(`Error waiting for approval:`, err)
-              resetAll()
+              setError('Approval transaction failed')
             }
           }
         })
         .catch(err => {
           console.error(`Error executing approval:`, err)
-          resetAll()
+          resetState('User rejected approval signature')
         })
     }
   }, [callApproveAsync])
@@ -115,7 +118,7 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
   useEffect(() => {
     if (errorApprove) {
       console.error(`Error approving spending:`, errorApprove)
-      resetAll()
+      resetState(`Error approving spending: ${errorApprove.message}`)
     }
     if (step.state === State.Prompt) {
       approvePromise()
@@ -131,17 +134,28 @@ const Approve: React.FC<ApproveProps> = ({ error, done }) => {
         <>
           {' '}
           <Typography variant="body1" sx={{ width: '70%' }}>
-            This will allow the Bridge to spend wrapped XX on your behalf. This
-            is a one-time operation. The bridge smart contract has no way of
-            spending your funds without you initialing the transfer.
+            This will allow the Bridge to spend wrapped XX on your behalf. A
+            large amount (1B) is used in order to make this is a one-time
+            operation. This is safe, since the Bridge smart contract ensures
+            that your funds can only be spent when you execute the bridge
+            transfer, not anyone else.
           </Typography>
-          <StyledButton
-            onClick={() => {
-              setStep(Steps[State.Prompt])
-            }}
-          >
-            Approve
-          </StyledButton>
+          <Stack direction="row" spacing="20px">
+            <StyledButton
+              onClick={() => {
+                setStep(Steps[State.Prompt])
+              }}
+            >
+              Approve
+            </StyledButton>
+            <StyledButton
+              onClick={() => {
+                resetState('')
+              }}
+            >
+              Go Back
+            </StyledButton>
+          </Stack>
         </>
       ) : (
         <>

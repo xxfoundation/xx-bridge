@@ -54,7 +54,7 @@ const theme1 = createTheme({
       grey: backgroundColors.grey
     },
     error: {
-      main: '#4F1A25',
+      main: '#DA2648',
       light: '#DA2648'
     },
     info: {

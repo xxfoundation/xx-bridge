@@ -12,10 +12,14 @@ import AccountsContext, { AccountsContextType } from './AccountsContext'
 import { isValidXXNetworkAddress } from '@/utils'
 import useSessionStorage from '@/hooks/useSessionStorage'
 
+// Supported extensions
+const supportedExtensions = ['polkadot-js', 'subwallet-js', 'talisman']
+
 const AccountsProvider: FC<WithChildren> = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | undefined>()
   const [extensions, setExtensions] = useState<InjectedExtension[]>([])
+  const [hasExtensions, setHasExtensions] = useState<boolean>(false)
   const [subscribed, setSubscribed] = useState<boolean>(false)
   const [selectedAccount, setSelectedAccount] =
     useState<InjectedAccountWithMeta>()
@@ -23,6 +27,15 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
     'substrateAccounts',
     []
   )
+
+  // Check if extensions are available on window load
+  useEffect(() => {
+    supportedExtensions.forEach(ext => {
+      if ((window as any)?.injectedWeb3[ext]) {
+        setHasExtensions(true)
+      }
+    })
+  }, [])
 
   const subscribedAccounts = useCallback(
     (accs: InjectedAccountWithMeta[]) => {
@@ -101,6 +114,7 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
       loading,
       error,
       extensions,
+      hasExtensions,
       accounts,
       selectedAccount,
       selectAccount,
@@ -111,6 +125,7 @@ const AccountsProvider: FC<WithChildren> = ({ children }) => {
       loading,
       error,
       extensions,
+      hasExtensions,
       accounts,
       selectedAccount,
       selectAccount,

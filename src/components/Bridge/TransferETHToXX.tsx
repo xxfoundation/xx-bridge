@@ -33,7 +33,8 @@ enum Step {
   ApproveSpend = 1,
   BridgeDeposit = 2,
   WaitBridge = 3,
-  Done = 4
+  Done = 4,
+  Error = 5
 }
 
 const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
@@ -45,17 +46,48 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
   const { address } = useAccount()
   const [step, setStep] = useState<Step>(Step.Init)
   const [error, setError] = useState<string | undefined>()
-  const [depositTxHash, setDepositTxHash] = useLocalStorage<string>(
+  const [, setLocalStorageDepositTxHash] = useLocalStorage<string>(
     `depositTxHash-${address}`,
     ''
   )
-  const [blockNumber, setBlockNumber] = useState<string>()
+  const [depositTxHash, setDepositTxHash] = useState<string>()
+  const [extrinsic, setExtrinsic] = useState<string>()
 
-  // Reset state + call prop
-  const resetAll = useCallback(() => {
+  // Set deposit tx hash state and local storage
+  const setDepositTxHashAll = useCallback((hash: string) => {
+    setDepositTxHash(hash)
+    setLocalStorageDepositTxHash(hash)
+  }, [])
+
+  // State and error handling
+
+  // Go to error state
+  const goError = useCallback((msg: string) => {
+    setError(msg)
+    setStep(Step.Error)
+  }, [])
+
+  // Reset state and go back to home page
+  const resetState = useCallback(() => {
     setStep(Step.Init)
+    setError(undefined)
+    setDepositTxHash(undefined)
+    setExtrinsic(undefined)
     reset()
   }, [reset])
+
+  // Handle error from children
+  // If empty message, just reset state
+  const handleError = useCallback(
+    (msg: string) => {
+      if (msg !== '') {
+        goError(msg)
+      } else {
+        resetState()
+      }
+    },
+    [goError, resetState]
+  )
 
   const txHash = useMemo(() => {
     console.log('depositTxHash', depositTxHash)
@@ -130,25 +162,32 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
         case Step.WaitBridge: {
           if (!errorDepositNonce && !errorBridgeEvent && bridgeEvent) {
             if (bridgeEvent.event.length > 0) {
-              setBlockNumber(bridgeEvent.event[0].blockNumber)
+              const block = bridgeEvent.event[0].blockNumber
+              const extrinsicIdx = JSON.parse(bridgeEvent.event[0].phase)
+                .applyExtrinsic as number
+              setExtrinsic(`${block}-${extrinsicIdx}`)
               setStep(Step.Done)
             }
           }
           if (errorDepositNonce) {
             console.log(`Error getting deposit nonce: ${errorDepositNonce}`)
-            setError(`Error getting deposit nonce: ${errorDepositNonce}`)
-            resetAll()
+            goError(`Couldn't get deposit nonce: ${errorDepositNonce}`)
           }
           if (errorBridgeEvent) {
             console.log(`Error getting bridge event: ${errorBridgeEvent}`)
-            setError(`Error getting bridge event: ${errorBridgeEvent}`)
-            resetAll()
+            goError(`Couldn't get bridge event: ${errorBridgeEvent}`)
           }
           break
         }
 
         /* ---------------------------- Done ---------------------------- */
         case Step.Done: {
+          // Noop
+          break
+        }
+
+        /* ---------------------------- Error ---------------------------- */
+        case Step.Error: {
           // Noop
           break
         }
@@ -169,7 +208,8 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
     errorDepositNonce,
     errorBridgeEvent,
     bridgeEvent,
-    resetAll
+    goError,
+    reset
   ])
 
   return (
@@ -181,14 +221,17 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
       spacing="20px"
     >
       {approve && step === Step.ApproveSpend && (
-        <Approve error={resetAll} done={() => setStep(Step.BridgeDeposit)} />
+        <Approve
+          setError={handleError}
+          done={() => setStep(Step.BridgeDeposit)}
+        />
       )}
       {step === Step.BridgeDeposit && (
         <Deposit
           recipient={recipient}
           amount={amount}
-          error={resetAll}
-          setDepositTxHash={setDepositTxHash}
+          setError={handleError}
+          setDepositTxHash={setDepositTxHashAll}
           done={() => setStep(Step.WaitBridge)}
         />
       )}
@@ -206,11 +249,11 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
           <Typography variant="h5">Transfer complete!</Typography>
           <Link
             variant="body2"
-            href={`${XX_EXPLORER_URL}/blocks/${blockNumber}`}
+            href={`${XX_EXPLORER_URL}/extrinsics/${extrinsic}`}
             rel="noopener noreferrer"
             target="_blank"
           >
-            View block in xx Explorer
+            View transaction in xx Explorer
           </Link>
           <Link
             variant="body2"
@@ -222,17 +265,36 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
           </Link>
           <StyledButton
             onClick={() => {
-              resetAll()
+              resetState()
             }}
           >
-            Back to the Bridge
+            Go Back
           </StyledButton>
         </Stack>
       )}
-      {step !== Step.Done && step !== Step.ApproveSpend && (
-        <Loading size="sm2" />
+      {step !== Step.Done &&
+        step !== Step.ApproveSpend &&
+        step !== Step.Error && <Loading size="sm2" />}
+      {step === Step.Error && (
+        <Stack
+          direction="column"
+          spacing="20px"
+          padding={2}
+          alignItems="center"
+        >
+          <Typography color="error" variant="h5" fontWeight="bold">
+            Something went wrong
+          </Typography>
+          {error && <Typography color="error">{error}</Typography>}
+          <StyledButton
+            onClick={() => {
+              resetState()
+            }}
+          >
+            Go Back
+          </StyledButton>
+        </Stack>
       )}
-      {error && <Typography color="error">{error}</Typography>}
     </Stack>
   )
 }

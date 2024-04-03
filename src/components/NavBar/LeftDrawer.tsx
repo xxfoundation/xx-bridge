@@ -19,7 +19,6 @@ import logo from '../../assets/logo/svg/xxbridge.svg'
 import { useNavBarContext } from '.'
 import getStyles from './styles'
 import FooterMobile from '../Footer/FooterMobile'
-import echoexxLogo from '@/assets/logo/png/short.png'
 
 interface ListMenuElementsProps {
   menuList: string[]
@@ -41,22 +40,13 @@ const ListMenuElements: React.FC<ListMenuElementsProps> = ({
               onClick(text)
             }}
           >
-            {index === 3 ? (
-              <img
-                src={echoexxLogo}
-                alt="logo"
-                width="30px"
-                style={{ paddingRight: '23px' }}
-              />
-            ) : (
-              <ListItemIcon
-                sx={{
-                  color: 'white'
-                }}
-              >
-                {menuIcons[index]}
-              </ListItemIcon>
-            )}
+            <ListItemIcon
+              sx={{
+                color: 'white'
+              }}
+            >
+              {menuIcons[index]}
+            </ListItemIcon>
 
             <ListItemText
               primary={text}

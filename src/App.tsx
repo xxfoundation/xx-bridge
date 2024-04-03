@@ -12,11 +12,11 @@ import evmClient from './plugins/apollo/evm.ts'
 
 // Initialize wagmi
 try {
-  console.log('[ECHOEXX]: Initializing wagmi...')
+  console.log('[BRIDGE]: Initializing wagmi...')
   initWagmi()
-  console.log('[ECHOEXX]: wagmi initialized')
+  console.log('[BRIDGE]: wagmi initialized')
 } catch (error) {
-  console.error('[ECHOEXX]: wagmi initialization failed', error)
+  console.error('[BRIDGE]: wagmi initialization failed', error)
 }
 
 const App: React.FC = () => (

@@ -5,7 +5,6 @@ import theme from '@/theme'
 import ButtonLink from '../custom/ButtonLink'
 import discordLogo from '@/assets/socials/discord.svg'
 import xxNetworkLogo from '@/assets/xxnetwork/xxnetworkLogo.svg'
-import echoexxLogo from '@/assets/logo/png/normal.png'
 
 const Footer: React.FC = () => (
   <Stack
@@ -14,12 +13,6 @@ const Footer: React.FC = () => (
   >
     <Stack direction="row" justifyContent="space-between">
       <Stack spacing={0.5}>
-        <a
-          href="https://echoexx.tech/"
-          style={{ height: 'fit-content', width: 'fit-content' }}
-        >
-          <img src={echoexxLogo} alt="xx network" width="90px" />
-        </a>
         <Stack direction="row" spacing={0.5} alignItems="center">
           <Typography sx={{ fontWeight: 'bold', fontSize: '10px' }}>
             POWERED BY
@@ -35,15 +28,15 @@ const Footer: React.FC = () => (
       <Stack>
         <Stack direction="row" spacing={2}>
           <ButtonLink
+            text="xx network"
+            onClick={() => window.open('https://xx.network/', '_blank')}
+            noUnderline
+          />
+          <ButtonLink
             text="echoexx"
             onClick={() => window.open('https://echoexx.tech/', '_blank')}
             noUnderline
             secondaryColor
-          />
-          <ButtonLink
-            text="xx network"
-            onClick={() => window.open('https://xx.network/', '_blank')}
-            noUnderline
           />
           <ButtonLink
             text="xx hub"
@@ -65,7 +58,7 @@ const Footer: React.FC = () => (
         coins in any state or jurisdiction in which such a distribution, offer,
         solicitation or sale would be unlawful prior to registration or
         qualification under the securities laws of any such state or
-        jurisdiction. Copyright © 2022 xx labs SEZC |{' '}
+        jurisdiction. Copyright © 2024 xx Foundation |{' '}
         <a
           href="https://xx.network/privacy-policy/"
           style={{ color: theme.palette.primary.main }}

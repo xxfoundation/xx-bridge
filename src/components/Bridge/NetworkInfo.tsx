@@ -7,18 +7,107 @@ import {
   Typography
 } from '@mui/material'
 import { Loop } from '@mui/icons-material'
-import { useAccount } from 'wagmi'
+import { useAccount, useWaitForTransaction } from 'wagmi'
+import { useEffect, useMemo } from 'react'
+import { useSubscription } from '@apollo/client'
 import { Network } from '@/utils'
 import useSessionStorage from '@/hooks/useSessionStorage'
 import useLocalStorage from '@/hooks/useLocalStorage'
+import xxClient from '@/plugins/apollo/xx'
+import {
+  SUB_BRIDGE_EVENTS,
+  SUB_DEPOSIT_NONCE,
+  SubBridgeEvents,
+  SubDepositNonce
+} from '@/plugins/apollo/schemas'
+import { BRIDGE_ID_ETH_MAINNET } from '@/consts'
 
 const Banner: React.FC = () => {
   const { address } = useAccount()
-  const [depositTxHash] = useLocalStorage<string>(`depositTxHash-${address}`)
+  const [depositTxHash, setDepositTxHash] = useLocalStorage<string>(
+    `depositTxHash-${address}`
+  )
+
+  const txHash = useMemo(() => depositTxHash || '', [depositTxHash])
+
+  // Check if tx executed
+  // If it failed then need to clear deposit
+  const { data, isLoading } = useWaitForTransaction({
+    hash: txHash as `0x${string}`,
+    confirmations: 3
+  })
+
+  // Get on-chain deposit nonce
+  const { data: depositNonce, loading: depositLoading } =
+    useSubscription<SubDepositNonce>(SUB_DEPOSIT_NONCE, {
+      variables: {
+        where: {
+          txn_hash: { _eq: txHash }
+        }
+      }
+    })
+
+  // process deposit nonce
+  const dataEvent = useMemo(() => {
+    if (depositNonce && depositNonce.deposit.length > 0) {
+      return `[${BRIDGE_ID_ETH_MAINNET},${depositNonce.deposit[0].nonce}]`
+    }
+    return ''
+  }, [depositNonce])
+
+  // Watch executed event on Bridge smart contract (xx indexer)
+  const { data: bridgeEvent, loading: bridgeLoading } =
+    useSubscription<SubBridgeEvents>(SUB_BRIDGE_EVENTS, {
+      client: xxClient,
+      variables: {
+        where: {
+          _and: [
+            { module: { _eq: 'chainBridge' } },
+            { call: { _eq: 'ProposalSucceeded' } },
+            { data: { _eq: dataEvent } }
+          ]
+        }
+      }
+    })
+
+  // Clear deposit hash on successful bridge event OR failed transaction
+  useEffect(() => {
+    // Failed tx
+    if (!isLoading && data && data.status !== 'success') {
+      setDepositTxHash('')
+    }
+    // Bridge event
+    if (!bridgeLoading && bridgeEvent && bridgeEvent.event.length > 0) {
+      setDepositTxHash('')
+    }
+  }, [data, isLoading, bridgeEvent, bridgeLoading])
+
+  // Should banner be shown?
+  const bannerShown = useMemo(
+    () =>
+      !!address &&
+      !!depositTxHash &&
+      !isLoading &&
+      !depositLoading &&
+      data &&
+      data.status === 'success' &&
+      !bridgeLoading &&
+      bridgeEvent &&
+      bridgeEvent.event.length === 0,
+    [
+      address,
+      depositTxHash,
+      isLoading,
+      data,
+      depositLoading,
+      bridgeLoading,
+      bridgeEvent
+    ]
+  )
 
   return (
     <>
-      {address && depositTxHash && (
+      {bannerShown && (
         <Stack
           direction="row"
           justifyContent="space-between"
@@ -26,21 +115,17 @@ const Banner: React.FC = () => {
           sx={{
             backgroundColor: 'primary.dark',
             color: 'white',
-            padding: '10px',
+            padding: '20px',
             borderRadius: '10px 10px 0 0'
           }}
         >
-          <Stack direction="row" alignItems="center">
-            <Stack direction="column" alignItems="flex-start">
-              <span>Network: Ethereum</span>
-              <span>Chain ID: 1</span>
-            </Stack>
-          </Stack>
+          <span>Bridge transfer ongoing...</span>
+          <span>Ethereum &rarr; xx network</span>
           <Link
             href={`https://etherscan.io/tx/${depositTxHash}`}
             target="_blank"
           >
-            View on Etherscan &rarr; {depositTxHash.slice(0, 6)}...
+            See on Etherscan
           </Link>
         </Stack>
       )}

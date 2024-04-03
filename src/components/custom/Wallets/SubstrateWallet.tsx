@@ -50,6 +50,7 @@ const SubstrateWallet: React.FC = () => {
   const {
     loading,
     extensions,
+    hasExtensions,
     accounts,
     selectedAccount,
     connectWallet,
@@ -77,7 +78,7 @@ const SubstrateWallet: React.FC = () => {
       gap="10px"
       alignItems="center"
     >
-      {extensions.length !== 0 && accounts.length > 0 ? (
+      {hasExtensions && extensions.length !== 0 && accounts.length > 0 ? (
         <>
           {selectedAccount && selectedAccount.address && (
             <BalanceDisplay
@@ -116,17 +117,19 @@ const SubstrateWallet: React.FC = () => {
         </>
       ) : (
         <Stack direction="row" gap="10px" alignItems="center">
-          <AutorenewRounded
-            onClick={handleXxLogin}
-            sx={{
-              display: loading ? 'none' : 'block',
-              borderRadius: '50%',
-              padding: '5px',
-              '&:hover': {
-                backgroundColor: 'primary.main'
-              }
-            }}
-          />
+          {hasExtensions && (
+            <AutorenewRounded
+              onClick={handleXxLogin}
+              sx={{
+                display: loading ? 'none' : 'block',
+                borderRadius: '50%',
+                padding: '5px',
+                '&:hover': {
+                  backgroundColor: 'primary.main'
+                }
+              }}
+            />
+          )}
           <CircularProgress
             size={20}
             sx={{
@@ -134,10 +137,15 @@ const SubstrateWallet: React.FC = () => {
               display: loading ? 'block' : 'none'
             }}
           />
-          {extensions.length !== 0 && accounts.length === 0 && (
-            <div>Extension found, but no accounts connected</div>
+          {hasExtensions &&
+            extensions.length !== 0 &&
+            accounts.length === 0 && (
+              <div>Extension found, but no accounts connected</div>
+            )}
+          {hasExtensions && extensions.length === 0 && (
+            <div>xx network wallet not connected</div>
           )}
-          {extensions.length === 0 && <div>xx network wallet not found</div>}
+          {!hasExtensions && <div>xx network wallet not found</div>}
         </Stack>
       )}
     </Stack>

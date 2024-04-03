@@ -9,6 +9,7 @@ export type AccountsContextType = {
   loading: boolean
   error: string | undefined
   extensions: InjectedExtension[]
+  hasExtensions: boolean
   accounts: InjectedAccountWithMeta[]
   selectedAccount?: InjectedAccountWithMeta
   selectAccount: (address: string) => void
