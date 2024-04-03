@@ -1,4 +1,4 @@
-import { Stack, Typography } from '@mui/material'
+import { Link, Stack, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   useAccount,
@@ -14,13 +14,15 @@ import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import {
   BRIDGE_ID_ETH_MAINNET,
   BRIDGE_ID_XXNETWORK,
-  BRIDGE_RELAYER_FEE_ADDRESS
+  BRIDGE_RELAYER_FEE_ADDRESS,
+  ETH_EXPLORER_URL
 } from '@/consts'
 import contracts from '@/contracts'
 import {
   SUB_PROPOSAL_EVENTS,
   SubProposalEvents
 } from '@/plugins/apollo/schemas'
+import StyledButton from '../custom/StyledButton'
 
 interface TransferXXToETHProps {
   recipient: string
@@ -50,8 +52,8 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
 
   const [step, setStep] = useState<Step>(Step.Init)
   const [nonce, setNonce] = useState<bigint>()
-
-  // TODO: improve error handling + flow?
+  const [error, setError] = useState<string | undefined>()
+  const [txHash, setTxHash] = useState<string>()
 
   // Reset state + call prop
   const resetAll = useCallback(() => {
@@ -60,7 +62,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
   }, [reset])
 
   // Transfer native extrinsic
-  const sent = useRef(false)
+  const sent = useRef<boolean>(false)
   useEffect(() => {
     if (api && selectedAccount && step === Step.Init && !sent.current) {
       const extrinsic = api.tx.swap.transferNative(
@@ -88,18 +90,26 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
             }
           )
           .catch(err => {
-            console.error('Error executing transferNative', err)
+            console.error(`Error executing transferNative: ${err.message}`)
+            setError(`Error executing transferNative: ${err.message}`)
             resetAll()
           })
+      } else {
+        console.error('No signer available')
+        setError('No signer available')
+        resetAll()
       }
     }
-  }, [api, step, sent, selectedAccount, recipient, amount, getSigner])
+  }, [api, step, sent, selectedAccount, recipient, amount, setError, getSigner])
 
+  /* -------------------------------------------------------------------------- */
+  /*                                    Hooks                                   */
+  /* -------------------------------------------------------------------------- */
   // Get current relayer fee from contract
   const {
     data: relayerFee,
-    isError: relayerFeeError
-    // isLoading: relayerFeeLoading, // TODO: use this?
+    isError: relayerFeeError,
+    isLoading: relayerFeeLoading
   } = useContractRead({
     address: BRIDGE_RELAYER_FEE_ADDRESS,
     abi: contracts.relayerFeeAbi,
@@ -117,39 +127,30 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
   })
   const {
     data: payFeeData,
-    write: callPayFee
-    // isLoading: payFeeLoading // TODO: use this?
+    write: callPayFee,
+    isError: payFeeError,
+    isLoading: payFeeLoading
   } = useContractWrite(configPayFee)
 
   // Wait for transaction
   const { data: txReceipt, error: errorTxReceipt } = useWaitForTransaction({
     hash: payFeeData?.hash,
-    confirmations: 5
+    confirmations: 3
   })
 
   // Watch executed event on Bridge smart contract
-  const {
-    data: proposalEvent,
-    loading: loadingProposalEvent,
-    error: errorProposalEvent
-  } = useSubscription<SubProposalEvents>(SUB_PROPOSAL_EVENTS, {
-    variables: {
-      where: {
-        _and: [
-          { status: { _eq: 'Executed' } },
-          { nonce: { _eq: JSON.stringify(nonce?.toString() ?? '') } }
-        ]
+  const { data: proposalEvent, error: errorProposalEvent } =
+    useSubscription<SubProposalEvents>(SUB_PROPOSAL_EVENTS, {
+      variables: {
+        where: {
+          _and: [
+            { status: { _eq: 'Executed' } },
+            { nonce: { _eq: nonce?.toString() ?? '' } }
+          ]
+        }
       }
-    }
-  })
-
-  useEffect(() => {
-    console.log(`ProposalEvent: ${JSON.stringify(proposalEvent)}`)
-    if (proposalEvent && !loadingProposalEvent && !errorProposalEvent) {
-      console.log('ProposalEvent received!')
-      setStep(Step.Done)
-    }
-  }, [proposalEvent])
+    })
+  /* ------------------------------------ - ----------------------------------- */
 
   // State machine
   useEffect(() => {
@@ -157,7 +158,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
       switch (step) {
         /* -------------------------------- Init ------------------------------- */
         case Step.Init: {
-          // Send extrinsic
+          // Wait for signer
           break
         }
 
@@ -173,15 +174,14 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
         /* ---------------------------- RelayerFee ---------------------------- */
         case Step.RelayerFee: {
           if (relayerFeeError) {
-            console.error('Error getting relayer fee', relayerFeeError)
+            setError(`Error getting relayer fee: ${relayerFeeError}`)
             resetAll()
           }
           if (errorPayFee) {
-            console.error('Error executing payFee', errorPayFee)
+            setError(`Error executing payFee: ${errorPayFee}`)
             resetAll()
           }
-          if (callPayFee) {
-            console.log(`Paying relayer fee`)
+          if (!relayerFeeLoading && callPayFee) {
             callPayFee()
             setStep(Step.WaitFee)
           }
@@ -190,9 +190,9 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
 
         /* ---------------------------- WaitFee ---------------------------- */
         case Step.WaitFee: {
-          if (txReceipt) {
+          if (!payFeeError && !payFeeLoading && txReceipt) {
             if (errorTxReceipt) {
-              console.log(`Paying relayer fee failed!`)
+              setError(`Paying relayer fee failed: ${errorTxReceipt}`)
               resetAll()
             }
             console.log(`Relayer fee paid!`)
@@ -203,18 +203,18 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
 
         /* ---------------------------- WaitBridge ---------------------------- */
         case Step.WaitBridge: {
-          // TODO: see comments above
-          // setTimeout(() => {
-          //   setStep(Step.Done)
-          // }, 10000)
+          if (!errorProposalEvent && proposalEvent) {
+            if (proposalEvent.proposal.length > 0) {
+              setTxHash(txReceipt?.transactionHash ?? '')
+              setStep(Step.Done)
+            }
+          }
           break
         }
 
         /* ---------------------------- Done ---------------------------- */
         case Step.Done: {
-          setTimeout(() => {
-            resetAll()
-          }, 3000)
+          // Noop
           break
         }
 
@@ -239,33 +239,69 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
     nonce,
     relayerFee,
     relayerFeeError,
+    relayerFeeLoading,
     errorPayFee,
+    payFeeError,
+    payFeeLoading,
     callPayFee,
     txReceipt,
     errorTxReceipt,
     recipient,
     amount,
+    proposalEvent,
+    errorProposalEvent,
     resetAll
   ])
 
-  // TODO: improve UI
   return (
-    <Stack direction="column" padding={2} justifyContent="center">
+    <Stack
+      direction="column"
+      padding={2}
+      justifyContent="center"
+      spacing="20px"
+    >
       {step === Step.TransferNative && (
         <Typography>Transfering native XX to Bridge ...</Typography>
       )}
       {(step === Step.RelayerFee || step === Step.WaitFee) && (
-        <Typography>Paying Bridge Fee ...</Typography>
+        <Typography>Paying Bridge Fee...</Typography>
+      )}
+      {step === Step.WaitFee && (
+        <Typography>Waiting for fee payment block confirmations (3)</Typography>
       )}
       {step === Step.WaitBridge && (
-        <Stack direction="column" padding={2} alignItems="center">
-          <Typography>Waiting for Bridge ...</Typography>
-          <Loading size="sm2" />
-        </Stack>
+        <Typography>
+          Waiting for Bridge... This can take up to 2 min. Please be patient.
+        </Typography>
       )}
       {step === Step.Done && (
-        <Typography variant="h5">Transfer complete!</Typography>
+        <Stack
+          sx={{
+            flexDirection: 'column'
+          }}
+          alignItems="center"
+          spacing="20px"
+        >
+          <Typography variant="h5">Transfer complete!</Typography>
+          <Link
+            variant="body2"
+            href={`${ETH_EXPLORER_URL}/tx/${txHash}`}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            View transaction in Etherscan
+          </Link>
+          <StyledButton
+            onClick={() => {
+              resetAll()
+            }}
+          >
+            Back to the Bridge
+          </StyledButton>
+        </Stack>
       )}
+      {step !== Step.Done && <Loading size="sm2" />}
+      {error && <Typography color="error">{error}</Typography>}
     </Stack>
   )
 }

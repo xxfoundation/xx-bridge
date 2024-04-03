@@ -2,7 +2,6 @@ import { Stack, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccount, usePrepareContractWrite, useContractWrite } from 'wagmi'
 import { waitForTransaction } from 'wagmi/actions'
-import Loading from '../Utils/Loading'
 import contracts from '@/contracts'
 import {
   BRIDGE_ADDRESS,
@@ -15,6 +14,7 @@ interface DepositProps {
   recipient: string
   amount: bigint
   error: () => void
+  setDepositTxHash: (hash: string) => void
   done: () => void
 }
 
@@ -58,6 +58,7 @@ const Deposit: React.FC<DepositProps> = ({
   recipient,
   amount,
   error,
+  setDepositTxHash,
   done
 }) => {
   // Hooks
@@ -109,6 +110,7 @@ const Deposit: React.FC<DepositProps> = ({
               })
               if (depositReceipt) {
                 console.log(`Deposit receipt:`, depositReceipt)
+                setDepositTxHash(data.hash)
                 setStep(Steps[State.Done])
                 setTimeout(() => {
                   console.log(`Deposit done`)
@@ -150,7 +152,6 @@ const Deposit: React.FC<DepositProps> = ({
         Deposit
       </Typography>
       <Typography variant="body1">{step.message}</Typography>
-      <Loading size="sm2" />
     </Stack>
   )
 }

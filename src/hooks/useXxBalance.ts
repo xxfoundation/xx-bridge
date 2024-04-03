@@ -8,7 +8,6 @@ const useXxBalance = () => {
   const [xxBalance, setXXBalance] = useState<BN>(new BN(0))
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(true)
   const [counter, setCounter] = useState<number>(0)
-  const [timer, setTimer] = useState<NodeJS.Timeout>()
   const { api, ready } = useApi()
 
   const fetchXxBalance = useCallback(() => {
@@ -23,27 +22,18 @@ const useXxBalance = () => {
           }
         })
         .catch(console.error)
-        .finally(() => setIsLoadingBalance(false))
+        .finally(() => {
+          setTimeout(() => {
+            setCounter(prevCounter => prevCounter + 1)
+          }, 10000)
+          setIsLoadingBalance(false)
+        })
     }
   }, [api, ready, selectedAccount])
 
   useEffect(() => {
     fetchXxBalance()
-  }, [fetchXxBalance, timer, counter])
-
-  useEffect(() => {
-    if (ready) {
-      const auxTimer = setInterval(() => {
-        setCounter(prevCounter => prevCounter + 1)
-      }, 10000)
-      setTimer(auxTimer)
-    }
-    return () => {
-      if (timer) {
-        clearInterval(timer)
-      }
-    }
-  }, [ready, setCounter, setTimer])
+  }, [fetchXxBalance, counter])
 
   return { xxBalance, isLoadingBalance }
 }

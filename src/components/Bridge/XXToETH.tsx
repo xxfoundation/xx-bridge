@@ -4,7 +4,8 @@ import {
   Divider,
   TextField,
   useMediaQuery,
-  Tooltip
+  Tooltip,
+  CircularProgress
 } from '@mui/material'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccount, useBalance, useContractRead, useFeeData } from 'wagmi'
@@ -28,6 +29,7 @@ import Balance from '../custom/Balance'
 import ModalWrapper from '../Modals/ModalWrapper'
 import Loading from '../Utils/Loading'
 import useXxBalance from '@/hooks/useXxBalance'
+import useSessionStorage from '@/hooks/useSessionStorage'
 
 const XXToETH: React.FC = () => {
   // Hooks
@@ -46,10 +48,14 @@ const XXToETH: React.FC = () => {
   const [ethBalance, setEthBalance] = useState<string>('0')
   const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
-  const [startTransfer, setStartTransfer] = useState<boolean>(false)
+  const [startTransfer, setStartTransfer] = useSessionStorage<boolean>(
+    `transfer-${address}`,
+    false
+  )
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
   const [xxFee, setXXFee] = useState<string>('0')
+  const [resetting, setResetting] = useState<boolean>(false)
 
   // Check screen checkpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
@@ -268,12 +274,16 @@ const XXToETH: React.FC = () => {
 
   // Reset
   const reset = useCallback(() => {
+    setResetting(true)
     setInput(null)
     setTransferValue(BigInt(0))
     setRecipient('')
     setRecipientError(undefined)
     setStartTransfer(false)
     refetchWrappedXX()
+    setTimeout(() => {
+      setResetting(false)
+    }, 2000)
   }, [refetchWrappedXX])
 
   return (
@@ -322,7 +332,11 @@ const XXToETH: React.FC = () => {
             Error
           </Typography>
           <Typography>{errorState}</Typography>
-          <StyledButton onClick={reset}>Retry</StyledButton>
+          {resetting ? (
+            <CircularProgress size={24} />
+          ) : (
+            <StyledButton onClick={reset}>Retry</StyledButton>
+          )}
         </Stack>
       </ModalWrapper>
       {noxx && (

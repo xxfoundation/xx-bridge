@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect } from 'react'
-import { CircularProgress, NativeSelect, Stack, Tooltip } from '@mui/material'
+import {
+  CircularProgress,
+  NativeSelect,
+  Skeleton,
+  Stack,
+  Tooltip
+} from '@mui/material'
 import { AutorenewRounded } from '@mui/icons-material'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import { NetworkLogo } from './Utils'
@@ -25,7 +31,17 @@ const BalanceDisplay: React.FC<{
       color: 'text.primary'
     }}
   >
-    <>{setIsLoadingBalance ? <CircularProgress size={20} /> : xxBalance}</>
+    {setIsLoadingBalance ? (
+      <Skeleton
+        variant="text"
+        width="40px"
+        sx={{
+          display: setIsLoadingBalance ? 'block' : 'none'
+        }}
+      />
+    ) : (
+      <>{xxBalance}</>
+    )}
     <NetworkLogo network={xxNetwork} textSize />
   </Stack>
 )

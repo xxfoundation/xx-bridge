@@ -2,6 +2,12 @@ import xxLogo from '@/assets/currencies/xx.jpeg'
 import wxxLogo from '@/assets/currencies/wxx.svg'
 import ethLogo from '@/assets/currencies/eth.png'
 
+// URLs
+export const XX_EXPLORER_URL =
+  process.env.XX_EXPLORER_URL || 'https://explorer.xx.network'
+export const ETH_EXPLORER_URL =
+  process.env.ETH_EXPLORER_URL || 'https://etherscan.io'
+
 // Known addresses
 export const WRAPPED_XX_ADDRESS = (process.env.WRAPPED_XX_ADDRESS ||
   '0x3f709398808af36ADBA86ACC617FeB7F5B7B193E') as `0x${string}`

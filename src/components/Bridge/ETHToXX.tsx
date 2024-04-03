@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  CircularProgress,
   Divider,
   Stack,
   TextField,
@@ -43,6 +44,7 @@ import theme from '@/theme'
 import Balance from '../custom/Balance'
 import Loading from '../Utils/Loading'
 import ModalWrapper from '../Modals/ModalWrapper'
+import useSessionStorage from '@/hooks/useSessionStorage'
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,
@@ -84,9 +86,13 @@ const ETHToXX: React.FC = () => {
   const [xxBalance, setXXBalance] = useState<string>('0')
   const [allowance, setAllowance] = useState<string>()
   const [needApprove, setNeedApprove] = useState<boolean>(false)
-  const [startTransfer, setStartTransfer] = useState<boolean>(false)
+  const [startTransfer, setStartTransfer] = useSessionStorage<boolean>(
+    `transfer-${address}`,
+    false
+  )
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
+  const [resetting, setResetting] = useState<boolean>(false)
 
   // Check screen checkpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
@@ -233,7 +239,10 @@ const ETHToXX: React.FC = () => {
       // fail without the allowance
       // This way, just use the fixed more conservative gas estimates
       if (needApprove) {
-        const fee = (GAS_ESTIMATE_APPROVE + GAS_ESTIMATE_DEPOSIT) * gasPrice
+        const fee = (
+          (GAS_ESTIMATE_APPROVE + GAS_ESTIMATE_DEPOSIT) *
+          gasPrice
+        ).toFixed(0)
         setFees(formatBalance(BigInt(fee), 18, 6))
       } else if (transferValue && recipient) {
         estimateGasBridgeDeposit(
@@ -319,6 +328,7 @@ const ETHToXX: React.FC = () => {
 
   // Reset
   const reset = useCallback(() => {
+    setResetting(true)
     setInput(null)
     setTransferValue(BigInt(0))
     setRecipient('')
@@ -326,6 +336,9 @@ const ETHToXX: React.FC = () => {
     setStartTransfer(false)
     refetchWrappedXX()
     refetchAllowance()
+    setTimeout(() => {
+      setResetting(false)
+    }, 2000)
   }, [refetchWrappedXX, refetchAllowance])
 
   return (
@@ -374,7 +387,11 @@ const ETHToXX: React.FC = () => {
             Error
           </Typography>
           <Typography>{errorState}</Typography>
-          <StyledButton onClick={reset}>Retry</StyledButton>
+          {resetting ? (
+            <CircularProgress size={24} />
+          ) : (
+            <StyledButton onClick={reset}>Retry</StyledButton>
+          )}
         </Stack>
       </ModalWrapper>
       {!startTransfer && address && (
