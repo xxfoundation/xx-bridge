@@ -119,7 +119,7 @@ const ETHToXX: React.FC = () => {
 
   // Set recipient to xx account if connected
   useEffect(() => {
-    if (selectedAccount) {
+    if (selectedAccount && selectedAccount?.address) {
       setRecipient(selectedAccount.address)
     }
   }, [selectedAccount, startTransfer])
@@ -520,7 +520,7 @@ const ETHToXX: React.FC = () => {
           </Stack>
         </>
       )}
-      {startTransfer && (
+      {startTransfer && recipient && (
         <TransferETHToXX
           approve={needApprove}
           recipient={convertXXAddress(recipient)}

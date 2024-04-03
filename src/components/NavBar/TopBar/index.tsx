@@ -27,7 +27,6 @@ const TopBar: React.FC = () => {
     drawerWidth,
     isMobile
   })
-
   const [fromXX] = useSessionStorage<boolean>('fromNative')
 
   return (

@@ -1,6 +1,7 @@
 import { Link, Stack, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSubscription } from '@apollo/client'
+import { useAccount } from 'wagmi'
 import Loading from '../Utils/Loading'
 import Approve from './Approve'
 import Deposit from './Deposit'
@@ -17,6 +18,7 @@ import {
 } from '@/consts'
 import xxClient from '@/plugins/apollo/xx'
 import StyledButton from '../custom/StyledButton'
+import useLocalStorage from '@/hooks/useLocalStorage'
 
 interface TransferETHToXXProps {
   approve: boolean
@@ -40,9 +42,13 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
   amount,
   reset
 }) => {
+  const { address } = useAccount()
   const [step, setStep] = useState<Step>(Step.Init)
   const [error, setError] = useState<string | undefined>()
-  const [depositTxHash, setDepositTxHash] = useState<string>()
+  const [depositTxHash, setDepositTxHash] = useLocalStorage<string>(
+    `depositTxHash-${address}`,
+    ''
+  )
   const [blockNumber, setBlockNumber] = useState<string>()
 
   // Reset state + call prop

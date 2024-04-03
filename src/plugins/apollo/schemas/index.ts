@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client'
 
 /* -------------------------------------------------------------------------- */
-/*                                  XX => ETH                                 */
+/*                           ETH Indexer: XX => ETH                           */
 /* -------------------------------------------------------------------------- */
 
 // Subscription for proposal events
@@ -41,7 +41,7 @@ const SUB_DEPOSIT_NONCE_QUERY = `
 export const SUB_DEPOSIT_NONCE = gql([SUB_DEPOSIT_NONCE_QUERY])
 
 /* -------------------------------------------------------------------------- */
-/*                                  ETH => XX                                 */
+/*                            XX Indexer: ETH => XX                           */
 /* -------------------------------------------------------------------------- */
 
 // Subscription for bridge event
