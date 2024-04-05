@@ -78,6 +78,7 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
   )
 
   // Synchronously updates 'transaction' from localStorage to immediately reflect external changes. This approach compensates for the useLocalStorage hook's delay in syncing with localStorage, ensuring 'transaction' is always current without waiting for the next re-render.
+  // TODO: This brings in a problem because the setState variable is not updated in the same render cycle. This can be fixed by using a useEffect to update the state variable after the localStorage is updated. This can currently lead to a bug where the state of an address is updated in the localStorage object of another address, misleading the user on account change.
   useEffect(() => {
     const value = localStorage.getItem(`tx-${address}`)
     if (value) {
@@ -168,12 +169,14 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
             transaction.sourceId === 1 &&
             transaction.status !== Steps.Init
           ) {
+            console.log('Transaction already exists', transaction)
             setStep(transaction.status)
             break
           }
 
           // Go to approve if needed, otherwise go to deposit
           if (approve) {
+            console.log('Need to approve')
             setStep(Steps.ApproveSpend)
             updateTransaction(setTransaction, ['status'], Steps.ApproveSpend)
           } else {
@@ -186,6 +189,13 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
 
         /* ---------------------------- ApproveSpend ---------------------------- */
         case Steps.ApproveSpend: {
+          console.log('Approving spending...')
+          // If approval already made go to deposit
+          if (!approve) {
+            console.log('No need to approve')
+            setStep(Steps.BridgeDeposit)
+            updateTransaction(setTransaction, ['status'], Steps.BridgeDeposit)
+          }
           // Wait for Approval to finish
           break
         }
@@ -243,7 +253,7 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
 
         /* -------------------------------------------------------------------------- */
         default:
-          throw new Error(`Unknown step: ${step}`)
+          break
       }
     }
     console.log('useEffect', recipient, amount, address, transaction)

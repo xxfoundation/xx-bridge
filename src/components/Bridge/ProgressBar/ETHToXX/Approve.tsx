@@ -1,4 +1,4 @@
-import { Stack, Tooltip, Typography } from '@mui/material'
+import { Stack, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useAccount, usePrepareContractWrite, useContractWrite } from 'wagmi'
 import { waitForTransaction } from 'wagmi/actions'
@@ -54,6 +54,7 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
   const { address } = useAccount()
   const [step, setStep] = useState<CustomStep>(Steps[State.Init])
   const [ready, setReady] = useState<boolean>(false)
+  const [prompted, setPrompted] = useState<boolean>(false)
 
   // Local Storage
   const [transaction, setTransaction] = useLocalStorage<Transaction>(
@@ -96,6 +97,16 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
     isLoading: isLoadingApprove,
     error: errorApproveWrite
   } = useContractWrite(configApprove)
+
+  console.log(`Approve:`, {
+    address,
+    transaction,
+    errorApprovePrepare,
+    statusPrepareContractWrite,
+    isLoadingApprove,
+    errorApproveWrite,
+    dataApprove
+  })
 
   // State machine
   useEffect(() => {
@@ -201,6 +212,7 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
           throw new Error(`Unknown step: ${step}`)
       }
     }
+    console.log(`Approve Executing step:`, step, address, transaction, ready)
     if (address) {
       executeStep()
     }
@@ -255,16 +267,32 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
       ) : (
         <Typography variant="body1">{step.message}</Typography>
       )}
-      {step.step === State.Sign && (
-        <Tooltip title="Only click this button if you do not have any approval popups. If you do, please close them and only then ask for new signature prompt.">
+      {step.step === State.Sign && !errorApproveWrite && (
+        <Stack
+          sx={{
+            flexDirection: 'column',
+            marginTop: '20px !important'
+          }}
+          spacing="10px"
+        >
+          <Typography variant="body2">
+            Please confirm the transaction in your wallet. If you do not see a
+            confirmation prompt to sign this transaction, please check your
+            wallet settings or try again by pressing the button below. Make sure
+            you do not have any queued transactions in your wallet before
+            proceeding.
+          </Typography>
           <StyledButton
             onClick={() => {
               setStep(Steps[State.Prompt])
+              setPrompted(true)
             }}
+            disabled={isLoadingApprove || prompted}
+            small
           >
-            Re-Prompt User to Approve
+            {prompted ? 'Trying Approval...' : 'Retry Approval'}
           </StyledButton>
-        </Tooltip>
+        </Stack>
       )}
     </Stack>
   )

@@ -1,5 +1,6 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Divider, Stack, Typography, useMediaQuery } from '@mui/material'
+import { useAccount } from 'wagmi'
 import StyledStack from '../components/custom/StyledStack.tsx'
 import NetworkInfo from '../components/Bridge/NetworkInfo'
 import Loading from '@/components/Utils/Loading.tsx'
@@ -11,8 +12,18 @@ import useSessionStorage from '@/hooks/useSessionStorage.ts'
 
 const Bridge: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
+  const { address } = useAccount()
   const [switching, setSwitching] = useState<boolean>(false)
   const [fromXX, setFromXX] = useSessionStorage<boolean>('fromNative', false)
+  const [accountChange, setAccountChange] = useState<boolean>(false)
+
+  // refresh page and pass by loading state when account changes
+  useEffect(() => {
+    setAccountChange(true)
+    setTimeout(() => {
+      setAccountChange(false)
+    }, 1000)
+  }, [address])
 
   // Switch networks
   const switchNetworks = useCallback(() => {
@@ -32,7 +43,14 @@ const Bridge: React.FC = () => {
       centerWidth
       centerHeight
     >
-      {switching ? (
+      {accountChange && (
+        <Loading size="sm2">
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+            Account Changed
+          </Typography>
+        </Loading>
+      )}
+      {switching && (
         <Stack
           direction="column"
           spacing={2}
@@ -45,7 +63,8 @@ const Bridge: React.FC = () => {
           </Typography>
           <Loading size="sm2" />
         </Stack>
-      ) : (
+      )}
+      {!switching && !accountChange && (
         <Stack
           sx={{
             width: 'inherit',
