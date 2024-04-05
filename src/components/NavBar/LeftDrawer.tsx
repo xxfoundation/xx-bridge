@@ -15,7 +15,7 @@ import { Home, Hub, Message, Wallet } from '@mui/icons-material'
 
 // Files
 import theme from '../../theme'
-import logo from '../../assets/logo/svg/xxbridge.svg'
+import logo from '../../assets/logo/png/xxbridge.png'
 import { useNavBarContext } from '.'
 import getStyles from './styles'
 import FooterMobile from '../Footer/FooterMobile'

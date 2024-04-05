@@ -53,6 +53,7 @@ const theme1 = createTheme({
       dark: backgroundColors.dark,
       grey: backgroundColors.grey
     },
+    divider: '#2D2C30',
     error: {
       main: '#DA2648',
       light: '#DA2648'
@@ -110,7 +111,7 @@ const theme1 = createTheme({
           // disabled
           '&:disabled': {
             backgroundColor: '#cbb26b47',
-            color: '#0000009c'
+            color: '#999999'
           }
         }
       }
@@ -130,7 +131,11 @@ const theme1 = createTheme({
           '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button':
             {
               display: 'none'
-            }
+            },
+          '& input::disabled': {
+            backgroundColor: '#fff',
+            color: '#fff'
+          }
         }
       }
     }

@@ -113,6 +113,12 @@ export const convertXXAddress = (address: string) => {
   return u8aToHex(val)
 }
 
+// Convert hexstring pubkey to ss58 address
+export const convertXXPubkey = (pubkey: string) => {
+  const address = encodeAddress(pubkey, 55)
+  return address
+}
+
 export const encodeBridgeDeposit = (
   to: string,
   amount: bigint
@@ -217,3 +223,34 @@ export function checkForUndefinedVariables<T extends any[]>(
 // isAddress
 export const isETHAddress = (address: string): boolean =>
   address.startsWith('0x') && address.length === 42
+
+type NestedObject = {
+  [key: string]: any
+}
+
+export const updateNestedKeyImmutable = (
+  obj: NestedObject,
+  path: string[],
+  newValue: any
+): NestedObject => {
+  if (path.length === 0) {
+    return obj
+  }
+
+  // Ensure immutability by copying the object
+  const newObj = { ...obj }
+  const [firstKey, ...remainingPath] = path
+
+  if (remainingPath.length === 0) {
+    newObj[firstKey] = newValue
+  } else {
+    // Recursively update or initialize nested objects
+    newObj[firstKey] = updateNestedKeyImmutable(
+      newObj[firstKey] ?? {}, // Use an empty object if the next key does not exist
+      remainingPath,
+      newValue
+    )
+  }
+
+  return newObj
+}

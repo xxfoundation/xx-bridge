@@ -9,6 +9,7 @@ interface CurrencyInputFieldProps {
   value: number | null
   setValue: (value: number | null) => void
   error: string | undefined
+  disabled: boolean
 }
 
 const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
@@ -16,7 +17,8 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
   balance,
   value,
   setValue,
-  error
+  error,
+  disabled
 }) => (
   <Stack marginTop="10px" spacing={1} alignItems="center">
     {error && (
@@ -39,41 +41,53 @@ const CurrencyInputField: React.FC<CurrencyInputFieldProps> = ({
         alignItems: 'center'
       }}
     >
-      <InputBase
-        placeholder="0"
-        endAdornment={
-          <Typography sx={{ color: 'text.primary', fontSize: '0.9em' }}>
-            {code}
-          </Typography>
-        }
-        type="number"
-        inputProps={{ min: 1 }}
-        sx={{
-          width: '100%',
-          paddingLeft: '10px',
-          color: 'primary.contrastText',
-          fontWeight: 'bold'
-        }}
-        value={value || ''}
-        onChange={e => {
-          if (e.target.value === '') {
-            setValue(null)
-          } else {
-            setValue(Number(e.target.value))
-          }
-        }}
-      />
-      <StyledButton
-        sx={{ height: '30px', backgroundColor: 'background.grey' }}
-        onClick={() => setValue(balance)}
-      >
-        Max
-      </StyledButton>
+      {!disabled ? (
+        <>
+          <InputBase
+            placeholder="0"
+            endAdornment={
+              <Typography sx={{ color: 'text.primary', fontSize: '0.9em' }}>
+                {code}
+              </Typography>
+            }
+            type="number"
+            inputProps={{ min: 1 }}
+            sx={{
+              width: '100%',
+              paddingLeft: '10px',
+              color: 'primary.contrastText',
+              fontWeight: 'bold'
+            }}
+            value={value || ''}
+            onChange={e => {
+              if (e.target.value === '') {
+                setValue(null)
+              } else {
+                setValue(Number(e.target.value))
+              }
+            }}
+          />
+          <StyledButton
+            sx={{ height: '30px', backgroundColor: 'background.grey' }}
+            onClick={() => setValue(balance)}
+          >
+            Max
+          </StyledButton>
+        </>
+      ) : (
+        <Typography
+          sx={{ color: 'text.primary', fontSize: '1em', fontWeight: 'bold' }}
+        >
+          {value} {code}
+        </Typography>
+      )}
     </Stack>
-    <Typography sx={{ color: 'text.primary', fontSize: '13px' }}>
-      Note: Minimum transfer of 1 {code} because it is the existential deposit
-      to keep the account active in the xx network blockchain.
-    </Typography>
+    {!disabled && (
+      <Typography sx={{ color: 'text.primary', fontSize: '13px' }}>
+        Note: Minimum transfer of 1 {code} because it is the existential deposit
+        to keep the account active in the xx network blockchain.
+      </Typography>
+    )}
   </Stack>
 )
 

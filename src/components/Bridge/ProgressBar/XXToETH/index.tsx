@@ -8,7 +8,7 @@ import {
   useWaitForTransaction
 } from 'wagmi'
 import { useSubscription } from '@apollo/client'
-import Loading from '../Utils/Loading'
+import Loading from '../../../Utils/Loading'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import {
@@ -22,7 +22,7 @@ import {
   SUB_PROPOSAL_EVENTS,
   SubProposalEvents
 } from '@/plugins/apollo/schemas'
-import StyledButton from '../custom/StyledButton'
+import StyledButton from '../../../custom/StyledButton'
 
 interface TransferXXToETHProps {
   recipient: string
@@ -30,14 +30,14 @@ interface TransferXXToETHProps {
   reset: () => void
 }
 
-// Steps
-enum Step {
+// From XX to ETH: Native Transfer (xx) -> Pay Fee (eth) -> Wait for Bridge -> Done
+export enum Steps {
+  Error = -1,
   Init = 0,
-  TransferNative = 1,
-  RelayerFee = 2,
-  WaitFee = 3,
-  WaitBridge = 4,
-  Done = 5
+  NativeTransfer = 1,
+  PayFee = 2,
+  WaitBridge = 3,
+  Done = 4
 }
 
 const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
@@ -50,14 +50,14 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
   const { selectedAccount, getSigner } = useAccounts()
   const { api, ready } = useApi()
 
-  const [step, setStep] = useState<Step>(Step.Init)
+  const [step, setStep] = useState<number>(Steps.Init)
   const [nonce, setNonce] = useState<bigint>()
   const [error, setError] = useState<string | undefined>()
   const [txHash, setTxHash] = useState<string>()
 
   // Reset state + call prop
   const resetAll = useCallback(() => {
-    setStep(Step.Init)
+    setStep(Steps.Init)
     reset()
   }, [reset])
 
@@ -68,7 +68,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
       api &&
       ready &&
       selectedAccount &&
-      step === Step.Init &&
+      step === Steps.Init &&
       !sent.current
     ) {
       const extrinsic = api.tx.swap.transferNative(
@@ -79,7 +79,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
       const signer = getSigner()
       if (signer) {
         sent.current = true
-        setStep(Step.TransferNative)
+        setStep(Steps.TransferNative)
         extrinsic
           .signAndSend(
             selectedAccount.address,
@@ -173,22 +173,22 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
     const executeStep = async () => {
       switch (step) {
         /* -------------------------------- Init ------------------------------- */
-        case Step.Init: {
+        case Steps.Init: {
           // Wait for signer
           break
         }
 
         /* ---------------------------- TransferNative ---------------------------- */
-        case Step.TransferNative: {
+        case Steps.TransferNative: {
           // Wait for nonce
           if (nonce !== undefined) {
-            setStep(Step.RelayerFee)
+            setStep(Steps.RelayerFee)
           }
           break
         }
 
         /* ---------------------------- RelayerFee ---------------------------- */
-        case Step.RelayerFee: {
+        case Steps.RelayerFee: {
           if (relayerFeeError) {
             setError(`Error getting relayer fee: ${relayerFeeError}`)
             resetAll()
@@ -199,37 +199,37 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
           }
           if (!relayerFeeLoading && callPayFee) {
             callPayFee()
-            setStep(Step.WaitFee)
+            setStep(Steps.WaitFee)
           }
           break
         }
 
         /* ---------------------------- WaitFee ---------------------------- */
-        case Step.WaitFee: {
+        case Steps.WaitFee: {
           if (!payFeeError && !payFeeLoading && txReceipt) {
             if (errorTxReceipt) {
               setError(`Paying relayer fee failed: ${errorTxReceipt}`)
               resetAll()
             }
             console.log(`Relayer fee paid!`)
-            setStep(Step.WaitBridge)
+            setStep(Steps.WaitBridge)
           }
           break
         }
 
         /* ---------------------------- WaitBridge ---------------------------- */
-        case Step.WaitBridge: {
+        case Steps.WaitBridge: {
           if (!errorProposalEvent && proposalEvent) {
             if (proposalEvent.proposal.length > 0) {
               setTxHash(txReceipt?.transactionHash ?? '')
-              setStep(Step.Done)
+              setStep(Steps.Done)
             }
           }
           break
         }
 
         /* ---------------------------- Done ---------------------------- */
-        case Step.Done: {
+        case Steps.Done: {
           // Noop
           break
         }
@@ -277,18 +277,18 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
       alignItems="center"
       spacing="20px"
     >
-      {step === Step.TransferNative && (
+      {step === Steps.TransferNative && (
         <Typography>Transfering native XX to Bridge ...</Typography>
       )}
-      {(step === Step.RelayerFee || step === Step.WaitFee) && (
+      {(step === Steps.RelayerFee || step === Steps.WaitFee) && (
         <Typography>Paying Bridge Fee...</Typography>
       )}
-      {step === Step.WaitBridge && (
+      {step === Steps.WaitBridge && (
         <Typography>
           Waiting for Bridge... This can take up to 2 min. Please be patient.
         </Typography>
       )}
-      {step === Step.Done && (
+      {step === Steps.Done && (
         <Stack
           sx={{
             flexDirection: 'column'
@@ -314,7 +314,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
           </StyledButton>
         </Stack>
       )}
-      {step !== Step.Done && <Loading size="sm2" />}
+      {step !== Steps.Done && <Loading size="sm2" />}
       {error && <Typography color="error">{error}</Typography>}
     </Stack>
   )

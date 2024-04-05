@@ -57,7 +57,9 @@ const SubstrateWallet: React.FC = () => {
     selectAccount
   } = useAccounts()
 
-  const { isLoadingBalance, xxBalance } = useXxBalance()
+  const { isLoadingBalance, xxBalance } = useXxBalance(
+    selectedAccount?.address || ''
+  )
 
   const [fromXX] = useSessionStorage('fromNative')
 

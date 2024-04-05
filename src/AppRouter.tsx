@@ -24,15 +24,6 @@ const AppRouter: React.FC = () => {
     if (!isConnected || connector === undefined) {
       navigate('/')
     }
-    if (
-      isConnected &&
-      connector &&
-      address &&
-      chain &&
-      !supportedNetworkIds.map(elem => elem.id).includes(chain.id)
-    ) {
-      trigger(localConfig.id)
-    }
   }, [navigate, isConnected, connector])
 
   // trigger switch on chain change

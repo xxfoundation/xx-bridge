@@ -11,7 +11,7 @@ import theme from '@/theme'
 
 const topBarHeight = '90px'
 const drawerWidth = '240px'
-const footerHeight = '0px'
+const footerHeight = '90px'
 
 const NavBarContext = createContext<{
   topBarHeight: string
@@ -60,7 +60,7 @@ const NavBar: React.FC = () => {
           <Box sx={style.outlet}>
             <Outlet />
           </Box>
-          {!isMobile && <Footer />}
+          {!isMobile && <Footer sx={style.footer} />}
         </Stack>
       </Stack>
     </NavBarContext.Provider>

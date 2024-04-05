@@ -1,20 +1,18 @@
 import { BN } from '@polkadot/util'
 import { useState, useCallback, useEffect } from 'react'
-import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import useApi from '@/plugins/substrate/hooks/useApi'
 
-const useXxBalance = () => {
-  const { selectedAccount } = useAccounts()
+const useXxBalance = (address: string) => {
   const [xxBalance, setXXBalance] = useState<BN>(new BN(0))
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(true)
   const [counter, setCounter] = useState<number>(0)
   const { api, ready } = useApi()
 
   const fetchXxBalance = useCallback(() => {
-    if (api && api?.query?.system?.account && selectedAccount?.address) {
+    if (api && api?.query?.system?.account && address) {
       setIsLoadingBalance(true)
       api.query.system
-        .account(selectedAccount.address)
+        .account(address)
         .then(({ data }) => {
           if (data) {
             const balance = data.free.add(data.reserved)
@@ -29,7 +27,7 @@ const useXxBalance = () => {
           setIsLoadingBalance(false)
         })
     }
-  }, [api, ready, selectedAccount])
+  }, [api, ready, address])
 
   useEffect(() => {
     fetchXxBalance()

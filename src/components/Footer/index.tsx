@@ -1,4 +1,10 @@
-import { Divider, IconButton, Stack, Typography } from '@mui/material'
+import {
+  Divider,
+  IconButton,
+  Stack,
+  StackProps,
+  Typography
+} from '@mui/material'
 import React from 'react'
 import { X, Telegram } from '@mui/icons-material'
 import theme from '@/theme'
@@ -6,11 +12,10 @@ import ButtonLink from '../custom/ButtonLink'
 import discordLogo from '@/assets/socials/discord.svg'
 import xxNetworkLogo from '@/assets/xxnetwork/xxnetworkLogo.svg'
 
-const Footer: React.FC = () => (
-  <Stack
-    padding="30px"
-    sx={{ backgroundColor: 'background.dark', height: '100px' }}
-  >
+interface FooterProps extends StackProps {}
+
+const Footer: React.FC<FooterProps> = props => (
+  <Stack sx={{ backgroundColor: 'background.dark' }} {...props}>
     <Stack direction="row" justifyContent="space-between">
       <Stack spacing={0.5}>
         <Stack direction="row" spacing={0.5} alignItems="center">

@@ -16,6 +16,7 @@ import contracts from '@/contracts'
 import { formatBalance, isETHAddress, shortenHash } from '@/utils'
 import {
   BRIDGE_ID_ETH_MAINNET,
+  BRIDGE_ID_XXNETWORK,
   BRIDGE_RELAYER_FEE_ADDRESS,
   GAS_ESTIMATE_RELAYER_FEE,
   WRAPPED_XX_ADDRESS,
@@ -24,13 +25,13 @@ import {
 } from '@/consts'
 import CurrencyInputField from '../custom/CurrencyInputField'
 import StyledButton from '../custom/StyledButton'
-import TransferXXToETH from './TransferXXToETH'
 import theme from '@/theme'
 import Balance from '../custom/Balance'
 import ModalWrapper from '../Modals/ModalWrapper'
 import Loading from '../Utils/Loading'
 import useXxBalance from '@/hooks/useXxBalance'
 import useSessionStorage from '@/hooks/useSessionStorage'
+import Status from './ProgressBar/Status'
 
 const XXToETH: React.FC = () => {
   // Hooks
@@ -340,7 +341,7 @@ const XXToETH: React.FC = () => {
           )}
         </Stack>
       </ModalWrapper>
-      {noxx && (
+      {noxx || !selectedAccount?.address ? (
         <Stack
           direction="column"
           padding={4}
@@ -382,8 +383,7 @@ const XXToETH: React.FC = () => {
             </StyledButton>
           )}
         </Stack>
-      )}
-      {!noxx && !startTransfer && selectedAccount?.address && (
+      ) : (
         <>
           <Stack
             direction="column"
@@ -464,29 +464,44 @@ const XXToETH: React.FC = () => {
                 </b>
               </Typography>
             </Stack>
-            <TextField
-              placeholder="0x..."
-              variant="standard"
-              value={recipient}
-              error={!!recipientError}
-              helperText={recipientError || 'Enter ETH address'}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                validateRecipient(event.target.value)
-              }}
-              sx={{
-                width: '100%',
-                marginBottom: '1em',
-                input: {
-                  color: 'text.primary',
-                  '::placeholder': {
-                    opacity: 0.7
+            {!startTransfer ? (
+              <TextField
+                placeholder="0x..."
+                variant="standard"
+                value={recipient}
+                error={!!recipientError}
+                helperText={recipientError || 'Enter ETH address'}
+                disabled={startTransfer}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  validateRecipient(event.target.value)
+                }}
+                sx={{
+                  width: '100%',
+                  marginBottom: '1em',
+                  input: {
+                    color: 'text.primary',
+                    '::placeholder': {
+                      opacity: 0.7
+                    }
                   }
-                }
-              }}
-            />
+                }}
+              />
+            ) : (
+              <Typography
+                sx={{
+                  backgroundColor: 'background.grey',
+                  width: 'fit-content',
+                  padding: '3px 5px',
+                  borderRadius: '8px'
+                }}
+              >
+                {recipient}
+              </Typography>
+            )}
           </Stack>
           <Stack direction="row" padding={2} justifyContent="center">
             <CurrencyInputField
+              disabled={startTransfer}
               code={xxNetwork.gasToken.code}
               balance={parseFloat(xxBalance.toString())}
               value={input}
@@ -523,23 +538,26 @@ const XXToETH: React.FC = () => {
               </Typography>
             </Stack>
           </Stack>
-          <Stack direction="row" padding={2} justifyContent="center">
-            <StyledButton
-              fullWidth
-              disabled={!allowTransfer}
-              onClick={() => setStartTransfer(true)}
-            >
-              Transfer
-            </StyledButton>
-          </Stack>
+          {startTransfer && recipient ? (
+            <Status
+              fromAddr={selectedAccount.address}
+              sourceId={BRIDGE_ID_XXNETWORK}
+              recipient={recipient}
+              amount={transferValue}
+              reset={reset}
+            />
+          ) : (
+            <Stack direction="row" padding={2} justifyContent="center">
+              <StyledButton
+                fullWidth
+                disabled={!allowTransfer}
+                onClick={() => setStartTransfer(true)}
+              >
+                Transfer
+              </StyledButton>
+            </Stack>
+          )}
         </>
-      )}
-      {!noxx && startTransfer && (
-        <TransferXXToETH
-          recipient={recipient}
-          amount={transferValue}
-          reset={reset}
-        />
       )}
     </Stack>
   )

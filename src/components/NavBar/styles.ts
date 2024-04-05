@@ -10,7 +10,8 @@ interface StyleParams {
 const getStyles = (styleParams: StyleParams) => ({
   body: {
     width: '100%',
-    height: styleParams.isMobile ? '100%' : '100vh'
+    height: styleParams.isMobile ? '100%' : 'inherit'
+    // backgroundColor: theme.palette.background.paper
   },
   topBar: {
     position: 'fixed',
@@ -22,7 +23,7 @@ const getStyles = (styleParams: StyleParams) => ({
     },
     height: styleParams.topBarHeight,
     justifyContent: 'center',
-    backgroundColor: theme.palette.background.paper
+    backgroundColor: theme.palette.background.dark
   },
   topBarHeader: {
     justifyContent: 'space-between',
@@ -44,10 +45,8 @@ const getStyles = (styleParams: StyleParams) => ({
       desktop: '100%'
     },
     // since topBar has position fixed we need to define margin-top
-    marginTop: styleParams.topBarHeight,
-    padding: '50px 0',
-    height: `100%`,
-    backgroundColor: theme.palette.background.paper
+    margin: `calc(50px + ${styleParams.topBarHeight}) 0 calc(50px + 50px + ${styleParams.footerHeight}) 0`
+    // backgroundColor: theme.palette.background.paper
   },
   menuDrawer: {
     width: styleParams.drawerWidth,
@@ -63,6 +62,17 @@ const getStyles = (styleParams: StyleParams) => ({
     margin: '10px',
     padding: '0 10px',
     height: `calc(${styleParams.topBarHeight} - 20px)`
+  },
+  footer: {
+    position: 'fixed',
+    bottom: 0,
+    width: 'stretch',
+    padding: '25px',
+    // make border top look like a divider
+    borderTop: `2px solid ${theme.palette.divider}`,
+    boxShadow: '0px 0px 10px rgba(255, 255, 255, 0.3)',
+    height: styleParams.footerHeight,
+    backgroundColor: theme.palette.background.dark
   }
 })
 

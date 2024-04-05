@@ -28,7 +28,7 @@ const Bridge: React.FC = () => {
       direction="column"
       margin="auto"
       width={isMobile ? '90%' : '80%'}
-      height="inherit"
+      height="auto"
       centerWidth
       centerHeight
     >

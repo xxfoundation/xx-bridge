@@ -1,6 +1,6 @@
 import React from 'react'
 import { Typography, useMediaQuery } from '@mui/material'
-import xxBridgeLogo from '@/assets/logo/svg/xxbridge.svg'
+import xxBridgeLogo from '@/assets/logo/png/xxbridge.png'
 
 import ImageWrapper from '../components/custom/ImageWrapper'
 import StyledStack from '../components/custom/StyledStack'

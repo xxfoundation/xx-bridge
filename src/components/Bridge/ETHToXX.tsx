@@ -19,6 +19,7 @@ import {
 import StyledButton from '../custom/StyledButton'
 import {
   convertXXAddress,
+  convertXXPubkey,
   encodeBridgeDeposit,
   formatBalance,
   isValidXXNetworkAddress,
@@ -35,16 +36,17 @@ import {
   BRIDGE_RESOURCE_ID_XX,
   WRAPPED_XX_ADDRESS,
   ethereumMainnet,
-  xxNetwork
+  xxNetwork,
+  BRIDGE_ID_ETH_MAINNET
 } from '@/consts'
-import TransferETHToXX from './TransferETHToXX'
 import contracts from '@/contracts'
-import useApi from '@/plugins/substrate/hooks/useApi'
 import theme from '@/theme'
 import Balance from '../custom/Balance'
 import Loading from '../Utils/Loading'
 import ModalWrapper from '../Modals/ModalWrapper'
 import useSessionStorage from '@/hooks/useSessionStorage'
+import Status, { Transaction } from './ProgressBar/Status'
+import useXxBalance from '@/hooks/useXxBalance'
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,
@@ -67,12 +69,42 @@ const estimateGasBridgeDeposit = async (
   }
 }
 
+const RecipientBalance: React.FC<{ recipient: string }> = ({ recipient }) => {
+  const { xxBalance } = useXxBalance(recipient || '')
+  const displayBalance = useMemo(
+    () => formatBalance(xxBalance.toString(), xxNetwork.gasToken.decimals, 4),
+    [xxBalance]
+  )
+
+  return (
+    <Stack
+      flexDirection="row"
+      justifyContent="space-between"
+      alignItems="baseline"
+    >
+      <Typography
+        sx={{
+          fontWeight: 'bold',
+          fontSize: '20px'
+        }}
+      >
+        Recipient
+      </Typography>
+      <Typography sx={{ fontSize: '14px' }} alignSelf="baseline">
+        Balance:{' '}
+        <b>
+          {displayBalance} {xxNetwork.gasToken.code}
+        </b>
+      </Typography>
+    </Stack>
+  )
+}
+
 const ETHToXX: React.FC = () => {
   // Hooks
   const { address } = useAccount()
   const { publicClient } = useConfig()
   const { selectedAccount } = useAccounts()
-  const { api } = useApi()
 
   // State
   const [input, setInput] = useState<number | null>(null)
@@ -83,7 +115,6 @@ const ETHToXX: React.FC = () => {
   const [recipientError, setRecipientError] = useState<string | undefined>()
   const [ethBalance, setEthBalance] = useState<string>('0')
   const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
-  const [xxBalance, setXXBalance] = useState<string>('0')
   const [allowance, setAllowance] = useState<string>()
   const [needApprove, setNeedApprove] = useState<boolean>(false)
   const [startTransfer, setStartTransfer] = useSessionStorage<boolean>(
@@ -96,6 +127,33 @@ const ETHToXX: React.FC = () => {
 
   // Check screen checkpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
+
+  // Restore transaction from local storage and set values if status not complete (4)
+  useEffect(() => {
+    const tx = localStorage.getItem(`tx-${address}`)
+    if (tx) {
+      const transaction = JSON.parse(tx) as Transaction
+      console.log('Restored transaction:', transaction)
+      if (transaction.status < 4) {
+        setNeedApprove(transaction.needApprove)
+        setRecipient(convertXXPubkey(transaction.recipient))
+        // Set transfer value passed as string to children components
+        setTransferValue(BigInt(transaction.amount))
+        // Set input value to be displayed in the input field
+        setInput(
+          parseFloat(transaction.amount) / 10 ** ethereumMainnet.token.decimals
+        )
+        setStartTransfer(true)
+      } else {
+        localStorage.removeItem(`tx-${address}`)
+        // Reset state possibly pulled from local storage
+        setInput(null)
+        setTransferValue(BigInt(0))
+        setRecipient('')
+        setStartTransfer(false)
+      }
+    }
+  }, [address])
 
   // Value computation
   const setValue = useCallback(
@@ -119,7 +177,7 @@ const ETHToXX: React.FC = () => {
 
   // Set recipient to xx account if connected
   useEffect(() => {
-    if (selectedAccount && selectedAccount?.address) {
+    if (selectedAccount && selectedAccount?.address && !startTransfer) {
       setRecipient(selectedAccount.address)
     }
   }, [selectedAccount, startTransfer])
@@ -219,18 +277,6 @@ const ETHToXX: React.FC = () => {
       }
     }
   }, [allowance, input])
-
-  // Native xx (when recipient set)
-  useEffect(() => {
-    if (recipient && !recipientError) {
-      api?.query?.system?.account(recipient).then(({ data }) => {
-        if (data) {
-          const balance = data.free.add(data.reserved)
-          setXXBalance(formatBalance(balance.toString(), 9, 4))
-        }
-      })
-    }
-  }, [recipient, recipientError, api?.query?.system?.account])
 
   // Compute fees
   useEffect(() => {
@@ -394,7 +440,7 @@ const ETHToXX: React.FC = () => {
           )}
         </Stack>
       </ModalWrapper>
-      {!startTransfer && address && (
+      {address && (
         <>
           <Stack
             direction="column"
@@ -444,49 +490,51 @@ const ETHToXX: React.FC = () => {
             padding={2}
             justifyContent="center"
           >
-            <Stack
-              flexDirection="row"
-              justifyContent="space-between"
-              alignItems="baseline"
-            >
+            <RecipientBalance recipient={recipient} />
+            {!startTransfer ? (
+              <TextField
+                placeholder="6..."
+                variant="standard"
+                value={recipient}
+                error={!!recipientError}
+                helperText={
+                  recipientError || recipient
+                    ? 'xx network address'
+                    : 'Enter xx network address'
+                }
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  validateRecipient(event.target.value)
+                }}
+                sx={{
+                  width: '100%',
+                  marginBottom: '1em',
+                  '> p': {
+                    color: !recipient ? 'error.main' : ''
+                  },
+                  input: {
+                    color: 'text.primary',
+                    '::placeholder': {
+                      opacity: 0.7
+                    }
+                  }
+                }}
+              />
+            ) : (
               <Typography
                 sx={{
-                  fontWeight: 'bold',
-                  fontSize: '20px'
+                  backgroundColor: 'background.grey',
+                  width: 'fit-content',
+                  padding: '3px 5px',
+                  borderRadius: '8px'
                 }}
               >
-                Recipient
+                {recipient}
               </Typography>
-              <Typography sx={{ fontSize: '14px' }} alignSelf="baseline">
-                Balance:{' '}
-                <b>
-                  {xxBalance} {xxNetwork.gasToken.code}
-                </b>
-              </Typography>
-            </Stack>
-            <TextField
-              placeholder="6..."
-              variant="standard"
-              value={recipient}
-              error={!!recipientError}
-              helperText={recipientError || 'Enter xx network address'}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                validateRecipient(event.target.value)
-              }}
-              sx={{
-                width: '100%',
-                marginBottom: '1em',
-                input: {
-                  color: 'text.primary',
-                  '::placeholder': {
-                    opacity: 0.7
-                  }
-                }
-              }}
-            />
+            )}
           </Stack>
           <Stack direction="row" padding={2} justifyContent="center">
             <CurrencyInputField
+              disabled={startTransfer}
               code={ethereumMainnet.token.code}
               balance={parseFloat(wrappedXXBalance)}
               value={input}
@@ -495,38 +543,43 @@ const ETHToXX: React.FC = () => {
             />
           </Stack>
           <Divider />
-          <Stack direction="column" padding={2}>
-            <Typography
-              sx={{
-                fontWeight: 'bold'
-              }}
-            >
-              Estimated fees
-            </Typography>
-            <Typography sx={{ fontSize: '14px', color: 'text.primary' }}>
-              {fees === '0'
-                ? 'Fill in valid amount and recipient to estimate fees'
-                : `~ ${fees} ${ethereumMainnet.gasToken.code}`}
-            </Typography>
-          </Stack>
-          <Stack direction="row" padding={2} justifyContent="center">
-            <StyledButton
-              fullWidth
-              disabled={!allowTransfer}
-              onClick={() => setStartTransfer(true)}
-            >
-              Transfer
-            </StyledButton>
-          </Stack>
+          {startTransfer && recipient ? (
+            <Status
+              fromAddr={address}
+              sourceId={BRIDGE_ID_ETH_MAINNET}
+              approve={needApprove}
+              recipient={convertXXAddress(recipient)}
+              amount={transferValue}
+              reset={reset}
+            />
+          ) : (
+            <>
+              <Stack direction="column" padding={2}>
+                <Typography
+                  sx={{
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Estimated fees
+                </Typography>
+                <Typography sx={{ fontSize: '14px', color: 'text.primary' }}>
+                  {fees === '0'
+                    ? 'Fill in valid amount and recipient to estimate fees'
+                    : `~ ${fees} ${ethereumMainnet.gasToken.code}`}
+                </Typography>
+              </Stack>
+              <Stack direction="row" padding={2} justifyContent="center">
+                <StyledButton
+                  fullWidth
+                  disabled={!allowTransfer}
+                  onClick={() => setStartTransfer(true)}
+                >
+                  Transfer
+                </StyledButton>
+              </Stack>
+            </>
+          )}
         </>
-      )}
-      {startTransfer && recipient && (
-        <TransferETHToXX
-          approve={needApprove}
-          recipient={convertXXAddress(recipient)}
-          amount={transferValue}
-          reset={reset}
-        />
       )}
     </Stack>
   )
