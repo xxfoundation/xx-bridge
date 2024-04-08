@@ -30,14 +30,13 @@ import Balance from '../custom/Balance'
 import ModalWrapper from '../Modals/ModalWrapper'
 import Loading from '../Utils/Loading'
 import useXxBalance from '@/hooks/useXxBalance'
-import useSessionStorage from '@/hooks/useSessionStorage'
 import Status from './ProgressBar/Status'
 
 const XXToETH: React.FC = () => {
   // Hooks
   const { address } = useAccount()
   const { selectedAccount, connectWallet, hasExtensions } = useAccounts()
-  const { xxBalance } = useXxBalance()
+  const { xxBalance } = useXxBalance(selectedAccount?.address || '')
   const { api } = useApi()
 
   // State
@@ -50,10 +49,7 @@ const XXToETH: React.FC = () => {
   const [ethBalance, setEthBalance] = useState<string>('0')
   const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
-  const [startTransfer, setStartTransfer] = useSessionStorage<boolean>(
-    `transfer-${address}`,
-    false
-  )
+  const [startTransfer, setStartTransfer] = useState<boolean>(false)
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
   const [xxFee, setXXFee] = useState<string>('0')

@@ -11,7 +11,6 @@ import { useAccount, useWaitForTransaction } from 'wagmi'
 import { useEffect, useMemo } from 'react'
 import { useSubscription } from '@apollo/client'
 import { Network } from '@/utils'
-import useSessionStorage from '@/hooks/useSessionStorage'
 import useLocalStorage from '@/hooks/useLocalStorage'
 import xxClient from '@/plugins/apollo/xx'
 import {
@@ -145,7 +144,7 @@ const NetworkInfo: React.FC<NetworkInfoProps> = ({
   setSwitching
 }) => {
   const { address } = useAccount()
-  const [startTransfer] = useSessionStorage<boolean>(`transfer-${address}`)
+  const [startTransfer] = useLocalStorage<boolean>(`transfer-${address}`)
   return (
     <>
       <Banner />

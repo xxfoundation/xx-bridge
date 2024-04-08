@@ -17,9 +17,8 @@ import {
 } from '@/consts'
 import xxClient from '@/plugins/apollo/xx'
 import StyledButton from '../../../custom/StyledButton'
-import useLocalStorage from '@/hooks/useLocalStorage'
 import CustomStepper, { CustomStep } from '../Stepper'
-import { Transaction, updateTransaction } from '../Status'
+import { Transaction, updateTransaction, getTransactionLS } from '../Status'
 
 interface TransferETHToXXProps {
   approve: boolean
@@ -73,19 +72,29 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
   const [extrinsic, setExtrinsic] = useState<string>()
 
   // Local Storage
-  const [transaction, setTransaction] = useLocalStorage<Transaction>(
-    `tx-${address}`
+  const [transaction, setTransaction] = useState<Transaction | undefined>(
+    undefined
   )
 
   // Synchronously updates 'transaction' from localStorage to immediately reflect external changes. This approach compensates for the useLocalStorage hook's delay in syncing with localStorage, ensuring 'transaction' is always current without waiting for the next re-render.
-  // TODO: This brings in a problem because the setState variable is not updated in the same render cycle. This can be fixed by using a useEffect to update the state variable after the localStorage is updated. This can currently lead to a bug where the state of an address is updated in the localStorage object of another address, misleading the user on account change.
   useEffect(() => {
-    const value = localStorage.getItem(`tx-${address}`)
-    if (value) {
-      const tx = JSON.parse(value) as Transaction
-      setTransaction(tx)
+    console.log('address', address)
+    if (address) {
+      getTransactionLS(address, setTransaction)
     }
+    const listener = (e: StorageEvent) => {
+      console.log('storage event', e)
+      if (e.key === `tx-${address}`) {
+        getTransactionLS(address, setTransaction)
+      }
+    }
+    window.addEventListener('storage', listener)
+    return () => window.removeEventListener('storage', listener)
   }, [address])
+
+  useEffect(() => {
+    console.log('transaction update', transaction)
+  }, [transaction])
 
   // Go to error state
   const goError = useCallback((msg: string) => {
@@ -178,11 +187,21 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
           if (approve) {
             console.log('Need to approve')
             setStep(Steps.ApproveSpend)
-            updateTransaction(setTransaction, ['status'], Steps.ApproveSpend)
+            updateTransaction(
+              address,
+              setTransaction,
+              ['status'],
+              Steps.ApproveSpend
+            )
           } else {
             console.log('No need to approve')
             setStep(Steps.BridgeDeposit)
-            updateTransaction(setTransaction, ['status'], Steps.BridgeDeposit)
+            updateTransaction(
+              address,
+              setTransaction,
+              ['status'],
+              Steps.BridgeDeposit
+            )
           }
           break
         }
@@ -194,7 +213,12 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
           if (!approve) {
             console.log('No need to approve')
             setStep(Steps.BridgeDeposit)
-            updateTransaction(setTransaction, ['status'], Steps.BridgeDeposit)
+            updateTransaction(
+              address,
+              setTransaction,
+              ['status'],
+              Steps.BridgeDeposit
+            )
           }
           // Wait for Approval to finish
           break
@@ -204,8 +228,13 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
         case Steps.BridgeDeposit: {
           // Update transaction state on local storage
           if (transaction?.status !== Steps.BridgeDeposit) {
-            updateTransaction(setTransaction, ['status'], Steps.BridgeDeposit)
-            updateTransaction(setTransaction, ['needApprove'], false)
+            updateTransaction(
+              address,
+              setTransaction,
+              ['status'],
+              Steps.BridgeDeposit
+            )
+            updateTransaction(address, setTransaction, ['needApprove'], false)
           }
           // Wait for Bridge deposit to finish
           break
@@ -216,7 +245,12 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
           console.log('Waiting for bridge event...')
           // Update transaction state on local storage
           if (transaction?.status !== Steps.WaitBridge) {
-            updateTransaction(setTransaction, ['status'], Steps.WaitBridge)
+            updateTransaction(
+              address,
+              setTransaction,
+              ['status'],
+              Steps.WaitBridge
+            )
           }
           // Check if bridge event is emitted
           if (!errorDepositNonce && !errorBridgeEvent && bridgeEvent) {
@@ -243,7 +277,7 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
         case Steps.Done: {
           // Update transaction state on local storage
           if (transaction?.status !== Steps.Done) {
-            updateTransaction(setTransaction, ['status'], Steps.Done)
+            updateTransaction(address, setTransaction, ['status'], Steps.Done)
           }
           setTimeout(() => {
             setStep(Steps.Done + 1)
@@ -256,8 +290,7 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
           break
       }
     }
-    console.log('useEffect', recipient, amount, address, transaction)
-    if (recipient !== '' && amount !== undefined && transaction) {
+    if (recipient !== '' && amount !== undefined && transaction && address) {
       console.log('Executing step', step)
       executeStep()
     }

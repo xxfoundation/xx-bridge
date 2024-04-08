@@ -44,9 +44,9 @@ import theme from '@/theme'
 import Balance from '../custom/Balance'
 import Loading from '../Utils/Loading'
 import ModalWrapper from '../Modals/ModalWrapper'
-import useSessionStorage from '@/hooks/useSessionStorage'
 import Status, { Transaction } from './ProgressBar/Status'
 import useXxBalance from '@/hooks/useXxBalance'
+import useLocalStorage from '@/hooks/useLocalStorage'
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,
@@ -117,43 +117,17 @@ const ETHToXX: React.FC = () => {
   const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
   const [allowance, setAllowance] = useState<string>()
   const [needApprove, setNeedApprove] = useState<boolean>(false)
-  const [startTransfer, setStartTransfer] = useSessionStorage<boolean>(
+  const [startTransfer, setStartTransfer] = useLocalStorage<boolean>(
     `transfer-${address}`,
     false
   )
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
   const [resetting, setResetting] = useState<boolean>(false)
+  const [verified, setVerified] = useState<boolean>(false)
 
   // Check screen checkpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
-
-  // Restore transaction from local storage and set values if status not complete (4)
-  useEffect(() => {
-    const tx = localStorage.getItem(`tx-${address}`)
-    if (tx) {
-      const transaction = JSON.parse(tx) as Transaction
-      console.log('Restored transaction:', transaction)
-      if (transaction.status < 4) {
-        setNeedApprove(transaction.needApprove)
-        setRecipient(convertXXPubkey(transaction.recipient))
-        // Set transfer value passed as string to children components
-        setTransferValue(BigInt(transaction.amount))
-        // Set input value to be displayed in the input field
-        setInput(
-          parseFloat(transaction.amount) / 10 ** ethereumMainnet.token.decimals
-        )
-        setStartTransfer(true)
-      } else {
-        localStorage.removeItem(`tx-${address}`)
-        // Reset state possibly pulled from local storage
-        setInput(null)
-        setTransferValue(BigInt(0))
-        setRecipient('')
-        setStartTransfer(false)
-      }
-    }
-  }, [address])
 
   // Value computation
   const setValue = useCallback(
@@ -385,7 +359,36 @@ const ETHToXX: React.FC = () => {
     setTimeout(() => {
       setResetting(false)
     }, 2000)
-  }, [refetchWrappedXX, refetchAllowance])
+  }, [address, refetchWrappedXX, refetchAllowance])
+
+  // Restore transaction from local storage and set values if status not complete (4)
+  useEffect(() => {
+    reset()
+    // Check if the transaction is already saved in local storage and update accordingly
+    const tx = localStorage.getItem(`tx-${address}`)
+    console.log(`Restoring transaction from ${address}`)
+    if (tx) {
+      const transaction = JSON.parse(tx) as Transaction
+      console.log('Restored transaction:', transaction)
+      if (transaction.status < 4) {
+        setNeedApprove(transaction.needApprove)
+        setRecipient(convertXXPubkey(transaction.recipient))
+        // Set transfer value passed as string to children components
+        setTransferValue(BigInt(transaction.amount))
+        // Set input value to be displayed in the input field
+        setInput(
+          parseFloat(transaction.amount) / 10 ** ethereumMainnet.token.decimals
+        )
+        setStartTransfer(true)
+      } else {
+        console.log('Transaction already complete')
+        localStorage.removeItem(`tx-${address}`)
+      }
+    } else {
+      console.log('No transaction found')
+    }
+    setVerified(true)
+  }, [address])
 
   return (
     <Stack
@@ -543,9 +546,9 @@ const ETHToXX: React.FC = () => {
             />
           </Stack>
           <Divider />
-          {startTransfer && recipient ? (
+          {startTransfer && recipient && verified ? (
             <Status
-              fromAddr={address}
+              // fromAddr={address}
               sourceId={BRIDGE_ID_ETH_MAINNET}
               approve={needApprove}
               recipient={convertXXAddress(recipient)}

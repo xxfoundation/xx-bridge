@@ -10,8 +10,7 @@ import {
 } from '@/consts'
 import StyledButton from '../../../custom/StyledButton'
 import { CustomStep } from '../Stepper'
-import useLocalStorage from '@/hooks/useLocalStorage'
-import { Transaction, updateTransaction } from '../Status'
+import { Transaction, updateTransaction, getTransactionLS } from '../Status'
 
 interface ApproveProps {
   currStep: number
@@ -57,16 +56,14 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
   const [prompted, setPrompted] = useState<boolean>(false)
 
   // Local Storage
-  const [transaction, setTransaction] = useLocalStorage<Transaction>(
-    `tx-${address}`
+  const [transaction, setTransaction] = useState<Transaction | undefined>(
+    undefined
   )
 
   // Synchronously updates 'transaction' from localStorage to immediately reflect external changes. This approach compensates for the useLocalStorage hook's delay in syncing with localStorage, ensuring 'transaction' is always current without waiting for the next re-render.
   useEffect(() => {
-    const value = localStorage.getItem(`tx-${address}`)
-    if (value) {
-      const tx = JSON.parse(value) as Transaction
-      setTransaction(tx)
+    if (address) {
+      getTransactionLS(address, setTransaction)
     }
   }, [address])
 
@@ -97,16 +94,6 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
     isLoading: isLoadingApprove,
     error: errorApproveWrite
   } = useContractWrite(configApprove)
-
-  console.log(`Approve:`, {
-    address,
-    transaction,
-    errorApprovePrepare,
-    statusPrepareContractWrite,
-    isLoadingApprove,
-    errorApproveWrite,
-    dataApprove
-  })
 
   // State machine
   useEffect(() => {
@@ -141,6 +128,7 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
             callApprove()
             setStep(Steps[State.Sign])
             updateTransaction(
+              address,
               setTransaction,
               ['fromEth', 'approvalState'],
               State.Sign
@@ -154,15 +142,17 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
           console.log(`Waiting for approval to be signed...`)
           if (errorApproveWrite) {
             console.error(`Error executing approval: ${errorApproveWrite}`)
-            resetState(`Error executing approval: ${errorApproveWrite.name}`)
+            resetState(`Error executing approval: User rejected the request`)
           }
           if (dataApprove?.hash) {
             updateTransaction(
+              address,
               setTransaction,
               ['fromEth', 'approvalState'],
               State.Wait
             )
             updateTransaction(
+              address,
               setTransaction,
               ['fromEth', 'approvalTxHash'],
               dataApprove.hash as `0x${string}`
@@ -212,8 +202,8 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
           throw new Error(`Unknown step: ${step}`)
       }
     }
-    console.log(`Approve Executing step:`, step, address, transaction, ready)
-    if (address) {
+
+    if (address && transaction) {
       executeStep()
     }
   }, [

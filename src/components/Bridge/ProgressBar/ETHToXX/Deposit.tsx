@@ -10,8 +10,7 @@ import {
 } from '@/consts'
 import { encodeBridgeDeposit } from '@/utils'
 import { CustomStep } from '../Stepper'
-import useLocalStorage from '@/hooks/useLocalStorage'
-import { Transaction, updateTransaction } from '../Status'
+import { Transaction, updateTransaction, getTransactionLS } from '../Status'
 import StyledButton from '@/components/custom/StyledButton'
 
 interface DepositProps {
@@ -66,16 +65,14 @@ const Deposit: React.FC<DepositProps> = ({
   const [prompted, setPrompted] = useState<boolean>(false)
 
   // Local Storage
-  const [transaction, setTransaction] = useLocalStorage<Transaction>(
-    `tx-${address}`
+  const [transaction, setTransaction] = useState<Transaction | undefined>(
+    undefined
   )
 
   // Synchronously updates 'transaction' from localStorage to immediately reflect external changes. This approach compensates for the useLocalStorage hook's delay in syncing with localStorage, ensuring 'transaction' is always current without waiting for the next re-render.
   useEffect(() => {
-    const value = localStorage.getItem(`tx-${address}`)
-    if (value) {
-      const tx = JSON.parse(value) as Transaction
-      setTransaction(tx)
+    if (address) {
+      getTransactionLS(address, setTransaction)
     }
   }, [address])
 
@@ -144,6 +141,7 @@ const Deposit: React.FC<DepositProps> = ({
             callDeposit()
             setStep(Steps[State.Sign])
             updateTransaction(
+              address,
               setTransaction,
               ['fromEth', 'depositState'],
               State.Sign
@@ -157,15 +155,17 @@ const Deposit: React.FC<DepositProps> = ({
           console.log(`Waiting for deposit to be signed...`)
           if (errorDepositWrite) {
             console.error(`Error executing depositing: ${errorDepositWrite}}`)
-            resetState(`Error executing depositing: ${errorDepositWrite.name}`)
+            resetState(`Error executing depositing: User rejected the request`)
           }
           if (dataDeposit?.hash) {
             updateTransaction(
+              address,
               setTransaction,
               ['fromEth', 'depositState'],
               State.Wait
             )
             updateTransaction(
+              address,
               setTransaction,
               ['fromEth', 'depositTxHash'],
               dataDeposit.hash as `0x${string}`
@@ -255,16 +255,29 @@ const Deposit: React.FC<DepositProps> = ({
             you do not have any queued transactions in your wallet before
             proceeding.
           </Typography>
-          <StyledButton
-            onClick={() => {
-              setStep(Steps[State.Prompt])
-              setPrompted(true)
-            }}
-            disabled={isLoadingDeposit || prompted}
-            small
-          >
-            {prompted ? 'Trying Deposit...' : 'Retry Deposit'}
-          </StyledButton>
+          <Stack direction="row" gap="10px">
+            <StyledButton
+              onClick={() => {
+                setStep(Steps[State.Prompt])
+                setPrompted(true)
+              }}
+              disabled={isLoadingDeposit || prompted}
+              small
+            >
+              {prompted ? 'Trying Deposit...' : 'Retry Deposit'}
+            </StyledButton>
+            <StyledButton
+              onClick={() => {
+                resetState('')
+              }}
+              sx={{
+                backgroundColor: 'text.primary'
+              }}
+              small
+            >
+              Cancel
+            </StyledButton>
+          </Stack>
         </Stack>
       )}
     </Stack>
