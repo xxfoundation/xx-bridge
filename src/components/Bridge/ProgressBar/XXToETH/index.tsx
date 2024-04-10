@@ -23,10 +23,11 @@ import {
   SubProposalEvents
 } from '@/plugins/apollo/schemas'
 import StyledButton from '../../../custom/StyledButton'
+import { useAppSelector } from '@/plugins/redux/hooks'
+import { getTxFromAddress } from '@/plugins/redux/selectors'
+import { RootState } from '@/plugins/redux/types'
 
 interface TransferXXToETHProps {
-  recipient: string
-  amount: bigint
   reset: () => void
 }
 
@@ -35,16 +36,13 @@ export enum Steps {
   Error = -1,
   Init = 0,
   NativeTransfer = 1,
-  PayFee = 2,
-  WaitBridge = 3,
-  Done = 4
+  RelayerFee = 2,
+  WaitFee = 3,
+  WaitBridge = 4,
+  Done = 5
 }
 
-const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
-  recipient,
-  amount,
-  reset
-}) => {
+const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
   // Hooks
   const { address } = useAccount()
   const { selectedAccount, getSigner } = useAccounts()
@@ -54,6 +52,11 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
   const [nonce, setNonce] = useState<bigint>()
   const [error, setError] = useState<string | undefined>()
   const [txHash, setTxHash] = useState<string>()
+
+  // use redux
+  const tx = useAppSelector(
+    (state: RootState) => address && getTxFromAddress(state, address)
+  )
 
   // Reset state + call prop
   const resetAll = useCallback(() => {
@@ -72,14 +75,14 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
       !sent.current
     ) {
       const extrinsic = api.tx.swap.transferNative(
-        amount,
-        recipient,
+        BigInt(tx?.amount ?? 0),
+        tx?.destinationddress ?? '',
         BRIDGE_ID_ETH_MAINNET
       )
       const signer = getSigner()
       if (signer) {
         sent.current = true
-        setStep(Steps.TransferNative)
+        setStep(Steps.NativeTransfer)
         extrinsic
           .signAndSend(
             selectedAccount.address,
@@ -106,17 +109,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
         resetAll()
       }
     }
-  }, [
-    api,
-    ready,
-    step,
-    sent,
-    selectedAccount,
-    recipient,
-    amount,
-    setError,
-    getSigner
-  ])
+  }, [api, ready, step, sent, selectedAccount, setError, getSigner])
 
   /* -------------------------------------------------------------------------- */
   /*                                    Hooks                                   */
@@ -178,8 +171,8 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
           break
         }
 
-        /* ---------------------------- TransferNative ---------------------------- */
-        case Steps.TransferNative: {
+        /* ---------------------------- NativeTransfer ---------------------------- */
+        case Steps.NativeTransfer: {
           // Wait for nonce
           if (nonce !== undefined) {
             setStep(Steps.RelayerFee)
@@ -239,13 +232,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
           throw new Error(`Unknown step: ${step}`)
       }
     }
-    if (
-      api &&
-      selectedAccount &&
-      recipient !== '' &&
-      amount !== undefined &&
-      relayerFee !== undefined
-    ) {
+    if (api && selectedAccount && relayerFee !== undefined) {
       executeStep()
     }
   }, [
@@ -262,8 +249,6 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
     callPayFee,
     txReceipt,
     errorTxReceipt,
-    recipient,
-    amount,
     proposalEvent,
     errorProposalEvent,
     resetAll
@@ -277,7 +262,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({
       alignItems="center"
       spacing="20px"
     >
-      {step === Steps.TransferNative && (
+      {step === Steps.NativeTransfer && (
         <Typography>Transfering native XX to Bridge ...</Typography>
       )}
       {(step === Steps.RelayerFee || step === Steps.WaitFee) && (

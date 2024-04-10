@@ -284,6 +284,11 @@ const XXToETH: React.FC = () => {
     }, 2000)
   }, [refetchWrappedXX])
 
+  // Handle click transfer
+  const handleClickTransfer = useCallback(() => {
+    setStartTransfer(true)
+  }, [])
+
   return (
     <Stack
       sx={{
@@ -536,7 +541,6 @@ const XXToETH: React.FC = () => {
           </Stack>
           {startTransfer && recipient ? (
             <Status
-              fromAddr={selectedAccount.address}
               sourceId={BRIDGE_ID_XXNETWORK}
               recipient={recipient}
               amount={transferValue}
@@ -547,7 +551,7 @@ const XXToETH: React.FC = () => {
               <StyledButton
                 fullWidth
                 disabled={!allowTransfer}
-                onClick={() => setStartTransfer(true)}
+                onClick={handleClickTransfer}
               >
                 Transfer
               </StyledButton>

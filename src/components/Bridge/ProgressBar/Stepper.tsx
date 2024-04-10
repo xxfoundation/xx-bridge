@@ -1,11 +1,7 @@
 import * as React from 'react'
 import { Box, Stepper, Step, StepLabel, Typography } from '@mui/material'
 import Loading from '@/components/Utils/Loading'
-
-export type CustomStep = {
-  step: number
-  message: string
-}
+import { CustomStep } from '@/plugins/redux/types'
 
 interface CustomStepperProps {
   steps: CustomStep[]

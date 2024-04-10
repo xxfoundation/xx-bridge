@@ -9,14 +9,17 @@ import {
   BRIDGE_RESOURCE_ID_XX
 } from '@/consts'
 import { encodeBridgeDeposit } from '@/utils'
-import { CustomStep } from '../Stepper'
-import { Transaction, updateTransaction, getTransactionLS } from '../Status'
 import StyledButton from '@/components/custom/StyledButton'
+import { CustomStep, RootState } from '@/plugins/redux/types'
+import { useAppSelector, useAppDispatch } from '@/plugins/redux/hooks'
+import { actions, emptyState } from '@/plugins/redux/reducers'
+import {
+  getDepositFromAddress,
+  getTxFromAddress
+} from '@/plugins/redux/selectors'
 
 interface DepositProps {
   currStep: number
-  recipient: string
-  amount: bigint
   setError: (message: string) => void
   done: () => void
 }
@@ -52,43 +55,44 @@ const Steps: CustomStep[] = [
   }
 ]
 
-const Deposit: React.FC<DepositProps> = ({
-  currStep,
-  recipient,
-  amount,
-  setError,
-  done
-}) => {
+const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
   // Hooks
   const { address } = useAccount()
-  const [step, setStep] = useState<CustomStep>(Steps[State.Init])
   const [prompted, setPrompted] = useState<boolean>(false)
-
-  // Local Storage
-  const [transaction, setTransaction] = useState<Transaction | undefined>(
-    undefined
+  // use redux
+  const tx = useAppSelector(
+    (state: RootState) => address && getTxFromAddress(state, address)
   )
+  const depositState =
+    useAppSelector(
+      (state: RootState) => address && getDepositFromAddress(state, address)
+    ) || emptyState.toNative.deposit
+  const dispatch = useAppDispatch()
 
-  // Synchronously updates 'transaction' from localStorage to immediately reflect external changes. This approach compensates for the useLocalStorage hook's delay in syncing with localStorage, ensuring 'transaction' is always current without waiting for the next re-render.
-  useEffect(() => {
-    if (address) {
-      getTransactionLS(address, setTransaction)
-    }
-  }, [address])
+  // Confirm deposit state
+  // useEffect(() => {
+  //   // If step is greater than 3 (Deposit Step), then we are done
+  //   if (currState.tx.status.step > 3) {
+  //     console.log('STEP > 3: Deposit complete', currState.tx.status.step)
+  //     done()
+  //   }
+  // }, [currState.tx.status.step, done])
 
   // Reset state + call setError prop
   const resetState = useCallback(
     (msg: string) => {
-      setStep(Steps[State.Init])
+      // No need to call resetKeys here, since we are only resetting the deposit state
       setError(msg)
     },
     [setError]
   )
 
   // Bridge deposit call
-  const deposit = useMemo(
-    () => encodeBridgeDeposit(recipient, amount),
-    [recipient, amount]
+  const deposit: `0x${string}` = useMemo(
+    () =>
+      (tx && encodeBridgeDeposit(tx.destinationddress, BigInt(tx.amount))) ||
+      '0x',
+    [tx]
   )
   const {
     config: configDeposit,
@@ -111,40 +115,45 @@ const Deposit: React.FC<DepositProps> = ({
   // State machine
   useEffect(() => {
     const executeStep = async () => {
-      switch (step.step) {
+      switch (depositState.status.step) {
         /* -------------------------------- Init ------------------------------- */
         case State.Init: {
-          if (transaction) {
-            setStep(Steps[transaction.fromEth?.depositState ?? State.Init])
-          }
-
           // If contract write error, reset state else prompt user to deposit
           if (errorDepositPrepare) {
             console.error(`Error deposit:`, errorDepositPrepare)
             resetState(`Error depositing: ${errorDepositPrepare.name}`)
           } else if (statusPrepareContractWrite === 'success') {
-            setStep(Steps[State.Prompt])
+            dispatch(
+              actions.setDepositStatus({
+                key: address,
+                status: Steps[State.Prompt]
+              })
+            )
           }
           break
         }
 
         /* -------------------------------- Prompt ----------------------------- */
         case State.Prompt: {
-          console.log(`Prompting user to deposit...`, transaction)
+          console.log(`Prompting user to deposit...`, depositState)
           // if deposit tx hash exists on local storage go to wait state
-          if (transaction?.fromEth?.depositTxHash) {
-            setStep(Steps[State.Wait])
+          if (depositState.txHash) {
+            dispatch(
+              actions.setDepositStatus({
+                key: address,
+                status: Steps[State.Wait]
+              })
+            )
             break
           }
           // call deposit
           if (callDeposit && !isLoadingDeposit) {
             callDeposit()
-            setStep(Steps[State.Sign])
-            updateTransaction(
-              address,
-              setTransaction,
-              ['fromEth', 'depositState'],
-              State.Sign
+            dispatch(
+              actions.setDepositStatus({
+                key: address,
+                status: Steps[State.Sign]
+              })
             )
           }
           break
@@ -158,19 +167,18 @@ const Deposit: React.FC<DepositProps> = ({
             resetState(`Error executing depositing: User rejected the request`)
           }
           if (dataDeposit?.hash) {
-            updateTransaction(
-              address,
-              setTransaction,
-              ['fromEth', 'depositState'],
-              State.Wait
+            dispatch(
+              actions.setDepositStatus({
+                key: address,
+                status: Steps[State.Wait]
+              })
             )
-            updateTransaction(
-              address,
-              setTransaction,
-              ['fromEth', 'depositTxHash'],
-              dataDeposit.hash as `0x${string}`
+            dispatch(
+              actions.setDepositTxHash({
+                key: address,
+                hash: dataDeposit.hash
+              })
             )
-            setStep(Steps[State.Wait])
           }
           break
         }
@@ -179,21 +187,23 @@ const Deposit: React.FC<DepositProps> = ({
         case State.Wait: {
           console.log(
             `Waiting for deposit block confirmations (3)...`,
-            transaction
+            depositState
           )
-          if (transaction?.fromEth?.depositTxHash) {
+          if (depositState.txHash) {
             try {
-              console.log(
-                `Waiting for deposit:`,
-                transaction?.fromEth?.depositTxHash
-              )
+              console.log(`Waiting for deposit:`, depositState.txHash)
               const depositReceipt = await waitForTransaction({
-                hash: transaction?.fromEth?.depositTxHash as `0x${string}`,
+                hash: depositState.txHash as `0x${string}`,
                 confirmations: 3
               })
               if (depositReceipt) {
                 console.log(`Deposit receipt:`, depositReceipt)
-                setStep(Steps[State.Done])
+                dispatch(
+                  actions.setDepositStatus({
+                    key: address,
+                    status: Steps[State.Done]
+                  })
+                )
               }
             } catch (err: any) {
               console.error(`Error waiting for deposit: ${err}`)
@@ -212,16 +222,15 @@ const Deposit: React.FC<DepositProps> = ({
 
         /* -------------------------------------------------------------------------- */
         default:
-          throw new Error(`Unknown step: ${step}`)
+          throw new Error(`Unknown step: ${depositState.status.step}`)
       }
     }
-    if (address && transaction) {
+    if (address && depositState) {
       executeStep()
     }
   }, [
-    step,
     address,
-    transaction,
+    depositState,
     errorDepositPrepare,
     isLoadingDeposit,
     statusPrepareContractWrite,
@@ -229,7 +238,6 @@ const Deposit: React.FC<DepositProps> = ({
     errorDepositWrite,
     dataDeposit,
     callDeposit,
-    setTransaction,
     resetState,
     done
   ])
@@ -239,8 +247,8 @@ const Deposit: React.FC<DepositProps> = ({
       <Typography variant="body1" fontWeight="bold">
         {currStep}. Deposit
       </Typography>
-      <Typography variant="body2">{step.message}</Typography>
-      {step.step === State.Sign && !errorDepositWrite && (
+      <Typography variant="body2">{depositState.status.message}</Typography>
+      {depositState.status.step === State.Sign && !errorDepositWrite && (
         <Stack
           sx={{
             flexDirection: 'column',
@@ -258,7 +266,12 @@ const Deposit: React.FC<DepositProps> = ({
           <Stack direction="row" gap="10px">
             <StyledButton
               onClick={() => {
-                setStep(Steps[State.Prompt])
+                dispatch(
+                  actions.setDepositStatus({
+                    key: address,
+                    status: Steps[State.Prompt]
+                  })
+                )
                 setPrompted(true)
               }}
               disabled={isLoadingDeposit || prompted}

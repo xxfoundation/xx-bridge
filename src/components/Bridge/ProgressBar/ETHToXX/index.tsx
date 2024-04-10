@@ -17,13 +17,14 @@ import {
 } from '@/consts'
 import xxClient from '@/plugins/apollo/xx'
 import StyledButton from '../../../custom/StyledButton'
-import CustomStepper, { CustomStep } from '../Stepper'
-import { Transaction, updateTransaction, getTransactionLS } from '../Status'
+import CustomStepper from '../Stepper'
+import { useAppSelector, useAppDispatch } from '@/plugins/redux/hooks'
+import { actions, emptyState } from '@/plugins/redux/reducers'
+import { CustomStep, RootState } from '@/plugins/redux/types'
+import { getStateFromAddress } from '@/plugins/redux/selectors'
+import { useEffectDebugger } from '@/hooks/useUtils'
 
 interface TransferETHToXXProps {
-  approve: boolean
-  recipient: string
-  amount: bigint
   reset: () => void
 }
 
@@ -37,7 +38,7 @@ export enum Steps {
   Complete = 5
 }
 
-const State: CustomStep[] = [
+export const State: CustomStep[] = [
   {
     step: Steps.Init,
     message: 'Initializing transfer'
@@ -56,58 +57,52 @@ const State: CustomStep[] = [
   },
   {
     step: Steps.Done,
-    message: 'Transfer complete'
+    message: 'Completing Transfer'
   }
 ]
 
-const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
-  approve,
-  recipient,
-  amount,
-  reset
-}) => {
+const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
   const { address } = useAccount()
-  const [step, setStep] = useState<number>(Steps.Init)
   const [error, setError] = useState<string | undefined>()
   const [extrinsic, setExtrinsic] = useState<string>()
 
-  // Local Storage
-  const [transaction, setTransaction] = useState<Transaction | undefined>(
-    undefined
-  )
+  // use redux
+  const transactions = useAppSelector((state: RootState) => state.transactions)
+  const currState =
+    useAppSelector(
+      (state: RootState) => address && getStateFromAddress(state, address)
+    ) || emptyState
+  const dispatch = useAppDispatch()
 
-  // Synchronously updates 'transaction' from localStorage to immediately reflect external changes. This approach compensates for the useLocalStorage hook's delay in syncing with localStorage, ensuring 'transaction' is always current without waiting for the next re-render.
   useEffect(() => {
-    console.log('address', address)
     if (address) {
-      getTransactionLS(address, setTransaction)
-    }
-    const listener = (e: StorageEvent) => {
-      console.log('storage event', e)
-      if (e.key === `tx-${address}`) {
-        getTransactionLS(address, setTransaction)
+      if (Object.prototype.hasOwnProperty.call(transactions, address)) {
+        console.log('Key already exists', address)
+        return
       }
+      dispatch(actions.newKey(address))
     }
-    window.addEventListener('storage', listener)
-    return () => window.removeEventListener('storage', listener)
   }, [address])
-
-  useEffect(() => {
-    console.log('transaction update', transaction)
-  }, [transaction])
 
   // Go to error state
   const goError = useCallback((msg: string) => {
-    setStep(-1)
+    dispatch(
+      actions.incrementStepTo({
+        key: address,
+        step: {
+          step: Steps.Error,
+          message: msg
+        }
+      })
+    )
     setError(msg)
   }, [])
 
   // Reset state and go back to home page
   const resetState = useCallback(() => {
-    setStep(Steps.Init)
+    dispatch(actions.resetKey(address))
     setError(undefined)
     setExtrinsic(undefined)
-    localStorage.removeItem(`tx-${address}`)
     reset()
   }, [reset])
 
@@ -125,9 +120,9 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
   )
 
   const txHash = useMemo(() => {
-    console.log('depositTxHash', transaction?.fromEth?.depositTxHash)
-    return transaction?.fromEth?.depositTxHash || ''
-  }, [transaction])
+    console.log('depositTxHash', currState.toNative.deposit.txHash)
+    return currState.toNative.deposit.txHash || ''
+  }, [currState])
 
   // Get on-chain deposit nonce
   const { data: depositNonce, error: errorDepositNonce } =
@@ -167,146 +162,154 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
     })
 
   // State machine
-  useEffect(() => {
-    const executeStep = async () => {
-      switch (step) {
-        /* -------------------------------- Init ------------------------------- */
-        case Steps.Init: {
-          // Check if on going transaction is already saved on local storage
-          if (
-            transaction &&
-            transaction.sourceId === 1 &&
-            transaction.status !== Steps.Init
-          ) {
-            console.log('Transaction already exists', transaction)
-            setStep(transaction.status)
+  useEffectDebugger(
+    () => {
+      const executeStep = async () => {
+        switch (currState.tx.status.step) {
+          /* -------------------------------- Init ------------------------------- */
+          case Steps.Init: {
+            // Go to approve if needed, otherwise go to deposit
+            if (currState.tx.needApproval) {
+              console.log('Need to approve')
+              dispatch(
+                actions.incrementStepTo({
+                  key: address,
+                  step: State[Steps.ApproveSpend]
+                })
+              )
+            } else {
+              console.log('No need to approve')
+              dispatch(
+                actions.incrementStepTo({
+                  key: address,
+                  step: State[Steps.BridgeDeposit]
+                })
+              )
+            }
             break
           }
 
-          // Go to approve if needed, otherwise go to deposit
-          if (approve) {
-            console.log('Need to approve')
-            setStep(Steps.ApproveSpend)
-            updateTransaction(
-              address,
-              setTransaction,
-              ['status'],
-              Steps.ApproveSpend
-            )
-          } else {
-            console.log('No need to approve')
-            setStep(Steps.BridgeDeposit)
-            updateTransaction(
-              address,
-              setTransaction,
-              ['status'],
-              Steps.BridgeDeposit
-            )
-          }
-          break
-        }
-
-        /* ---------------------------- ApproveSpend ---------------------------- */
-        case Steps.ApproveSpend: {
-          console.log('Approving spending...')
-          // If approval already made go to deposit
-          if (!approve) {
-            console.log('No need to approve')
-            setStep(Steps.BridgeDeposit)
-            updateTransaction(
-              address,
-              setTransaction,
-              ['status'],
-              Steps.BridgeDeposit
-            )
-          }
-          // Wait for Approval to finish
-          break
-        }
-
-        /* ---------------------------- BridgeDeposit ---------------------------- */
-        case Steps.BridgeDeposit: {
-          // Update transaction state on local storage
-          if (transaction?.status !== Steps.BridgeDeposit) {
-            updateTransaction(
-              address,
-              setTransaction,
-              ['status'],
-              Steps.BridgeDeposit
-            )
-            updateTransaction(address, setTransaction, ['needApprove'], false)
-          }
-          // Wait for Bridge deposit to finish
-          break
-        }
-
-        /* ---------------------------- WaitBridge ---------------------------- */
-        case Steps.WaitBridge: {
-          console.log('Waiting for bridge event...')
-          // Update transaction state on local storage
-          if (transaction?.status !== Steps.WaitBridge) {
-            updateTransaction(
-              address,
-              setTransaction,
-              ['status'],
-              Steps.WaitBridge
-            )
-          }
-          // Check if bridge event is emitted
-          if (!errorDepositNonce && !errorBridgeEvent && bridgeEvent) {
-            if (bridgeEvent.event.length > 0) {
-              const block = bridgeEvent.event[0].blockNumber
-              const extrinsicIdx = JSON.parse(bridgeEvent.event[0].phase)
-                .applyExtrinsic as number
-              setExtrinsic(`${block}-${extrinsicIdx}`)
-              setStep(Steps.Done)
+          /* ---------------------------- ApproveSpend ---------------------------- */
+          case Steps.ApproveSpend: {
+            console.log('Approving spending...')
+            // If approval already made go to deposit
+            if (!currState.tx.needApproval) {
+              console.log('No need to approve')
+              dispatch(
+                actions.incrementStepTo({
+                  key: address,
+                  step: State[Steps.BridgeDeposit]
+                })
+              )
             }
+            // Wait for Approval to finish
+            break
           }
-          if (errorDepositNonce) {
-            console.log(`Error getting deposit nonce: ${errorDepositNonce}`)
-            goError(`Couldn't get deposit nonce: ${errorDepositNonce}`)
-          }
-          if (errorBridgeEvent) {
-            console.log(`Error getting bridge event: ${errorBridgeEvent}`)
-            goError(`Couldn't get bridge event: ${errorBridgeEvent}`)
-          }
-          break
-        }
 
-        /* ---------------------------- Done ---------------------------- */
-        case Steps.Done: {
-          // Update transaction state on local storage
-          if (transaction?.status !== Steps.Done) {
-            updateTransaction(address, setTransaction, ['status'], Steps.Done)
+          /* ---------------------------- BridgeDeposit ---------------------------- */
+          case Steps.BridgeDeposit: {
+            // Wait for Bridge deposit to finish
+            break
           }
-          setTimeout(() => {
-            setStep(Steps.Done + 1)
-          }, 2000)
-          break
-        }
 
-        /* -------------------------------------------------------------------------- */
-        default:
-          break
+          /* ---------------------------- WaitBridge ---------------------------- */
+          case Steps.WaitBridge: {
+            console.log('Waiting for bridge event...')
+            console.log('bridgeEvent', bridgeEvent)
+            // Check if bridge event is emitted
+            if (!errorDepositNonce && !errorBridgeEvent && bridgeEvent) {
+              if (bridgeEvent.event.length > 0) {
+                const block = bridgeEvent.event[0].blockNumber
+                const extrinsicIdx = JSON.parse(bridgeEvent.event[0].phase)
+                  .applyExtrinsic as number
+                setExtrinsic(`${block}-${extrinsicIdx}`)
+                dispatch(
+                  actions.incrementStepTo({
+                    key: address,
+                    step: State[Steps.Done]
+                  })
+                )
+              }
+            }
+            if (errorDepositNonce) {
+              console.log(`Error getting deposit nonce: ${errorDepositNonce}`)
+              goError(`Couldn't get deposit nonce: ${errorDepositNonce}`)
+            }
+            if (errorBridgeEvent) {
+              console.log(`Error getting bridge event: ${errorBridgeEvent}`)
+              goError(`Couldn't get bridge event: ${errorBridgeEvent}`)
+            }
+            break
+          }
+
+          /* ---------------------------- Done ---------------------------- */
+          case Steps.Done: {
+            setTimeout(() => {
+              dispatch(
+                actions.incrementStepTo({
+                  key: address,
+                  step: {
+                    step: Steps.Done + 1,
+                    message: 'Transfer complete!'
+                  }
+                })
+              )
+            }, 2000)
+            break
+          }
+
+          /* -------------------------------------------------------------------------- */
+          default:
+            break
+        }
       }
-    }
-    if (recipient !== '' && amount !== undefined && transaction && address) {
-      console.log('Executing step', step)
-      executeStep()
-    }
-  }, [
-    address,
-    step,
-    recipient,
-    amount,
-    approve,
-    errorDepositNonce,
-    errorBridgeEvent,
-    bridgeEvent,
-    transaction,
-    goError,
-    reset
-  ])
+      if (address) {
+        console.log('Executing step', currState.tx.status.step)
+        executeStep()
+      }
+    },
+    [
+      address,
+      errorDepositNonce,
+      errorBridgeEvent,
+      bridgeEvent,
+      currState,
+      goError,
+      reset
+    ],
+    [
+      'address',
+      'recipient',
+      'amount',
+      'approve',
+      'errorDepositNonce',
+      'errorBridgeEvent',
+      'bridgeEvent',
+      'currState',
+      'goError',
+      'reset'
+    ]
+  )
+
+  // Handle deposit done
+  const handleDepositDone = useCallback(() => {
+    dispatch(
+      actions.incrementStepTo({
+        key: address,
+        step: State[Steps.WaitBridge]
+      })
+    )
+  }, [address])
+
+  // Handle approve done
+  const handleApproveDone = useCallback(() => {
+    dispatch(
+      actions.incrementStepTo({
+        key: address,
+        step: State[Steps.BridgeDeposit]
+      })
+    )
+  }, [address])
 
   return (
     <>
@@ -332,39 +335,34 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({
         </Stack>
       ) : (
         <Stack direction="column" padding={2} spacing="20px">
-          <CustomStepper
-            steps={State}
-            activeStep={step}
-            approve={transaction?.needApprove}
-          />
+          <CustomStepper steps={State} activeStep={currState.tx.status.step} />
           <Stack
             direction="column"
             spacing="20px"
             padding={2}
             alignItems="left"
           >
-            {approve && step === Steps.ApproveSpend && (
-              <Approve
-                currStep={Steps.ApproveSpend + 1}
-                setError={handleError}
-                done={() => setStep(Steps.BridgeDeposit)}
-              />
-            )}
-            {step === Steps.BridgeDeposit && (
+            {currState.tx.needApproval &&
+              currState.tx.status.step === Steps.ApproveSpend && (
+                <Approve
+                  currStep={Steps.ApproveSpend + 1}
+                  setError={handleError}
+                  done={handleApproveDone}
+                />
+              )}
+            {currState.tx.status.step === Steps.BridgeDeposit && (
               <Deposit
                 currStep={Steps.BridgeDeposit + 1}
-                recipient={recipient}
-                amount={amount}
                 setError={handleError}
-                done={() => setStep(Steps.WaitBridge)}
+                done={handleDepositDone}
               />
             )}
-            {step === Steps.WaitBridge && (
+            {currState.tx.status.step === Steps.WaitBridge && (
               <Typography variant="body1" fontWeight="bold">
                 {Steps.WaitBridge + 1}. Waiting for Bridge ...
               </Typography>
             )}
-            {step >= Steps.Done && (
+            {currState.tx.status.step >= Steps.Done && (
               <Stack
                 sx={{
                   flexDirection: 'column'

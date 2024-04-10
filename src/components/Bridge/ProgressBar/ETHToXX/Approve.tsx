@@ -9,8 +9,10 @@ import {
   WRAPPED_XX_ADDRESS
 } from '@/consts'
 import StyledButton from '../../../custom/StyledButton'
-import { CustomStep } from '../Stepper'
-import { Transaction, updateTransaction, getTransactionLS } from '../Status'
+import { CustomStep, RootState } from '@/plugins/redux/types'
+import { useAppDispatch, useAppSelector } from '@/plugins/redux/hooks'
+import { actions, emptyState } from '@/plugins/redux/reducers'
+import { getApprovalFromAddress } from '@/plugins/redux/selectors'
 
 interface ApproveProps {
   currStep: number
@@ -51,26 +53,29 @@ const Steps: CustomStep[] = [
 
 const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
   const { address } = useAccount()
-  const [step, setStep] = useState<CustomStep>(Steps[State.Init])
   const [ready, setReady] = useState<boolean>(false)
   const [prompted, setPrompted] = useState<boolean>(false)
 
-  // Local Storage
-  const [transaction, setTransaction] = useState<Transaction | undefined>(
-    undefined
-  )
+  // use redux
+  const approvalState =
+    useAppSelector(
+      (state: RootState) => address && getApprovalFromAddress(state, address)
+    ) || emptyState.toNative.approval
+  const dispatch = useAppDispatch()
 
-  // Synchronously updates 'transaction' from localStorage to immediately reflect external changes. This approach compensates for the useLocalStorage hook's delay in syncing with localStorage, ensuring 'transaction' is always current without waiting for the next re-render.
-  useEffect(() => {
-    if (address) {
-      getTransactionLS(address, setTransaction)
-    }
-  }, [address])
+  // Confirm approve state
+  // useEffect(() => {
+  //   // If step is greater than 1 (Approval Step), then we are done
+  //   if (currState.tx.status.step > 1) {
+  //     console.log('STEP > 1: Approval complete', currState.tx.status.step)
+  //     done()
+  //   }
+  // }, [currState.tx.status.step, done])
 
   // Reset state + call setError prop
   const resetState = useCallback(
     (msg: string) => {
-      setStep(Steps[State.Init])
+      // No need to call resetKeys here, since we are only resetting the approval state
       setError(msg)
     },
     [setError]
@@ -98,19 +103,20 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
   // State machine
   useEffect(() => {
     const executeStep = async () => {
-      switch (step.step) {
+      switch (approvalState.status.step) {
         /* -------------------------------- Init ------------------------------- */
         case State.Init: {
-          if (transaction) {
-            setStep(Steps[transaction.fromEth?.approvalState ?? State.Init])
-          }
-
           // If contract write error, reset state else prompt user to deposit
           if (errorApprovePrepare) {
             console.error(`Error approving spending:`, errorApprovePrepare)
             resetState(`Error approving spending: ${errorApprovePrepare.name}`)
           } else if (statusPrepareContractWrite === 'success' && ready) {
-            setStep(Steps[State.Prompt])
+            dispatch(
+              actions.setApprovalStatus({
+                key: address,
+                status: Steps[State.Prompt]
+              })
+            )
           }
           break
         }
@@ -119,19 +125,23 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
         case State.Prompt: {
           console.log(`Prompting user to approve spending...`)
           // if deposit tx hash exists on local storage go to wait state
-          if (transaction?.fromEth?.approvalTxHash) {
-            setStep(Steps[State.Wait])
+          if (approvalState.txHash) {
+            dispatch(
+              actions.setApprovalStatus({
+                key: address,
+                status: Steps[State.Wait]
+              })
+            )
             break
           }
           // call approval
           if (callApprove && !isLoadingApprove) {
             callApprove()
-            setStep(Steps[State.Sign])
-            updateTransaction(
-              address,
-              setTransaction,
-              ['fromEth', 'approvalState'],
-              State.Sign
+            dispatch(
+              actions.setApprovalStatus({
+                key: address,
+                status: Steps[State.Sign]
+              })
             )
           }
           break
@@ -145,19 +155,18 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
             resetState(`Error executing approval: User rejected the request`)
           }
           if (dataApprove?.hash) {
-            updateTransaction(
-              address,
-              setTransaction,
-              ['fromEth', 'approvalState'],
-              State.Wait
+            dispatch(
+              actions.setApprovalStatus({
+                key: address,
+                status: Steps[State.Wait]
+              })
             )
-            updateTransaction(
-              address,
-              setTransaction,
-              ['fromEth', 'approvalTxHash'],
-              dataApprove.hash as `0x${string}`
+            dispatch(
+              actions.setApprovalTxHash({
+                key: address,
+                hash: dataApprove.hash
+              })
             )
-            setStep(Steps[State.Wait])
           }
           break
         }
@@ -166,21 +175,23 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
         case State.Wait: {
           console.log(
             `Waiting for approval block confirmations (3)...`,
-            transaction
+            approvalState
           )
-          if (transaction?.fromEth?.approvalTxHash) {
+          if (approvalState.txHash) {
             try {
-              console.log(
-                `Waiting for approval:`,
-                transaction.fromEth.approvalTxHash
-              )
+              console.log(`Waiting for approval:`, approvalState.txHash)
               const approvalReceipt = await waitForTransaction({
-                hash: transaction.fromEth.approvalTxHash as `0x${string}`,
+                hash: approvalState.txHash as `0x${string}`,
                 confirmations: 3
               })
               if (approvalReceipt) {
                 console.log(`Approval receipt:`, approvalReceipt)
-                setStep(Steps[State.Done])
+                dispatch(
+                  actions.setApprovalStatus({
+                    key: address,
+                    status: Steps[State.Done]
+                  })
+                )
               }
             } catch (err: any) {
               console.error(`Error waiting for approval: ${err}`)
@@ -199,25 +210,23 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
 
         /* -------------------------------------------------------------------------- */
         default:
-          throw new Error(`Unknown step: ${step}`)
+          throw new Error(`Unknown step: ${approvalState.status.step}`)
       }
     }
 
-    if (address && transaction) {
+    if (address && approvalState) {
       executeStep()
     }
   }, [
     ready,
-    step,
     address,
-    transaction,
+    approvalState,
     errorApprovePrepare,
     statusPrepareContractWrite,
     isLoadingApprove,
     errorApproveWrite,
     dataApprove,
     callApprove,
-    setTransaction,
     resetState,
     done
   ])
@@ -227,7 +236,7 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
       <Typography variant="body1" fontWeight="bold">
         {currStep}. Approve Spending
       </Typography>
-      {step.step === State.Init ? (
+      {approvalState.status.step === State.Init ? (
         <>
           {' '}
           <Typography variant="body1" sx={{ width: '70%' }}>
@@ -255,9 +264,9 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
           </Stack>
         </>
       ) : (
-        <Typography variant="body1">{step.message}</Typography>
+        <Typography variant="body1">{approvalState.status.message}</Typography>
       )}
-      {step.step === State.Sign && !errorApproveWrite && (
+      {approvalState.status.step === State.Sign && !errorApproveWrite && (
         <Stack
           sx={{
             flexDirection: 'column',
@@ -274,7 +283,12 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
           </Typography>
           <StyledButton
             onClick={() => {
-              setStep(Steps[State.Prompt])
+              dispatch(
+                actions.setApprovalStatus({
+                  key: address,
+                  status: Steps[State.Prompt]
+                })
+              )
               setPrompted(true)
             }}
             disabled={isLoadingApprove || prompted}

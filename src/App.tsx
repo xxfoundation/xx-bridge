@@ -4,11 +4,13 @@ import React from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { WagmiConfig } from 'wagmi'
 import { ApolloProvider } from '@apollo/client'
+import { Provider as ReduxProvider } from 'react-redux'
 import { init as initWagmi, wagmiConfig } from './plugins/wagmi.tsx'
 import AppRouter from './AppRouter.tsx'
 import AccountsProvider from './plugins/substrate/components/AccountsProvider.tsx'
 import ApiProvider from './plugins/substrate/components/ApiProvider.tsx'
 import evmClient from './plugins/apollo/evm.ts'
+import store from './plugins/redux/store.ts'
 
 // Initialize wagmi
 try {
@@ -29,13 +31,15 @@ const App: React.FC = () => (
         }}
       >
         <BrowserRouter>
-          <ApolloProvider client={evmClient}>
-            <ApiProvider>
-              <AccountsProvider>
-                <AppRouter />
-              </AccountsProvider>
-            </ApiProvider>
-          </ApolloProvider>
+          <ReduxProvider store={store}>
+            <ApolloProvider client={evmClient}>
+              <ApiProvider>
+                <AccountsProvider>
+                  <AppRouter />
+                </AccountsProvider>
+              </ApiProvider>
+            </ApolloProvider>
+          </ReduxProvider>
         </BrowserRouter>
       </div>
     </div>

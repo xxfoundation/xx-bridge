@@ -123,6 +123,10 @@ export const encodeBridgeDeposit = (
   to: string,
   amount: bigint
 ): `0x${string}` => {
+  if (amount < BigInt(0)) {
+    console.error('Amount must be greater than 0')
+    return '0x'
+  }
   const deposit = padHex(toHex(amount)).substring(2) // Deposit Amount (32 bytes)
   const recipientLen = padHex(toHex((to.length - 2) / 2)).substring(2) // len(recipientAddress) (32 bytes)
   const recipient = to.substring(2) // recipientAddress (?? bytes)
@@ -253,4 +257,20 @@ export const updateNestedKeyImmutable = (
   }
 
   return newObj
+}
+
+export const debounce = (
+  fn: (...args: any[]) => void,
+  delay: number | undefined
+) => {
+  let timeoutId: string | number | NodeJS.Timeout | undefined
+  const retval = (...args: any[]) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+    timeoutId = setTimeout(() => {
+      fn(...args)
+    }, delay)
+  }
+  return retval
 }

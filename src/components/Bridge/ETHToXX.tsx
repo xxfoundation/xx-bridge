@@ -44,9 +44,14 @@ import theme from '@/theme'
 import Balance from '../custom/Balance'
 import Loading from '../Utils/Loading'
 import ModalWrapper from '../Modals/ModalWrapper'
-import Status, { Transaction } from './ProgressBar/Status'
+import Status from './ProgressBar/Status'
 import useXxBalance from '@/hooks/useXxBalance'
 import useLocalStorage from '@/hooks/useLocalStorage'
+import { useAppSelector, useAppDispatch } from '@/plugins/redux/hooks'
+import { RootState } from '@/plugins/redux/types'
+import { actions, emptyState } from '@/plugins/redux/reducers'
+import { getTxFromAddress } from '@/plugins/redux/selectors'
+import { State } from './ProgressBar/ETHToXX'
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,
@@ -124,10 +129,15 @@ const ETHToXX: React.FC = () => {
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
   const [resetting, setResetting] = useState<boolean>(false)
-  const [verified, setVerified] = useState<boolean>(false)
 
   // Check screen checkpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
+
+  // use redux
+  const tx = useAppSelector(
+    (state: RootState) => address && getTxFromAddress(state, address)
+  )
+  const dispatch = useAppDispatch()
 
   // Value computation
   const setValue = useCallback(
@@ -346,16 +356,22 @@ const ETHToXX: React.FC = () => {
     errorState
   ])
 
+  // Reset Tx details
+  const resetTxDetails = useCallback(() => {
+    setStartTransfer(false)
+    setInput(null)
+    setTransferValue(BigInt(0))
+  }, [])
+
   // Reset
   const reset = useCallback(() => {
     setResetting(true)
-    setInput(null)
-    setTransferValue(BigInt(0))
+    resetTxDetails()
     setRecipient('')
     setRecipientError(undefined)
-    setStartTransfer(false)
     refetchWrappedXX()
     refetchAllowance()
+    dispatch(actions.resetKey(address))
     setTimeout(() => {
       setResetting(false)
     }, 2000)
@@ -363,32 +379,54 @@ const ETHToXX: React.FC = () => {
 
   // Restore transaction from local storage and set values if status not complete (4)
   useEffect(() => {
-    reset()
+    resetTxDetails()
+    setRecipient(selectedAccount?.address || '')
     // Check if the transaction is already saved in local storage and update accordingly
-    const tx = localStorage.getItem(`tx-${address}`)
     console.log(`Restoring transaction from ${address}`)
-    if (tx) {
-      const transaction = JSON.parse(tx) as Transaction
-      console.log('Restored transaction:', transaction)
-      if (transaction.status < 4) {
-        setNeedApprove(transaction.needApprove)
-        setRecipient(convertXXPubkey(transaction.recipient))
+    const storedElem = localStorage.getItem(`persistantState`)
+    if (storedElem && address) {
+      console.log('Tx:', address, JSON.parse(storedElem).transactions[address])
+    }
+    if (tx && JSON.stringify(tx) !== JSON.stringify(emptyState.tx)) {
+      console.log('Restored transaction:', tx, emptyState.tx)
+      if (tx.status.step < 4 && tx.destinationddress) {
+        setNeedApprove(tx.needApproval)
+        setRecipient(convertXXPubkey(tx.destinationddress))
         // Set transfer value passed as string to children components
-        setTransferValue(BigInt(transaction.amount))
+        setTransferValue(BigInt(tx.amount))
         // Set input value to be displayed in the input field
-        setInput(
-          parseFloat(transaction.amount) / 10 ** ethereumMainnet.token.decimals
-        )
+        setInput(parseFloat(tx.amount) / 10 ** ethereumMainnet.token.decimals)
         setStartTransfer(true)
       } else {
         console.log('Transaction already complete')
-        localStorage.removeItem(`tx-${address}`)
+        dispatch(actions.resetKey(address))
       }
     } else {
       console.log('No transaction found')
     }
-    setVerified(true)
+    return () => {
+      console.log('[Cleaning up]')
+      resetTxDetails()
+    }
   }, [address])
+
+  const handleClickTransfer = useCallback(() => {
+    setStartTransfer(true)
+    dispatch(
+      actions.setTxDetails({
+        key: address,
+        details: {
+          status: State[0],
+          sourceAddress: address || '',
+          destinationddress: convertXXAddress(recipient),
+          sourceId: BRIDGE_ID_ETH_MAINNET,
+          destinationId: BRIDGE_ID_XXNETWORK,
+          amount: transferValue.toString(),
+          needApproval: needApprove
+        }
+      })
+    )
+  }, [address, recipient, transferValue, needApprove])
 
   return (
     <Stack
@@ -546,15 +584,8 @@ const ETHToXX: React.FC = () => {
             />
           </Stack>
           <Divider />
-          {startTransfer && recipient && verified ? (
-            <Status
-              // fromAddr={address}
-              sourceId={BRIDGE_ID_ETH_MAINNET}
-              approve={needApprove}
-              recipient={convertXXAddress(recipient)}
-              amount={transferValue}
-              reset={reset}
-            />
+          {startTransfer && recipient ? (
+            <Status sourceId={BRIDGE_ID_ETH_MAINNET} reset={reset} />
           ) : (
             <>
               <Stack direction="column" padding={2}>
@@ -575,7 +606,7 @@ const ETHToXX: React.FC = () => {
                 <StyledButton
                   fullWidth
                   disabled={!allowTransfer}
-                  onClick={() => setStartTransfer(true)}
+                  onClick={handleClickTransfer}
                 >
                   Transfer
                 </StyledButton>
