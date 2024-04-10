@@ -10,7 +10,7 @@ export type CustomStep = {
 export interface Transfer {
   status: CustomStep
   sourceAddress: string
-  destinationddress: string
+  destinationAddress: string
   sourceId: number
   destinationId: number
   amount: string

@@ -31,13 +31,18 @@ import ModalWrapper from '../Modals/ModalWrapper'
 import Loading from '../Utils/Loading'
 import useXxBalance from '@/hooks/useXxBalance'
 import Status from './ProgressBar/Status'
+import { useAppSelector, useAppDispatch } from '@/plugins/redux/hooks'
+import { getTxFromAddress } from '@/plugins/redux/selectors'
+import { RootState } from '@/plugins/redux/types'
+import { actions, emptyState } from '@/plugins/redux/reducers'
+import { State } from './ProgressBar/XXToETH'
 
 const XXToETH: React.FC = () => {
   // Hooks
   const { address } = useAccount()
   const { selectedAccount, connectWallet, hasExtensions } = useAccounts()
   const { xxBalance } = useXxBalance(selectedAccount?.address || '')
-  const { api } = useApi()
+  const { api, ready } = useApi()
 
   // State
   const [noxx, setNoxx] = useState<boolean>(false)
@@ -57,6 +62,12 @@ const XXToETH: React.FC = () => {
 
   // Check screen checkpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
+
+  // use redux
+  const tx = useAppSelector(
+    (state: RootState) => address && getTxFromAddress(state, address)
+  )
+  const dispatch = useAppDispatch()
 
   // Can't send xx -> eth when no xx account is available
   useEffect(() => {
@@ -179,6 +190,7 @@ const XXToETH: React.FC = () => {
   useEffect(() => {
     if (
       api &&
+      ready &&
       allowTransfer &&
       gasPrice &&
       transferValue &&
@@ -207,6 +219,7 @@ const XXToETH: React.FC = () => {
     }
   }, [
     api,
+    ready,
     allowTransfer,
     gasPrice,
     transferValue,
@@ -270,24 +283,82 @@ const XXToETH: React.FC = () => {
     errorState
   ])
 
+  // Reset Tx details
+  const resetTxDetails = useCallback(() => {
+    setStartTransfer(false)
+    setInput(null)
+    setTransferValue(BigInt(0))
+  }, [])
+
   // Reset
   const reset = useCallback(() => {
     setResetting(true)
-    setInput(null)
-    setTransferValue(BigInt(0))
+    resetTxDetails()
     setRecipient('')
     setRecipientError(undefined)
-    setStartTransfer(false)
     refetchWrappedXX()
+    dispatch(actions.resetKey(address))
     setTimeout(() => {
       setResetting(false)
     }, 2000)
-  }, [refetchWrappedXX])
+  }, [address, dispatch, refetchWrappedXX, resetTxDetails])
 
-  // Handle click transfer
+  // Restore transaction from local storage and set values if status not complete (4)
+  useEffect(() => {
+    resetTxDetails()
+    setRecipient(address || '')
+    if (tx && JSON.stringify(tx) !== JSON.stringify(emptyState.tx)) {
+      if (tx.status.step < 5 && tx.destinationAddress) {
+        setRecipient(tx.destinationAddress)
+        // Set transfer value passed as string to children components
+        setTransferValue(BigInt(tx.amount))
+        // Set input value to be displayed in the input field
+        setInput(parseFloat(tx.amount) / 10 ** xxNetwork.gasToken.decimals)
+        setStartTransfer(true)
+      } else {
+        console.log('Transaction already complete')
+        dispatch(actions.resetKey(address))
+      }
+    } else {
+      console.log('No transaction found')
+    }
+    return () => {
+      console.log('[Cleaning up]')
+      resetTxDetails()
+    }
+  }, [address])
+
+  // Do not leave recipient empty
+  useEffect(() => {
+    if (recipient === '' && address) {
+      setRecipient(address)
+    }
+  }, [address, recipient])
+
   const handleClickTransfer = useCallback(() => {
     setStartTransfer(true)
-  }, [])
+    dispatch(
+      actions.setTxDetails({
+        key: address,
+        details: {
+          status: State[0],
+          sourceAddress: selectedAccount?.address || '',
+          destinationAddress: recipient,
+          sourceId: BRIDGE_ID_XXNETWORK,
+          destinationId: BRIDGE_ID_ETH_MAINNET,
+          amount: transferValue.toString(),
+          needApproval: false
+        }
+      })
+    )
+  }, [
+    address,
+    dispatch,
+    recipient,
+    resetTxDetails,
+    selectedAccount,
+    transferValue
+  ])
 
   return (
     <Stack
@@ -540,12 +611,7 @@ const XXToETH: React.FC = () => {
             </Stack>
           </Stack>
           {startTransfer && recipient ? (
-            <Status
-              sourceId={BRIDGE_ID_XXNETWORK}
-              recipient={recipient}
-              amount={transferValue}
-              reset={reset}
-            />
+            <Status sourceId={BRIDGE_ID_XXNETWORK} reset={reset} />
           ) : (
             <Stack direction="row" padding={2} justifyContent="center">
               <StyledButton

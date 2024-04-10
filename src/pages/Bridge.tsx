@@ -9,6 +9,10 @@ import XXToETH from '@/components/Bridge/XXToETH.tsx'
 import { ethereumMainnet, xxNetwork } from '@/consts.ts'
 import theme from '@/theme.ts'
 import useSessionStorage from '@/hooks/useSessionStorage.ts'
+import { useAppSelector, useAppDispatch } from '@/plugins/redux/hooks.ts'
+import { actions, emptyState } from '@/plugins/redux/reducers.ts'
+import { getTxFromAddress } from '@/plugins/redux/selectors.ts'
+import { RootState } from '@/plugins/redux/types.ts'
 
 const Bridge: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
@@ -16,6 +20,13 @@ const Bridge: React.FC = () => {
   const [switching, setSwitching] = useState<boolean>(false)
   const [fromXX, setFromXX] = useSessionStorage<boolean>('fromNative', false)
   const [accountChange, setAccountChange] = useState<boolean>(false)
+
+  // use redux
+  const tx = useAppSelector(
+    (state: RootState) =>
+      (address && getTxFromAddress(state, address)) || emptyState.tx
+  )
+  const dispatch = useAppDispatch()
 
   // refresh page and pass by loading state when account changes
   useEffect(() => {
@@ -28,6 +39,15 @@ const Bridge: React.FC = () => {
   // Switch networks
   const switchNetworks = useCallback(() => {
     setSwitching(true)
+    dispatch(
+      actions.setTxDetails({
+        key: address,
+        details: {
+          ...tx,
+          destinationAddress: ''
+        }
+      })
+    )
     setTimeout(() => {
       setFromXX(!fromXX)
       setSwitching(false)

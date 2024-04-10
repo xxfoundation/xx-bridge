@@ -1,5 +1,5 @@
 import { Link, Stack, Typography } from '@mui/material'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   useAccount,
   useContractRead,
@@ -23,9 +23,15 @@ import {
   SubProposalEvents
 } from '@/plugins/apollo/schemas'
 import StyledButton from '../../../custom/StyledButton'
-import { useAppSelector } from '@/plugins/redux/hooks'
-import { getTxFromAddress } from '@/plugins/redux/selectors'
-import { RootState } from '@/plugins/redux/types'
+import { useAppDispatch, useAppSelector } from '@/plugins/redux/hooks'
+import {
+  getFromNativeFromAddress,
+  getTxFromAddress
+} from '@/plugins/redux/selectors'
+import { CustomStep, RootState } from '@/plugins/redux/types'
+import { actions, emptyState } from '@/plugins/redux/reducers'
+import CustomStepper from '../Stepper'
+import { useEffectDebugger } from '@/hooks/useUtils'
 
 interface TransferXXToETHProps {
   reset: () => void
@@ -33,7 +39,6 @@ interface TransferXXToETHProps {
 
 // From XX to ETH: Native Transfer (xx) -> Pay Fee (eth) -> Wait for Bridge -> Done
 export enum Steps {
-  Error = -1,
   Init = 0,
   NativeTransfer = 1,
   RelayerFee = 2,
@@ -42,25 +47,74 @@ export enum Steps {
   Done = 5
 }
 
+export const State: CustomStep[] = [
+  {
+    step: Steps.Init,
+    message: 'Initializing transfer'
+  },
+  {
+    step: Steps.NativeTransfer,
+    message: 'Transfering XX to Bridge'
+  },
+  {
+    step: Steps.RelayerFee,
+    message: 'Paying Bridge Relayer Fee'
+  },
+  {
+    step: Steps.WaitFee,
+    message: 'Waiting for Fee Confirmation'
+  },
+  {
+    step: Steps.WaitBridge,
+    message: 'Waiting for Bridge'
+  },
+  {
+    step: Steps.Done,
+    message: 'Transfer complete!'
+  }
+]
+
 const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
   // Hooks
   const { address } = useAccount()
   const { selectedAccount, getSigner } = useAccounts()
   const { api, ready } = useApi()
 
-  const [step, setStep] = useState<number>(Steps.Init)
-  const [nonce, setNonce] = useState<bigint>()
+  // State variables
   const [error, setError] = useState<string | undefined>()
-  const [txHash, setTxHash] = useState<string>()
 
   // use redux
+  const transactions = useAppSelector((state: RootState) => state.transactions)
   const tx = useAppSelector(
-    (state: RootState) => address && getTxFromAddress(state, address)
+    (state: RootState) =>
+      (address && getTxFromAddress(state, address)) || emptyState.tx
   )
+  const fromNative = useAppSelector(
+    (state: RootState) =>
+      (address && getFromNativeFromAddress(state, address)) ||
+      emptyState.fromNative
+  )
+  const dispatch = useAppDispatch()
+
+  useEffect(() => {
+    if (address) {
+      if (Object.prototype.hasOwnProperty.call(transactions, address)) {
+        console.log('Key already exists', address)
+        return
+      }
+      dispatch(actions.newKey(address))
+    }
+  }, [address])
+
+  // const goError = useCallback((msg: string) => {
+  //   dispatch(actions.resetKey(address))
+  //   setError(msg)
+  // }, [])
 
   // Reset state + call prop
-  const resetAll = useCallback(() => {
-    setStep(Steps.Init)
+  const resetState = useCallback(() => {
+    dispatch(actions.resetKey(address))
+    setError(undefined)
     reset()
   }, [reset])
 
@@ -71,18 +125,23 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
       api &&
       ready &&
       selectedAccount &&
-      step === Steps.Init &&
+      fromNative?.status.step === Steps.Init &&
       !sent.current
     ) {
       const extrinsic = api.tx.swap.transferNative(
         BigInt(tx?.amount ?? 0),
-        tx?.destinationddress ?? '',
+        tx?.destinationAddress ?? '',
         BRIDGE_ID_ETH_MAINNET
       )
       const signer = getSigner()
       if (signer) {
         sent.current = true
-        setStep(Steps.NativeTransfer)
+        dispatch(
+          actions.setFromNativeStatus({
+            key: address,
+            status: State[Steps.NativeTransfer]
+          })
+        )
         extrinsic
           .signAndSend(
             selectedAccount.address,
@@ -92,7 +151,12 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                 events.forEach(({ event }) => {
                   if (api.events.chainBridge.FungibleTransfer.is(event)) {
                     const [, nonceValue] = event.data
-                    setNonce(nonceValue.toBigInt())
+                    dispatch(
+                      actions.setFromNativeNonce({
+                        key: address,
+                        nonce: nonceValue.toNumber()
+                      })
+                    )
                   }
                 })
               }
@@ -101,15 +165,25 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
           .catch(err => {
             console.error(`Error executing transferNative: ${err.message}`)
             setError(`Error executing transferNative: ${err.message}`)
-            resetAll()
+            resetState()
           })
       } else {
         console.error('No signer available')
         setError('No signer available')
-        resetAll()
+        resetState()
       }
     }
-  }, [api, ready, step, sent, selectedAccount, setError, getSigner])
+  }, [
+    api,
+    ready,
+    selectedAccount,
+    fromNative,
+    tx,
+    address,
+    getSigner,
+    dispatch,
+    resetState
+  ])
 
   /* -------------------------------------------------------------------------- */
   /*                                    Hooks                                   */
@@ -125,12 +199,14 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
     functionName: 'currentFee'
   })
 
+  const givenNonce = useMemo(() => fromNative.nonce ?? 0, [fromNative.nonce])
+
   // Relayer fee payment transaction
   const { config: configPayFee, error: errorPayFee } = usePrepareContractWrite({
     address: BRIDGE_RELAYER_FEE_ADDRESS,
     abi: contracts.relayerFeeAbi,
     functionName: 'payFee',
-    args: [BRIDGE_ID_XXNETWORK, nonce || BigInt(0)],
+    args: [BRIDGE_ID_XXNETWORK, BigInt(givenNonce)],
     account: address,
     value: relayerFee || BigInt(0)
   })
@@ -143,7 +219,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
 
   // Wait for transaction
   const { data: txReceipt, error: errorTxReceipt } = useWaitForTransaction({
-    hash: payFeeData?.hash,
+    hash: (fromNative.txHash ?? '0x') as `0x${string}`,
     confirmations: 3
   })
 
@@ -154,7 +230,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
         where: {
           _and: [
             { status: { _eq: 'Executed' } },
-            { nonce: { _eq: nonce?.toString() ?? '' } }
+            { nonce: { _eq: fromNative.nonce?.toString() ?? '' } }
           ]
         }
       }
@@ -162,146 +238,240 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
   /* ------------------------------------ - ----------------------------------- */
 
   // State machine
-  useEffect(() => {
-    const executeStep = async () => {
-      switch (step) {
-        /* -------------------------------- Init ------------------------------- */
-        case Steps.Init: {
-          // Wait for signer
-          break
-        }
+  useEffectDebugger(
+    () => {
+      const executeStep = async () => {
+        switch (fromNative.status.step) {
+          /* -------------------------------- Init ------------------------------- */
+          case Steps.Init: {
+            // Wait for signer
+            break
+          }
 
-        /* ---------------------------- NativeTransfer ---------------------------- */
-        case Steps.NativeTransfer: {
-          // Wait for nonce
-          if (nonce !== undefined) {
-            setStep(Steps.RelayerFee)
-          }
-          break
-        }
-
-        /* ---------------------------- RelayerFee ---------------------------- */
-        case Steps.RelayerFee: {
-          if (relayerFeeError) {
-            setError(`Error getting relayer fee: ${relayerFeeError}`)
-            resetAll()
-          }
-          if (errorPayFee) {
-            setError(`Error executing payFee: ${errorPayFee}`)
-            resetAll()
-          }
-          if (!relayerFeeLoading && callPayFee) {
-            callPayFee()
-            setStep(Steps.WaitFee)
-          }
-          break
-        }
-
-        /* ---------------------------- WaitFee ---------------------------- */
-        case Steps.WaitFee: {
-          if (!payFeeError && !payFeeLoading && txReceipt) {
-            if (errorTxReceipt) {
-              setError(`Paying relayer fee failed: ${errorTxReceipt}`)
-              resetAll()
+          /* ---------------------------- NativeTransfer ---------------------------- */
+          case Steps.NativeTransfer: {
+            // Wait for nonce
+            if (givenNonce) {
+              dispatch(
+                actions.setFromNativeStatus({
+                  key: address,
+                  status: State[Steps.RelayerFee]
+                })
+              )
             }
-            console.log(`Relayer fee paid!`)
-            setStep(Steps.WaitBridge)
+            break
           }
-          break
-        }
 
-        /* ---------------------------- WaitBridge ---------------------------- */
-        case Steps.WaitBridge: {
-          if (!errorProposalEvent && proposalEvent) {
-            if (proposalEvent.proposal.length > 0) {
-              setTxHash(txReceipt?.transactionHash ?? '')
-              setStep(Steps.Done)
+          /* ---------------------------- RelayerFee ---------------------------- */
+          case Steps.RelayerFee: {
+            if (relayerFeeError) {
+              setError(`Error getting relayer fee: ${relayerFeeError}`)
             }
+            if (errorPayFee) {
+              setError(`Error executing payFee: ${errorPayFee}`)
+            }
+            if (!relayerFeeLoading && callPayFee) {
+              callPayFee()
+              dispatch(
+                actions.setFromNativeStatus({
+                  key: address,
+                  status: State[Steps.WaitFee]
+                })
+              )
+            }
+            break
           }
-          break
-        }
 
-        /* ---------------------------- Done ---------------------------- */
-        case Steps.Done: {
-          // Noop
-          break
-        }
+          /* ---------------------------- WaitFee ---------------------------- */
+          case Steps.WaitFee: {
+            if (!payFeeLoading) {
+              if (payFeeError) {
+                setError(`Error paying relayer fee: User rejected transaction`)
+                return
+              }
+              if (payFeeData) {
+                dispatch(
+                  actions.setFromNativeTxHash({
+                    key: address,
+                    hash: payFeeData.hash
+                  })
+                )
+              }
+              if (errorTxReceipt) {
+                setError(`Paying relayer fee failed: ${errorTxReceipt}`)
+              }
+              if (txReceipt) {
+                console.log(`Relayer fee paid!`)
+                dispatch(
+                  actions.setFromNativeStatus({
+                    key: address,
+                    status: State[Steps.WaitBridge]
+                  })
+                )
+              }
+            }
+            break
+          }
 
-        /* -------------------------------------------------------------------------- */
-        default:
-          throw new Error(`Unknown step: ${step}`)
+          /* ---------------------------- WaitBridge ---------------------------- */
+          case Steps.WaitBridge: {
+            if (!errorProposalEvent && proposalEvent) {
+              if (proposalEvent.proposal.length > 0) {
+                dispatch(
+                  actions.setFromNativeTxHash({
+                    key: address,
+                    hash: txReceipt?.transactionHash ?? ''
+                  })
+                )
+                dispatch(
+                  actions.setFromNativeStatus({
+                    key: address,
+                    status: State[Steps.Done]
+                  })
+                )
+              }
+            }
+            break
+          }
+
+          /* ---------------------------- Done ---------------------------- */
+          case Steps.Done: {
+            // Noop
+            break
+          }
+
+          /* -------------------------------------------------------------------------- */
+          default:
+            throw new Error(`Unknown step: ${fromNative.status.step}`)
+        }
       }
-    }
-    if (api && selectedAccount && relayerFee !== undefined) {
-      executeStep()
-    }
-  }, [
-    api,
-    selectedAccount,
-    step,
-    nonce,
-    relayerFee,
-    relayerFeeError,
-    relayerFeeLoading,
-    errorPayFee,
-    payFeeError,
-    payFeeLoading,
-    callPayFee,
-    txReceipt,
-    errorTxReceipt,
-    proposalEvent,
-    errorProposalEvent,
-    resetAll
-  ])
+      if (api && selectedAccount && fromNative && relayerFee !== undefined) {
+        executeStep()
+      }
+    },
+    [
+      api,
+      selectedAccount,
+      fromNative,
+      relayerFee,
+      relayerFeeError,
+      relayerFeeLoading,
+      errorPayFee,
+      payFeeError,
+      payFeeLoading,
+      callPayFee,
+      txReceipt,
+      errorTxReceipt,
+      proposalEvent,
+      errorProposalEvent,
+      resetState
+    ],
+    [
+      'api',
+      'selectedAccount',
+      'fromNative',
+      'relayerFee',
+      'relayerFeeError',
+      'relayerFeeLoading',
+      'errorPayFee',
+      'payFeeError',
+      'payFeeLoading',
+      'callPayFee',
+      'txReceipt',
+      'errorTxReceipt',
+      'proposalEvent',
+      'errorProposalEvent',
+      'resetState'
+    ]
+  )
 
   return (
-    <Stack
-      direction="column"
-      padding={2}
-      justifyContent="center"
-      alignItems="center"
-      spacing="20px"
-    >
-      {step === Steps.NativeTransfer && (
-        <Typography>Transfering native XX to Bridge ...</Typography>
-      )}
-      {(step === Steps.RelayerFee || step === Steps.WaitFee) && (
-        <Typography>Paying Bridge Fee...</Typography>
-      )}
-      {step === Steps.WaitBridge && (
-        <Typography>
-          Waiting for Bridge... This can take up to 2 min. Please be patient.
-        </Typography>
-      )}
-      {step === Steps.Done && (
+    <>
+      {error ? (
         <Stack
-          sx={{
-            flexDirection: 'column'
-          }}
+          direction="column"
+          spacing="10px"
+          padding={2}
           alignItems="center"
-          spacing="20px"
         >
-          <Typography variant="h5">Transfer complete!</Typography>
-          <Link
-            variant="body2"
-            href={`${ETH_EXPLORER_URL}/tx/${txHash}`}
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            View transaction in Etherscan
-          </Link>
+          <Typography color="error" variant="h5" fontWeight="bold">
+            Something went wrong
+          </Typography>
+          {error && <Typography color="error">{error}</Typography>}
           <StyledButton
+            sx={{ marginTop: '20px !important' }}
             onClick={() => {
-              resetAll()
+              resetState()
             }}
           >
-            Back to the Bridge
+            Go Back
           </StyledButton>
         </Stack>
+      ) : (
+        <>
+          <Stack direction="column" padding={2} spacing="20px">
+            <CustomStepper steps={State} activeStep={fromNative.status.step} />
+            <Stack
+              direction="column"
+              spacing="20px"
+              padding={2}
+              alignItems="left"
+            >
+              {fromNative.status.step === Steps.NativeTransfer && (
+                <Typography>Transfering native XX to Bridge ...</Typography>
+              )}
+              {(fromNative.status.step === Steps.RelayerFee ||
+                fromNative.status.step === Steps.WaitFee) && (
+                <Typography>Paying Bridge Fee...</Typography>
+              )}
+              {fromNative.status.step === Steps.WaitBridge && (
+                <Typography>
+                  Waiting for Bridge... This can take up to 2 min. Please be
+                  patient.
+                </Typography>
+              )}
+              {fromNative.status.step >= Steps.Done && (
+                <Stack
+                  sx={{
+                    flexDirection: 'column'
+                  }}
+                  alignItems="center"
+                  spacing="20px"
+                >
+                  <Typography variant="h5">Transfer complete!</Typography>
+                  <Link
+                    variant="body2"
+                    href={`${ETH_EXPLORER_URL}/tx/${fromNative.txHash}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    View transaction in Etherscan
+                  </Link>
+                  <StyledButton
+                    onClick={() => {
+                      resetState()
+                    }}
+                  >
+                    Back to the Bridge
+                  </StyledButton>
+                </Stack>
+              )}
+              {fromNative.status.step !== Steps.Done && <Loading size="sm2" />}
+            </Stack>
+          </Stack>
+          <Stack justifyContent="right" padding={2}>
+            <StyledButton
+              small
+              onClick={() => {
+                resetState()
+              }}
+            >
+              Reset
+            </StyledButton>
+          </Stack>
+        </>
       )}
-      {step !== Steps.Done && <Loading size="sm2" />}
-      {error && <Typography color="error">{error}</Typography>}
-    </Stack>
+    </>
   )
 }
 

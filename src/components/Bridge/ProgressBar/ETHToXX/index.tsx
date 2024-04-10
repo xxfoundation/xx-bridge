@@ -29,7 +29,6 @@ interface TransferETHToXXProps {
 }
 
 export enum Steps {
-  Error = -1,
   Init = 0,
   ApproveSpend = 1,
   BridgeDeposit = 2,
@@ -86,15 +85,7 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
 
   // Go to error state
   const goError = useCallback((msg: string) => {
-    dispatch(
-      actions.incrementStepTo({
-        key: address,
-        step: {
-          step: Steps.Error,
-          message: msg
-        }
-      })
-    )
+    dispatch(actions.resetKey(address))
     setError(msg)
   }, [])
 
@@ -334,72 +325,87 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
           </StyledButton>
         </Stack>
       ) : (
-        <Stack direction="column" padding={2} spacing="20px">
-          <CustomStepper steps={State} activeStep={currState.tx.status.step} />
-          <Stack
-            direction="column"
-            spacing="20px"
-            padding={2}
-            alignItems="left"
-          >
-            {currState.tx.needApproval &&
-              currState.tx.status.step === Steps.ApproveSpend && (
-                <Approve
-                  currStep={Steps.ApproveSpend + 1}
+        <>
+          <Stack direction="column" padding={2} spacing="20px">
+            <CustomStepper
+              steps={State}
+              activeStep={currState.tx.status.step}
+            />
+            <Stack
+              direction="column"
+              spacing="20px"
+              padding={2}
+              alignItems="left"
+            >
+              {currState.tx.needApproval &&
+                currState.tx.status.step === Steps.ApproveSpend && (
+                  <Approve
+                    currStep={Steps.ApproveSpend + 1}
+                    setError={handleError}
+                    done={handleApproveDone}
+                  />
+                )}
+              {currState.tx.status.step === Steps.BridgeDeposit && (
+                <Deposit
+                  currStep={Steps.BridgeDeposit + 1}
                   setError={handleError}
-                  done={handleApproveDone}
+                  done={handleDepositDone}
                 />
               )}
-            {currState.tx.status.step === Steps.BridgeDeposit && (
-              <Deposit
-                currStep={Steps.BridgeDeposit + 1}
-                setError={handleError}
-                done={handleDepositDone}
-              />
-            )}
-            {currState.tx.status.step === Steps.WaitBridge && (
-              <Typography variant="body1" fontWeight="bold">
-                {Steps.WaitBridge + 1}. Waiting for Bridge ...
-              </Typography>
-            )}
-            {currState.tx.status.step >= Steps.Done && (
-              <Stack
-                sx={{
-                  flexDirection: 'column'
-                }}
-                alignItems="center"
-                spacing="20px"
-              >
-                <Typography variant="h5" fontWeight="bold">
-                  {Steps.Done + 1}. Transfer complete!
+              {currState.tx.status.step === Steps.WaitBridge && (
+                <Typography variant="body1" fontWeight="bold">
+                  {Steps.WaitBridge + 1}. Waiting for Bridge ...
                 </Typography>
-                <Link
-                  variant="body2"
-                  href={`${XX_EXPLORER_URL}/extrinsics/${extrinsic}`}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  View transaction in xx Explorer
-                </Link>
-                <Link
-                  variant="body2"
-                  href={`${ETH_EXPLORER_URL}/tx/${txHash}`}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  View transaction in Etherscan
-                </Link>
-                <StyledButton
-                  onClick={() => {
-                    resetState()
+              )}
+              {currState.tx.status.step >= Steps.Done && (
+                <Stack
+                  sx={{
+                    flexDirection: 'column'
                   }}
+                  alignItems="center"
+                  spacing="20px"
                 >
-                  Go Back
-                </StyledButton>
-              </Stack>
-            )}
+                  <Typography variant="h5" fontWeight="bold">
+                    {Steps.Done + 1}. Transfer complete!
+                  </Typography>
+                  <Link
+                    variant="body2"
+                    href={`${XX_EXPLORER_URL}/extrinsics/${extrinsic}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    View transaction in xx Explorer
+                  </Link>
+                  <Link
+                    variant="body2"
+                    href={`${ETH_EXPLORER_URL}/tx/${txHash}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    View transaction in Etherscan
+                  </Link>
+                  <StyledButton
+                    onClick={() => {
+                      resetState()
+                    }}
+                  >
+                    Go Back
+                  </StyledButton>
+                </Stack>
+              )}
+            </Stack>
           </Stack>
-        </Stack>
+          <Stack justifyContent="right" padding={2}>
+            <StyledButton
+              small
+              onClick={() => {
+                resetState()
+              }}
+            >
+              Reset
+            </StyledButton>
+          </Stack>
+        </>
       )}
     </>
   )

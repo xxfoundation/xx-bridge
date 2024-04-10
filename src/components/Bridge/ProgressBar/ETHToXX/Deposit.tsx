@@ -90,7 +90,7 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
   // Bridge deposit call
   const deposit: `0x${string}` = useMemo(
     () =>
-      (tx && encodeBridgeDeposit(tx.destinationddress, BigInt(tx.amount))) ||
+      (tx && encodeBridgeDeposit(tx.destinationAddress, BigInt(tx.amount))) ||
       '0x',
     [tx]
   )

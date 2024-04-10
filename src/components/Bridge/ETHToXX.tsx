@@ -283,7 +283,6 @@ const ETHToXX: React.FC = () => {
         )
           .then(gas => {
             if (gas) {
-              console.log('Bridge gas estimate', gas)
               const fee = Number(gas) * gasPrice
               setFees(formatBalance(BigInt(fee.toFixed(0)), 18, 6))
             } else {
@@ -375,23 +374,16 @@ const ETHToXX: React.FC = () => {
     setTimeout(() => {
       setResetting(false)
     }, 2000)
-  }, [address, refetchWrappedXX, refetchAllowance])
+  }, [address, dispatch, refetchAllowance, refetchWrappedXX, resetTxDetails])
 
   // Restore transaction from local storage and set values if status not complete (4)
   useEffect(() => {
     resetTxDetails()
     setRecipient(selectedAccount?.address || '')
-    // Check if the transaction is already saved in local storage and update accordingly
-    console.log(`Restoring transaction from ${address}`)
-    const storedElem = localStorage.getItem(`persistantState`)
-    if (storedElem && address) {
-      console.log('Tx:', address, JSON.parse(storedElem).transactions[address])
-    }
     if (tx && JSON.stringify(tx) !== JSON.stringify(emptyState.tx)) {
-      console.log('Restored transaction:', tx, emptyState.tx)
-      if (tx.status.step < 4 && tx.destinationddress) {
+      if (tx.status.step < 4 && tx.destinationAddress) {
         setNeedApprove(tx.needApproval)
-        setRecipient(convertXXPubkey(tx.destinationddress))
+        setRecipient(convertXXPubkey(tx.destinationAddress))
         // Set transfer value passed as string to children components
         setTransferValue(BigInt(tx.amount))
         // Set input value to be displayed in the input field
@@ -418,7 +410,7 @@ const ETHToXX: React.FC = () => {
         details: {
           status: State[0],
           sourceAddress: address || '',
-          destinationddress: convertXXAddress(recipient),
+          destinationAddress: convertXXAddress(recipient),
           sourceId: BRIDGE_ID_ETH_MAINNET,
           destinationId: BRIDGE_ID_XXNETWORK,
           amount: transferValue.toString(),

@@ -249,6 +249,75 @@ export const slice = createSlice({
           }
         }
       })
+    },
+    /* -------------------------------------------------------------------------- */
+    /*                                 From Native                                */
+    /* -------------------------------------------------------------------------- */
+    setFromNativeStatus: (
+      state,
+      action: PayloadAction<{ key: string | undefined; status: CustomStep }>
+    ) => {
+      const { key, status } = action.payload
+      if (!key) {
+        console.error('No key provided', key)
+        return
+      }
+      const currState = get(state, key)
+      if (!currState) {
+        console.error('No state found', key)
+        return
+      }
+      state.transactions = set(state, key, {
+        ...currState,
+        fromNative: {
+          ...currState.fromNative,
+          status
+        }
+      })
+    },
+    setFromNativeNonce: (
+      state,
+      action: PayloadAction<{ key: string | undefined; nonce: number }>
+    ) => {
+      const { key, nonce } = action.payload
+      if (!key) {
+        console.error('No key provided', key)
+        return
+      }
+      const currState = get(state, key)
+      if (!currState) {
+        console.error('No state found', key)
+        return
+      }
+      state.transactions = set(state, key, {
+        ...currState,
+        fromNative: {
+          ...currState.fromNative,
+          nonce
+        }
+      })
+    },
+    setFromNativeTxHash: (
+      state,
+      action: PayloadAction<{ key: string | undefined; hash: string }>
+    ) => {
+      const { key, hash } = action.payload
+      if (!key) {
+        console.error('No key provided', key)
+        return
+      }
+      const currState = get(state, key)
+      if (!currState) {
+        console.error('No state found', key)
+        return
+      }
+      state.transactions = set(state, key, {
+        ...currState,
+        fromNative: {
+          ...currState.fromNative,
+          txHash: hash
+        }
+      })
     }
   }
 })
