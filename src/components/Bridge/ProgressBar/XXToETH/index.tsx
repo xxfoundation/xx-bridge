@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { readContract, waitForTransaction } from 'wagmi/actions'
 import { useQuery } from '@apollo/client'
+import { Info } from '@mui/icons-material'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import {
@@ -28,6 +29,7 @@ import { actions, emptyState } from '@/plugins/redux/reducers'
 import CustomStepper from '../Stepper'
 import { useEffectDebugger } from '@/hooks/useUtils'
 import customWriteContract from '@/utils/promises'
+import CustomTooltip from '@/plugins/substrate/components/Tooltip'
 
 interface TransferXXToETHProps {
   reset: () => void
@@ -171,7 +173,6 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               break
             }
             // Check if we have nonce and send transferNative extrinsic to bridge contract if not already sent
-            console.log(`Initializing transfer...`, fromNative)
             if (!fromNative.nonce && !sent.current) {
               const extrinsic = api.tx.swap.transferNative(
                 BigInt(tx?.amount ?? 0),
@@ -180,17 +181,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               )
               const signer = getSigner()
               if (signer) {
-                console.log(
-                  `Sending transferNative extrinsic... with signer`,
-                  sent.current
-                )
                 sent.current = true
-                dispatch(
-                  actions.incrementStepTo({
-                    key: address,
-                    step: State[Steps.NativeTransfer]
-                  })
-                )
                 extrinsic
                   .signAndSend(
                     selectedAccount.address,
@@ -213,13 +204,19 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                       }
                     }
                   )
+                  .then(() => {
+                    dispatch(
+                      actions.incrementStepTo({
+                        key: address,
+                        step: State[Steps.NativeTransfer]
+                      })
+                    )
+                  })
                   .catch(err => {
                     goError(`Error executing transferNative: ${err.message}`)
-                    resetState()
                   })
               } else {
                 goError('No signer available')
-                resetState()
               }
             } else {
               // If nonce exists, increment step because transfer was already sent
@@ -404,10 +401,20 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
           <StyledButton
             sx={{ marginTop: '20px !important' }}
             onClick={() => {
-              resetState()
+              // TODO: cannot reset tx details and save nonce because nonce is linked to the transaction. Reset the whole state after a native transfer will make user lose ability to pay the relayer fee to unlock that transaction. Need to find a way to save nonce and txHash for each transaction or simply do not let user reset the state until transaction is completed.
+              if (!fromNative.nonce) {
+                sent.current = false
+              }
+              setError(undefined)
+              dispatch(
+                actions.incrementStepTo({
+                  key: address,
+                  step: State[Steps.Init]
+                })
+              )
             }}
           >
-            Go Back
+            Retry
           </StyledButton>
         </Stack>
       ) : (
@@ -453,7 +460,13 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
             </Stack>
           </Stack>
           {tx.status.step < Steps.Done && (
-            <Stack justifyContent="right" padding={2}>
+            <Stack
+              flexDirection="row"
+              alignItems="center"
+              justifyContent="right"
+              padding={2}
+              gap="5px"
+            >
               <StyledButton
                 small
                 onClick={() => {
@@ -463,6 +476,9 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               >
                 Reset
               </StyledButton>
+              <CustomTooltip title="Resetting now will cancel the current transaction. You'll lose the chance to pay the relayer fee and complete the initial transfer. If unclaimed, the xx tokens waiting on the bridge will be returned to the original address after 5 minutes.">
+                <Info fontSize="small" />
+              </CustomTooltip>
             </Stack>
           )}
         </>

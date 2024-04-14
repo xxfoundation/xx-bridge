@@ -71,6 +71,9 @@ const XXToETH: React.FC = () => {
   const tx = useAppSelector(
     (state: RootState) => address && getTxFromAddress(state, address)
   )
+  // const fromNative = useAppSelector(
+  //   (state: RootState) => address && getFromNativeFromAddress(state, address)
+  // )
   const dispatch = useAppDispatch()
 
   // Can't send xx -> eth when no xx account is available
@@ -307,6 +310,16 @@ const XXToETH: React.FC = () => {
     }, 2000)
   }, [address, dispatch, refetchWrappedXX, resetTxDetails])
 
+  // // useQuery hook to get the latest bridge transfers
+  // const { data: latestTransfers, isLoading: latestTransfersLoading } =
+  //   useQuery<GetBridgeTransfers>(GET_BRIDGE_TRANSFERS, {
+  //     variables: {
+  //       account: address,
+  //       limit: 10
+  //     },
+  //     skip: !address || fromNative?.txHash === undefined
+  //   })
+
   // Restore transaction from local storage and set values if status not complete (4)
   useEffect(() => {
     resetTxDetails()
@@ -326,11 +339,7 @@ const XXToETH: React.FC = () => {
     } else {
       console.log('No transaction found')
     }
-    return () => {
-      console.log('[Cleaning up]')
-      resetTxDetails()
-    }
-  }, [address])
+  }, [tx, address])
 
   // Do not leave recipient empty
   useEffect(() => {

@@ -62,3 +62,26 @@ const SUBSCRIBE_BRIDGE_EVENTS_QUERY = `
 `
 
 export const SUB_BRIDGE_EVENTS = gql([SUBSCRIBE_BRIDGE_EVENTS_QUERY])
+
+// Get Latest Bridge Transfers
+export type GetBridgeTransfers = {
+  extrinsic: {
+    index: string
+    block: string
+    timestamp: string
+  }[]
+}
+const GET_LATEST_BRIDGE_TRANSFERS_QUERY = `
+  query GetBridgeTransfers($account: String!, $limit: Int! = 10) {
+    extrinsic(
+      where: {_and: [{signer: {_eq: $account}}, {module: {_eq: "swap"}}, {success: {_eq: true}}]}
+      order_by: {block_number: desc}
+      limit: $limit
+    ) {
+      index: extrinsic_index
+      block: block_number
+      timestamp
+    }
+  }
+`
+export const GET_BRIDGE_TRANSFERS = gql([GET_LATEST_BRIDGE_TRANSFERS_QUERY])
