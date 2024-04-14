@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import { useAccount, useDisconnect, useNetwork } from 'wagmi'
 import ConnectPage from './pages/ConnectPage.tsx'
@@ -20,6 +20,11 @@ const AppRouter: React.FC = () => {
   const { disconnect } = useDisconnect()
   const { isLoading, trigger, error } = useSwitchToSupportedNetwork()
 
+  const inSupportedNetwork = useMemo(
+    () => chain && supportedNetworkIds.map(elem => elem.id).includes(chain.id),
+    [chain]
+  )
+
   useEffect(() => {
     if (!isConnected || connector === undefined) {
       navigate('/')
@@ -28,10 +33,10 @@ const AppRouter: React.FC = () => {
 
   // trigger switch on chain change
   useEffect(() => {
-    if (chain && !supportedNetworkIds.map(elem => elem.id).includes(chain.id)) {
+    if (!inSupportedNetwork) {
       trigger(localConfig.id)
     }
-  }, [chain])
+  }, [inSupportedNetwork, trigger, localConfig.id, chain, supportedNetworkIds])
 
   useEffect(() => {
     if (error) {
@@ -46,7 +51,7 @@ const AppRouter: React.FC = () => {
           path="/"
           element={
             <>
-              {isLoading ? (
+              {!inSupportedNetwork && isLoading ? (
                 <Loading
                   sx={{
                     position: 'absolute',
