@@ -382,7 +382,7 @@ const ETHToXX: React.FC = () => {
     resetTxDetails()
     setRecipient(selectedAccount?.address || '')
     if (tx && JSON.stringify(tx) !== JSON.stringify(emptyState.tx)) {
-      if (tx.status.step < 4 && tx.destinationAddress) {
+      if (tx.status.step < 3 && tx.destinationAddress) {
         setNeedApprove(tx.needApproval)
         setRecipient(
           isHex(tx.destinationAddress)

@@ -30,7 +30,7 @@ export type SubDepositNonce = {
 }
 
 const SUB_DEPOSIT_NONCE_QUERY = `
-  subscription SubDepositNonce($where: deposit_bool_exp!){
+  query SubDepositNonce($where: deposit_bool_exp!){
     deposit(where: $where) {
       nonce
       blockNumber: block_number
@@ -53,7 +53,7 @@ export type SubBridgeEvents = {
 }
 
 const SUBSCRIBE_BRIDGE_EVENTS_QUERY = `
-    subscription SubBridgeEvents($where: event_bool_exp!){
+    query SubBridgeEvents($where: event_bool_exp!){
       event(where: $where) {
         blockNumber: block_number
         phase

@@ -1,6 +1,6 @@
 import { Stack, Typography } from '@mui/material'
-import React, { useCallback, useEffect, useState } from 'react'
-import { useAccount, usePrepareContractWrite, useContractWrite } from 'wagmi'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useAccount } from 'wagmi'
 import { waitForTransaction } from 'wagmi/actions'
 import contracts from '@/contracts'
 import {
@@ -14,6 +14,7 @@ import { CustomStep, RootState } from '@/plugins/redux/types'
 import { useAppDispatch, useAppSelector } from '@/plugins/redux/hooks'
 import { actions, emptyState } from '@/plugins/redux/reducers'
 import { getApprovalFromAddress } from '@/plugins/redux/selectors'
+import customWriteContract from '@/utils/promises'
 
 interface ApproveProps {
   currStep: number
@@ -54,8 +55,9 @@ const Steps: CustomStep[] = [
 
 const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
   const { address } = useAccount()
-  const [ready, setReady] = useState<boolean>(false)
-  const [prompted, setPrompted] = useState<boolean>(false)
+  const ready = useRef<boolean>(false)
+  const prompted = useRef<boolean | undefined>()
+  const [approveError, setApproveError] = useState<string>('')
 
   // use redux
   const approvalState =
@@ -73,36 +75,21 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
     [setError]
   )
 
-  // Approval call
-  const {
-    config: configApprove,
-    error: errorApprovePrepare,
-    status: statusPrepareContractWrite
-  } = usePrepareContractWrite({
-    address: WRAPPED_XX_ADDRESS,
-    abi: contracts.ierc20Abi,
-    functionName: 'approve',
-    args: [BRIDGE_ERC20_HANDLER_ADDRESS, BRIDGE_SPENDING_LIMIT],
-    account: address
-  })
-  const {
-    data: dataApprove,
-    write: callApprove,
-    isLoading: isLoadingApprove,
-    error: errorApproveWrite
-  } = useContractWrite(configApprove)
-
   // State machine
   useEffect(() => {
     const executeStep = async () => {
       switch (approvalState.status.step) {
         /* -------------------------------- Init ------------------------------- */
         case State.Init: {
-          // If contract write error, reset state else prompt user to deposit
-          if (errorApprovePrepare) {
-            console.error(`Error approving spending:`, errorApprovePrepare)
-            resetState(`Error approving spending: ${errorApprovePrepare.name}`)
-          } else if (statusPrepareContractWrite === 'success' && ready) {
+          // if deposit tx hash exists on local storage go to wait state
+          if (approvalState.txHash) {
+            dispatch(
+              actions.setApprovalStatus({
+                key: address,
+                status: Steps[State.Wait]
+              })
+            )
+          } else if (ready.current) {
             dispatch(
               actions.setApprovalStatus({
                 key: address,
@@ -115,8 +102,7 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
 
         /* -------------------------------- Prompt ----------------------------- */
         case State.Prompt: {
-          console.log(`Prompting user to approve spending...`)
-          // if deposit tx hash exists on local storage go to wait state
+          // if approve tx hash exists on local storage go to wait state
           if (approvalState.txHash) {
             dispatch(
               actions.setApprovalStatus({
@@ -126,39 +112,37 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
             )
             break
           }
-          // call approval
-          if (callApprove && !isLoadingApprove) {
-            callApprove()
-            dispatch(
-              actions.setApprovalStatus({
-                key: address,
-                status: Steps[State.Sign]
+          // if not prompted, prompt user
+          console.log(`Prompting user to approve spending...`)
+          if (!prompted.current && !approveError) {
+            prompted.current = true
+            try {
+              const hash = await customWriteContract({
+                address: WRAPPED_XX_ADDRESS,
+                abi: contracts.ierc20Abi,
+                functionName: 'approve',
+                args: [BRIDGE_ERC20_HANDLER_ADDRESS, BRIDGE_SPENDING_LIMIT],
+                account: address
               })
-            )
-          }
-          break
-        }
-
-        /* -------------------------------- Sign ------------------------------ */
-        case State.Sign: {
-          console.log(`Waiting for approval to be signed...`)
-          if (errorApproveWrite) {
-            console.error(`Error executing approval: ${errorApproveWrite}`)
-            resetState(`Error executing approval: User rejected the request`)
-          }
-          if (dataApprove?.hash) {
-            dispatch(
-              actions.setApprovalStatus({
-                key: address,
-                status: Steps[State.Wait]
-              })
-            )
-            dispatch(
-              actions.setApprovalTxHash({
-                key: address,
-                hash: dataApprove.hash
-              })
-            )
+              dispatch(
+                actions.setApprovalTxHash({
+                  key: address,
+                  hash
+                })
+              )
+              dispatch(
+                actions.setApprovalStatus({
+                  key: address,
+                  status: Steps[State.Wait]
+                })
+              )
+            } catch (err: any) {
+              console.error(`Error executing approval: ${err}`)
+              setApproveError(
+                `Error waiting for approval: User rejected transaction`
+              )
+            }
+            prompted.current = false
           }
           break
         }
@@ -210,17 +194,13 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
       executeStep()
     }
   }, [
-    ready,
     address,
     approvalState,
-    errorApprovePrepare,
-    statusPrepareContractWrite,
-    isLoadingApprove,
-    errorApproveWrite,
-    dataApprove,
-    callApprove,
-    resetState,
-    done
+    dispatch,
+    done,
+    prompted.current,
+    ready.current,
+    resetState
   ])
 
   return (
@@ -241,7 +221,7 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
           <Stack direction="row" spacing="20px">
             <StyledButton
               onClick={() => {
-                setReady(true)
+                ready.current = true
               }}
             >
               Approve
@@ -258,7 +238,7 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
       ) : (
         <Typography variant="body1">{approvalState.status.message}</Typography>
       )}
-      {approvalState.status.step === State.Sign && !errorApproveWrite && (
+      {approvalState.status.step === State.Prompt && (
         <Stack
           sx={{
             flexDirection: 'column',
@@ -275,20 +255,31 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
           </Typography>
           <StyledButton
             onClick={() => {
+              // reset approve error
+              setApproveError('')
+              // set prompted to undefined
+              prompted.current = undefined
+              // set approve status to prompt
               dispatch(
                 actions.setApprovalStatus({
                   key: address,
                   status: Steps[State.Prompt]
                 })
               )
-              setPrompted(true)
             }}
-            disabled={isLoadingApprove || prompted}
+            disabled={prompted.current !== false}
             small
           >
-            {prompted ? 'Trying Approval...' : 'Retry Approval'}
+            {prompted.current !== false
+              ? 'Trying Approval...'
+              : 'Retry Approval'}
           </StyledButton>
         </Stack>
+      )}
+      {approveError && (
+        <Typography variant="body2" sx={{ color: 'red' }}>
+          {approveError}
+        </Typography>
       )}
     </Stack>
   )

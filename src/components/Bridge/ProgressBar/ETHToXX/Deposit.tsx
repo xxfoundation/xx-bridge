@@ -1,6 +1,6 @@
 import { Stack, Typography } from '@mui/material'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useAccount, usePrepareContractWrite, useContractWrite } from 'wagmi'
+import React, { useCallback, useRef, useState } from 'react'
+import { useAccount } from 'wagmi'
 import { waitForTransaction } from 'wagmi/actions'
 import contracts from '@/contracts'
 import {
@@ -18,6 +18,8 @@ import {
   getDepositFromAddress,
   getTxFromAddress
 } from '@/plugins/redux/selectors'
+import customWriteContract from '@/utils/promises'
+import { useEffectDebugger } from '@/hooks/useUtils'
 
 interface DepositProps {
   currStep: number
@@ -28,9 +30,8 @@ interface DepositProps {
 enum State {
   Init = 0,
   Prompt = 1,
-  Sign = 2,
-  Wait = 3,
-  Done = 4
+  Wait = 2,
+  Done = 3
 }
 
 const Steps: CustomStep[] = [
@@ -40,11 +41,7 @@ const Steps: CustomStep[] = [
   },
   {
     step: State.Prompt,
-    message: 'Prompted user to sign deposit...'
-  },
-  {
-    step: State.Sign,
-    message: 'Waiting for deposit to be signed...'
+    message: 'Waiting user to sign deposit...'
   },
   {
     step: State.Wait,
@@ -59,7 +56,9 @@ const Steps: CustomStep[] = [
 const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
   // Hooks
   const { address } = useAccount()
-  const [prompted, setPrompted] = useState<boolean>(false)
+  const prompted = useRef<boolean | undefined>()
+  const [depositError, setDepositError] = useState<string>('')
+
   // use redux
   const tx = useAppSelector(
     (state: RootState) => address && getTxFromAddress(state, address)
@@ -79,160 +78,166 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
     [setError]
   )
 
-  // Bridge deposit call
-  const deposit: `0x${string}` = useMemo(
-    () =>
-      (tx && encodeBridgeDeposit(tx.destinationAddress, BigInt(tx.amount))) ||
-      '0x',
-    [tx]
-  )
-  const {
-    config: configDeposit,
-    error: errorDepositPrepare,
-    status: statusPrepareContractWrite
-  } = usePrepareContractWrite({
-    address: BRIDGE_ADDRESS,
-    abi: contracts.bridgeAbi,
-    functionName: 'deposit',
-    args: [BRIDGE_ID_XXNETWORK, BRIDGE_RESOURCE_ID_XX, deposit],
-    account: address
-  })
-  const {
-    data: dataDeposit,
-    write: callDeposit,
-    isLoading: isLoadingDeposit,
-    error: errorDepositWrite
-  } = useContractWrite(configDeposit)
-
   // State machine
-  useEffect(() => {
-    const executeStep = async () => {
-      switch (depositState.status.step) {
-        /* -------------------------------- Init ------------------------------- */
-        case State.Init: {
-          // If contract write error, reset state else prompt user to deposit
-          if (errorDepositPrepare) {
-            console.error(`Error deposit:`, errorDepositPrepare)
-            resetState(`Error depositing: ${errorDepositPrepare.name}`)
-          } else if (statusPrepareContractWrite === 'success') {
-            dispatch(
-              actions.setDepositStatus({
-                key: address,
-                status: Steps[State.Prompt]
-              })
-            )
-          }
-          break
-        }
-
-        /* -------------------------------- Prompt ----------------------------- */
-        case State.Prompt: {
-          console.log(`Prompting user to deposit...`, depositState)
-          // if deposit tx hash exists on local storage go to wait state
-          if (depositState.txHash) {
-            dispatch(
-              actions.setDepositStatus({
-                key: address,
-                status: Steps[State.Wait]
-              })
-            )
+  useEffectDebugger(
+    () => {
+      const executeStep = async () => {
+        switch (depositState.status.step) {
+          /* -------------------------------- Init ------------------------------- */
+          case State.Init: {
+            // if deposit tx hash exists on local storage go to wait state
+            if (depositState.txHash) {
+              dispatch(
+                actions.setDepositStatus({
+                  key: address,
+                  status: Steps[State.Wait]
+                })
+              )
+            } else {
+              dispatch(
+                actions.setDepositStatus({
+                  key: address,
+                  status: Steps[State.Prompt]
+                })
+              )
+            }
             break
           }
-          // call deposit
-          if (callDeposit && !isLoadingDeposit) {
-            callDeposit()
-            dispatch(
-              actions.setDepositStatus({
-                key: address,
-                status: Steps[State.Sign]
-              })
-            )
-          }
-          break
-        }
 
-        /* -------------------------------- Sign ------------------------------ */
-        case State.Sign: {
-          console.log(`Waiting for deposit to be signed...`)
-          if (errorDepositWrite) {
-            resetState(`Error executing depositing: User rejected the request`)
-          }
-          if (dataDeposit?.hash) {
-            dispatch(
-              actions.setDepositStatus({
-                key: address,
-                status: Steps[State.Wait]
-              })
-            )
-            // TODO: set deposit tx hash needs to be done right after the tx is sent and assured that it is sent. The button exists because the field can be possibly empty and so user gets into a halt state
-            dispatch(
-              actions.setDepositTxHash({
-                key: address,
-                hash: dataDeposit.hash
-              })
-            )
-          }
-          break
-        }
-
-        /* -------------------------------- Wait ------------------------------- */
-        case State.Wait: {
-          console.log(
-            `Waiting for deposit block confirmations (3)...`,
-            depositState
-          )
-          if (depositState.txHash) {
-            try {
-              console.log(`Waiting for deposit:`, depositState.txHash)
-              const depositReceipt = await waitForTransaction({
-                hash: depositState.txHash as `0x${string}`,
-                confirmations: CONFIRMATIONS_THRESHOLD
-              })
-              if (depositReceipt) {
-                console.log(`Deposit receipt:`, depositReceipt)
-                dispatch(
-                  actions.setDepositStatus({
-                    key: address,
-                    status: Steps[State.Done]
-                  })
-                )
-              }
-            } catch (err: any) {
-              console.error(`Error waiting for deposit: ${err}`)
-              resetState(`Error waiting for deposit: ${err.message}`)
+          /* -------------------------------- Prompt ----------------------------- */
+          case State.Prompt: {
+            // if deposit tx hash exists on local storage go to wait state
+            if (depositState.txHash) {
+              console.log(
+                'In Prompt, but txHash exists so move to Wait',
+                depositState
+              )
+              dispatch(
+                actions.setDepositStatus({
+                  key: address,
+                  status: Steps[State.Wait]
+                })
+              )
+              break
             }
+
+            // if not prompted, prompt user
+            console.log(`Prompting user to deposit...`, depositState)
+            if (tx) {
+              const deposit = encodeBridgeDeposit(
+                tx.destinationAddress,
+                BigInt(tx.amount)
+              )
+              if (deposit) {
+                if (!prompted.current && !depositError) {
+                  prompted.current = true
+                  try {
+                    const hash = await customWriteContract({
+                      address: BRIDGE_ADDRESS,
+                      abi: contracts.bridgeAbi,
+                      functionName: 'deposit',
+                      args: [
+                        BRIDGE_ID_XXNETWORK,
+                        BRIDGE_RESOURCE_ID_XX,
+                        deposit
+                      ],
+                      account: address
+                    })
+                    dispatch(
+                      actions.setDepositTxHash({
+                        key: address,
+                        hash
+                      })
+                    )
+                    dispatch(
+                      actions.incrementStepTo({
+                        key: address,
+                        step: Steps[State.Wait]
+                      })
+                    )
+                  } catch (err) {
+                    console.error(`Error depositing: ${err}`)
+                    setDepositError(
+                      `Error depositing: User rejected transaction`
+                    )
+                  }
+                  prompted.current = false
+                }
+              } else {
+                console.error(`Error encoding deposit`)
+                resetState(`Error encoding deposit`)
+              }
+            }
+            break
           }
-          break
-        }
 
-        /* -------------------------------- Done ------------------------------- */
-        case State.Done: {
-          console.log(`Deposit complete`)
-          done()
-          break
-        }
+          /* -------------------------------- Wait ------------------------------- */
+          case State.Wait: {
+            console.log(
+              `Waiting for deposit block confirmations (3)...`,
+              depositState
+            )
+            if (depositState.txHash) {
+              try {
+                console.log(`Waiting for deposit:`, depositState.txHash)
+                const depositReceipt = await waitForTransaction({
+                  hash: depositState.txHash as `0x${string}`,
+                  confirmations: CONFIRMATIONS_THRESHOLD
+                })
+                if (depositReceipt) {
+                  console.log(`Deposit receipt:`, depositReceipt)
+                  dispatch(
+                    actions.setDepositStatus({
+                      key: address,
+                      status: Steps[State.Done]
+                    })
+                  )
+                }
+              } catch (err: any) {
+                console.error(`Error waiting for deposit: ${err}`)
+                resetState(`Error waiting for deposit: ${err.message}`)
+              }
+            }
+            break
+          }
 
-        /* -------------------------------------------------------------------------- */
-        default:
-          throw new Error(`Unknown step: ${depositState.status.step}`)
+          /* -------------------------------- Done ------------------------------- */
+          case State.Done: {
+            console.log(`Deposit complete`)
+            done()
+            break
+          }
+
+          /* -------------------------------------------------------------------------- */
+          default:
+            throw new Error(`Unknown step: ${depositState.status.step}`)
+        }
       }
-    }
-    if (address && depositState) {
-      executeStep()
-    }
-  }, [
-    address,
-    depositState,
-    errorDepositPrepare,
-    isLoadingDeposit,
-    statusPrepareContractWrite,
-    isLoadingDeposit,
-    errorDepositWrite,
-    dataDeposit,
-    callDeposit,
-    resetState,
-    done
-  ])
+      if (address && depositState) {
+        executeStep()
+      }
+    },
+    [
+      address,
+      depositState,
+      dispatch,
+      done,
+      prompted.current,
+      resetState,
+      setError,
+      tx
+    ],
+    [
+      'address',
+      'depositState',
+      'dispatch',
+      'done',
+      'prompted.current',
+      'resetState',
+      'setError',
+      'tx'
+    ]
+  )
 
   return (
     <Stack direction="column" spacing="5px" padding={2} alignItems="left">
@@ -240,7 +245,7 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
         {currStep}. Deposit
       </Typography>
       <Typography variant="body2">{depositState.status.message}</Typography>
-      {depositState.status.step === State.Sign && !errorDepositWrite && (
+      {depositState.status.step === State.Prompt && (
         <Stack
           sx={{
             flexDirection: 'column',
@@ -258,18 +263,24 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
           <Stack direction="row" gap="10px">
             <StyledButton
               onClick={() => {
+                // reset deposit error
+                setDepositError('')
+                // set prompted to undefined
+                prompted.current = undefined
+                // set deposit status to prompt
                 dispatch(
                   actions.setDepositStatus({
                     key: address,
                     status: Steps[State.Prompt]
                   })
                 )
-                setPrompted(true)
               }}
-              disabled={isLoadingDeposit || prompted}
+              disabled={prompted.current !== false}
               small
             >
-              {prompted ? 'Trying Deposit...' : 'Retry Deposit'}
+              {prompted.current !== false
+                ? 'Trying Deposit...'
+                : 'Retry Deposit'}
             </StyledButton>
             <StyledButton
               onClick={() => {
@@ -284,6 +295,11 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
             </StyledButton>
           </Stack>
         </Stack>
+      )}
+      {depositError && (
+        <Typography variant="body2" sx={{ color: 'red' }}>
+          {depositError}
+        </Typography>
       )}
     </Stack>
   )

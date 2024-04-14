@@ -1,6 +1,6 @@
 import { Link, Stack, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSubscription } from '@apollo/client'
+import { useQuery } from '@apollo/client'
 import { useAccount } from 'wagmi'
 import Approve from './Approve'
 import Deposit from './Deposit'
@@ -109,36 +109,40 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
     [goError, resetState]
   )
 
-  const txHash = useMemo(() => {
-    console.log('depositTxHash', currState.toNative.deposit.txHash)
-    return currState.toNative.deposit.txHash || ''
-  }, [currState])
-
-  // Get on-chain deposit nonce
+  /* -------------------------------------------------------------------------- */
+  /*                               WaitBridge Step                              */
+  /* -------------------------------------------------------------------------- */
+  // Watch deposit nonce (evm indexer)
   const { data: depositNonce, error: errorDepositNonce } =
-    useSubscription<SubDepositNonce>(SUB_DEPOSIT_NONCE, {
+    useQuery<SubDepositNonce>(SUB_DEPOSIT_NONCE, {
       variables: {
         where: {
-          txn_hash: { _eq: txHash }
+          txn_hash: { _eq: currState.toNative.deposit.txHash }
         }
-      }
+      },
+      pollInterval: 2000,
+      skip:
+        !currState.toNative.deposit.txHash ||
+        currState.tx.status.step !== Steps.WaitBridge
     })
 
   // process deposit nonce
   const dataEvent = useMemo(() => {
+    console.log('MEMO DATA EVENT = depositNonce', depositNonce)
     if (depositNonce && depositNonce.deposit.length > 0) {
       console.log(
-        'depositNonce',
-        `[${BRIDGE_ID_ETH_MAINNET},${depositNonce.deposit[0].nonce}]`
+        'MEMO DATA EVENT = depositNonce.deposit[0].nonce',
+        depositNonce.deposit[0].nonce
       )
       return `[${BRIDGE_ID_ETH_MAINNET},${depositNonce.deposit[0].nonce}]`
     }
     return ''
   }, [depositNonce])
+  console.log('dataEvent', dataEvent)
 
   // Watch executed event on Bridge smart contract (xx indexer)
   const { data: bridgeEvent, error: errorBridgeEvent } =
-    useSubscription<SubBridgeEvents>(SUB_BRIDGE_EVENTS, {
+    useQuery<SubBridgeEvents>(SUB_BRIDGE_EVENTS, {
       client: xxClient,
       variables: {
         where: {
@@ -148,8 +152,12 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
             { data: { _eq: dataEvent } }
           ]
         }
-      }
+      },
+      pollInterval: 2000,
+      skip: !dataEvent || currState.tx.status.step !== Steps.WaitBridge
     })
+
+  /* ------------------------------------ - ----------------------------------- */
 
   // State machine
   useEffectDebugger(
@@ -199,15 +207,18 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
           /* ---------------------------- BridgeDeposit ---------------------------- */
           case Steps.BridgeDeposit: {
             // Wait for Bridge deposit to finish
+            if (errorDepositNonce) {
+              console.log(`Error getting deposit nonce: ${errorDepositNonce}`)
+              goError(`Couldn't get deposit nonce: ${errorDepositNonce}`)
+            }
             break
           }
 
           /* ---------------------------- WaitBridge ---------------------------- */
           case Steps.WaitBridge: {
-            console.log('Waiting for bridge event...')
-            console.log('bridgeEvent', bridgeEvent)
+            console.log('Waiting for bridge event...', bridgeEvent)
             // Check if bridge event is emitted
-            if (!errorDepositNonce && !errorBridgeEvent && bridgeEvent) {
+            if (!errorBridgeEvent && bridgeEvent) {
               if (bridgeEvent.event.length > 0) {
                 const block = bridgeEvent.event[0].blockNumber
                 const extrinsicIdx = JSON.parse(bridgeEvent.event[0].phase)
@@ -220,10 +231,6 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
                   })
                 )
               }
-            }
-            if (errorDepositNonce) {
-              console.log(`Error getting deposit nonce: ${errorDepositNonce}`)
-              goError(`Couldn't get deposit nonce: ${errorDepositNonce}`)
             }
             if (errorBridgeEvent) {
               console.log(`Error getting bridge event: ${errorBridgeEvent}`)
@@ -260,29 +267,29 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
     },
     [
       address,
-      errorDepositNonce,
-      errorBridgeEvent,
+      currState.tx.status.step,
+      currState.tx.needApproval,
+      currState.toNative.deposit.txHash,
+      depositNonce,
       bridgeEvent,
-      currState,
-      goError,
-      reset
+      errorDepositNonce,
+      errorBridgeEvent
     ],
     [
       'address',
-      'recipient',
-      'amount',
-      'approve',
-      'errorDepositNonce',
-      'errorBridgeEvent',
+      'currState.tx.status.step',
+      'currState.tx.needApproval',
+      'currState.toNative.deposit.txHash',
+      'depositNonce',
       'bridgeEvent',
-      'currState',
-      'goError',
-      'reset'
+      'errorDepositNonce',
+      'errorBridgeEvent'
     ]
   )
 
   // Handle deposit done
   const handleDepositDone = useCallback(() => {
+    console.log('handleDepositDone')
     dispatch(
       actions.incrementStepTo({
         key: address,
@@ -381,7 +388,7 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
                   </Link>
                   <Link
                     variant="body2"
-                    href={`${ETH_EXPLORER_URL}/tx/${txHash}`}
+                    href={`${ETH_EXPLORER_URL}/tx/${currState.toNative.deposit.txHash}`}
                     rel="noopener noreferrer"
                     target="_blank"
                   >
