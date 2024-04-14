@@ -85,13 +85,12 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
 
   // Go to error state
   const goError = useCallback((msg: string) => {
-    dispatch(actions.resetKey(address))
+    // dispatch(actions.resetKey(address))
     setError(msg)
   }, [])
 
   // Reset state and go back to home page
   const resetState = useCallback(() => {
-    dispatch(actions.resetKey(address))
     setError(undefined)
     setExtrinsic(undefined)
     reset()
@@ -328,7 +327,11 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
         <>
           <Stack direction="column" padding={2} spacing="20px">
             <CustomStepper
-              steps={State}
+              steps={
+                currState.tx.needApproval
+                  ? State
+                  : State.filter(state => state.step !== Steps.ApproveSpend)
+              }
               activeStep={currState.tx.status.step}
             />
             <Stack
@@ -395,16 +398,19 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
               )}
             </Stack>
           </Stack>
-          <Stack justifyContent="right" padding={2}>
-            <StyledButton
-              small
-              onClick={() => {
-                resetState()
-              }}
-            >
-              Reset
-            </StyledButton>
-          </Stack>
+          {currState.tx.status.step < Steps.Done && (
+            <Stack justifyContent="right" padding={2}>
+              <StyledButton
+                small
+                onClick={() => {
+                  dispatch(actions.resetKey(address))
+                  resetState()
+                }}
+              >
+                Reset
+              </StyledButton>
+            </Stack>
+          )}
         </>
       )}
     </>

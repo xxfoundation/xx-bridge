@@ -17,7 +17,7 @@ const usePrevious = (value: any, initialValue: any) => {
 const useEffectDebugger = (
   effectHook: React.EffectCallback,
   dependencies: any[] | React.DependencyList | undefined,
-  dependencyNames = []
+  dependencyNames: string[] = []
 ) => {
   const previousDeps = usePrevious(dependencies, [])
 

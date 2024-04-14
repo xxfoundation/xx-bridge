@@ -9,7 +9,7 @@ const emptyStep = {
 const emptyTx = {
   status: emptyStep,
   sourceAddress: '',
-  destinationddress: '',
+  destinationAddress: '',
   sourceId: 0,
   destinationId: 0,
   amount: '',
@@ -73,6 +73,22 @@ export const slice = createSlice({
         return
       }
       state.transactions = set(state, action.payload, emptyState)
+    },
+    // reset transaction state
+    resetTxDetails: (state, action: PayloadAction<string | undefined>) => {
+      if (!action.payload) {
+        console.error('No key provided', action.payload)
+        return
+      }
+      const currState = get(state, action.payload)
+      if (!currState) {
+        console.error('No state found', action.payload)
+        return
+      }
+      state.transactions = set(state, action.payload, {
+        ...currState,
+        tx: emptyTx
+      })
     },
     // Use the PayloadAction type to declare the contents of `action.payload`
     incrementStepTo: (

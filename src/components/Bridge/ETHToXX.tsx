@@ -16,6 +16,7 @@ import {
   useContractRead,
   useFeeData
 } from 'wagmi'
+import { isHex } from 'viem/utils'
 import StyledButton from '../custom/StyledButton'
 import {
   convertXXAddress,
@@ -370,7 +371,7 @@ const ETHToXX: React.FC = () => {
     setRecipientError(undefined)
     refetchWrappedXX()
     refetchAllowance()
-    dispatch(actions.resetKey(address))
+    dispatch(actions.resetTxDetails(address))
     setTimeout(() => {
       setResetting(false)
     }, 2000)
@@ -383,7 +384,11 @@ const ETHToXX: React.FC = () => {
     if (tx && JSON.stringify(tx) !== JSON.stringify(emptyState.tx)) {
       if (tx.status.step < 4 && tx.destinationAddress) {
         setNeedApprove(tx.needApproval)
-        setRecipient(convertXXPubkey(tx.destinationAddress))
+        setRecipient(
+          isHex(tx.destinationAddress)
+            ? tx.destinationAddress
+            : convertXXPubkey(tx.destinationAddress)
+        )
         // Set transfer value passed as string to children components
         setTransferValue(BigInt(tx.amount))
         // Set input value to be displayed in the input field
