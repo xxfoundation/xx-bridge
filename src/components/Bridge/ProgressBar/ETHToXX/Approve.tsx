@@ -6,6 +6,7 @@ import contracts from '@/contracts'
 import {
   BRIDGE_ERC20_HANDLER_ADDRESS,
   BRIDGE_SPENDING_LIMIT,
+  CONFIRMATIONS_THRESHOLD,
   WRAPPED_XX_ADDRESS
 } from '@/consts'
 import StyledButton from '../../../custom/StyledButton'
@@ -62,15 +63,6 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
       (state: RootState) => address && getApprovalFromAddress(state, address)
     ) || emptyState.toNative.approval
   const dispatch = useAppDispatch()
-
-  // Confirm approve state
-  // useEffect(() => {
-  //   // If step is greater than 1 (Approval Step), then we are done
-  //   if (currState.tx.status.step > 1) {
-  //     console.log('STEP > 1: Approval complete', currState.tx.status.step)
-  //     done()
-  //   }
-  // }, [currState.tx.status.step, done])
 
   // Reset state + call setError prop
   const resetState = useCallback(
@@ -182,7 +174,7 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
               console.log(`Waiting for approval:`, approvalState.txHash)
               const approvalReceipt = await waitForTransaction({
                 hash: approvalState.txHash as `0x${string}`,
-                confirmations: 3
+                confirmations: CONFIRMATIONS_THRESHOLD
               })
               if (approvalReceipt) {
                 console.log(`Approval receipt:`, approvalReceipt)

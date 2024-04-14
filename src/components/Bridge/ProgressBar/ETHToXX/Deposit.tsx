@@ -6,7 +6,8 @@ import contracts from '@/contracts'
 import {
   BRIDGE_ADDRESS,
   BRIDGE_ID_XXNETWORK,
-  BRIDGE_RESOURCE_ID_XX
+  BRIDGE_RESOURCE_ID_XX,
+  CONFIRMATIONS_THRESHOLD
 } from '@/consts'
 import { encodeBridgeDeposit } from '@/utils'
 import StyledButton from '@/components/custom/StyledButton'
@@ -68,15 +69,6 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
       (state: RootState) => address && getDepositFromAddress(state, address)
     ) || emptyState.toNative.deposit
   const dispatch = useAppDispatch()
-
-  // Confirm deposit state
-  // useEffect(() => {
-  //   // If step is greater than 3 (Deposit Step), then we are done
-  //   if (currState.tx.status.step > 3) {
-  //     console.log('STEP > 3: Deposit complete', currState.tx.status.step)
-  //     done()
-  //   }
-  // }, [currState.tx.status.step, done])
 
   // Reset state + call setError prop
   const resetState = useCallback(
@@ -163,7 +155,6 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
         case State.Sign: {
           console.log(`Waiting for deposit to be signed...`)
           if (errorDepositWrite) {
-            console.error(`Error executing depositing: ${errorDepositWrite}}`)
             resetState(`Error executing depositing: User rejected the request`)
           }
           if (dataDeposit?.hash) {
@@ -173,6 +164,7 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
                 status: Steps[State.Wait]
               })
             )
+            // TODO: set deposit tx hash needs to be done right after the tx is sent and assured that it is sent. The button exists because the field can be possibly empty and so user gets into a halt state
             dispatch(
               actions.setDepositTxHash({
                 key: address,
@@ -194,7 +186,7 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
               console.log(`Waiting for deposit:`, depositState.txHash)
               const depositReceipt = await waitForTransaction({
                 hash: depositState.txHash as `0x${string}`,
-                confirmations: 3
+                confirmations: CONFIRMATIONS_THRESHOLD
               })
               if (depositReceipt) {
                 console.log(`Deposit receipt:`, depositReceipt)

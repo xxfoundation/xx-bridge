@@ -23,6 +23,9 @@ export const BRIDGE_RELAYER_FEE_ADDRESS = (process.env
   .BRIDGE_RELAYER_FEE_ADDRESS ||
   '0x028152c03ad5E28dE97AEaf90f104C7eD42a47bB') as `0x${string}`
 
+// Transactions confirmation threshold
+export const CONFIRMATIONS_THRESHOLD = 3
+
 // Bridge constants
 export const BRIDGE_ID_XXNETWORK = 0
 export const BRIDGE_ID_ETH_MAINNET = 1
