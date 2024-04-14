@@ -12,7 +12,7 @@ export type SubProposalEvents = {
 }
 
 const SUBSCRIBE_PROPOSAL_EVENTS_QUERY = `
-    subscription SubProposalEvents($where: proposal_bool_exp!){
+    query SubProposalEvents($where: proposal_bool_exp!){
         proposal(where: $where) {
             status
         }

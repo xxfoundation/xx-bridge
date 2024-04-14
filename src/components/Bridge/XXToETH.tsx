@@ -297,7 +297,7 @@ const XXToETH: React.FC = () => {
     setRecipient('')
     setRecipientError(undefined)
     refetchWrappedXX()
-    dispatch(actions.resetKey(address))
+    dispatch(actions.resetTxDetails(address))
     setTimeout(() => {
       setResetting(false)
     }, 2000)
