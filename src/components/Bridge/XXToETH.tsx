@@ -36,6 +36,7 @@ import { getTxFromAddress } from '@/plugins/redux/selectors'
 import { RootState } from '@/plugins/redux/types'
 import { actions, emptyState } from '@/plugins/redux/reducers'
 import { State } from './ProgressBar/XXToETH'
+import useLocalStorage from '@/hooks/useLocalStorage'
 
 const XXToETH: React.FC = () => {
   // Hooks
@@ -54,7 +55,10 @@ const XXToETH: React.FC = () => {
   const [ethBalance, setEthBalance] = useState<string>('0')
   const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
-  const [startTransfer, setStartTransfer] = useState<boolean>(false)
+  const [startTransfer, setStartTransfer] = useLocalStorage<boolean>(
+    `transfer-${address}`,
+    false
+  )
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
   const [xxFee, setXXFee] = useState<string>('0')

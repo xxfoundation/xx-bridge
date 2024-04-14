@@ -54,7 +54,7 @@ export const State: CustomStep[] = [
   },
   {
     step: Steps.PromptRelayerFee,
-    message: 'Prompted user to pay relayer fee if not yet...'
+    message: 'Prompted user to pay relayer fee...'
   },
   {
     step: Steps.WaitFee,
@@ -171,6 +171,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               break
             }
             // Check if we have nonce and send transferNative extrinsic to bridge contract if not already sent
+            console.log(`Initializing transfer...`, fromNative)
             if (!fromNative.nonce && !sent.current) {
               const extrinsic = api.tx.swap.transferNative(
                 BigInt(tx?.amount ?? 0),
@@ -179,6 +180,10 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               )
               const signer = getSigner()
               if (signer) {
+                console.log(
+                  `Sending transferNative extrinsic... with signer`,
+                  sent.current
+                )
                 sent.current = true
                 dispatch(
                   actions.incrementStepTo({
@@ -359,15 +364,27 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
         executeStep()
       }
     },
-    [api, ready, sent, selectedAccount, tx, fromNative, resetState],
+    [
+      api,
+      ready,
+      selectedAccount,
+      tx,
+      fromNative,
+      fetchRelayerFee,
+      errorProposalEvent,
+      loadingProposalEvent,
+      proposalEvent
+    ],
     [
       'api',
       'ready',
-      'sent',
       'selectedAccount',
       'tx',
       'fromNative',
-      'resetState'
+      'fetchRelayerFee',
+      'errorProposalEvent',
+      'loadingProposalEvent',
+      'proposalEvent'
     ]
   )
 
@@ -429,7 +446,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                       resetState()
                     }}
                   >
-                    Back to the Bridge
+                    Go Back
                   </StyledButton>
                 </Stack>
               )}
