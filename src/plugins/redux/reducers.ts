@@ -41,9 +41,7 @@ export const emptyState: BridgeTx = {
 
 // Define the initial state using that type
 const initialState: RootState = {
-  transactions: {
-    init: emptyState
-  }
+  transactions: {}
 }
 
 // Getters and setters

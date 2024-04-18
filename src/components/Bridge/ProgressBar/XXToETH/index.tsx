@@ -86,28 +86,36 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
   const transactions = useAppSelector((state: RootState) => state.transactions)
   const tx = useAppSelector(
     (state: RootState) =>
-      (address && getTxFromAddress(state, address)) || emptyState.tx
+      (selectedAccount?.address &&
+        getTxFromAddress(state, selectedAccount?.address)) ||
+      emptyState.tx
   )
   const fromNative = useAppSelector(
     (state: RootState) =>
-      (address && getFromNativeFromAddress(state, address)) ||
+      (selectedAccount?.address &&
+        getFromNativeFromAddress(state, selectedAccount?.address)) ||
       emptyState.fromNative
   )
   const dispatch = useAppDispatch()
 
   useEffect(() => {
-    if (address) {
-      if (Object.prototype.hasOwnProperty.call(transactions, address)) {
-        console.log('Key already exists', address)
+    if (selectedAccount?.address) {
+      if (
+        Object.prototype.hasOwnProperty.call(
+          transactions,
+          selectedAccount?.address
+        )
+      ) {
+        console.log('Key already exists', selectedAccount?.address)
         return
       }
-      dispatch(actions.newKey(address))
+      dispatch(actions.newKey(selectedAccount?.address))
     }
-  }, [address])
+  }, [selectedAccount?.address])
 
   // Go to error state
   const goError = useCallback((msg: string) => {
-    // dispatch(actions.resetKey(address))
+    // dispatch(actions.resetKey(selectedAccount?.address))
     setError(msg)
   }, [])
 
@@ -195,7 +203,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                             const [, nonceValue] = event.data
                             dispatch(
                               actions.setFromNativeNonce({
-                                key: address,
+                                key: selectedAccount?.address,
                                 nonce: nonceValue.toNumber()
                               })
                             )
@@ -207,7 +215,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                   .then(() => {
                     dispatch(
                       actions.incrementStepTo({
-                        key: address,
+                        key: selectedAccount?.address,
                         step: State[Steps.NativeTransfer]
                       })
                     )
@@ -222,7 +230,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               // If nonce exists, increment step because transfer was already sent
               dispatch(
                 actions.incrementStepTo({
-                  key: address,
+                  key: selectedAccount?.address,
                   step: State[Steps.NativeTransfer]
                 })
               )
@@ -236,7 +244,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
             if (fromNative.nonce) {
               dispatch(
                 actions.incrementStepTo({
-                  key: address,
+                  key: selectedAccount?.address,
                   step: State[Steps.PromptRelayerFee]
                 })
               )
@@ -250,7 +258,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
             if (fromNative.txHash) {
               dispatch(
                 actions.incrementStepTo({
-                  key: address,
+                  key: selectedAccount?.address,
                   step: State[Steps.WaitFee]
                 })
               )
@@ -272,13 +280,13 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                 })
                 dispatch(
                   actions.setFromNativeTxHash({
-                    key: address,
+                    key: selectedAccount?.address,
                     hash
                   })
                 )
                 dispatch(
                   actions.incrementStepTo({
-                    key: address,
+                    key: selectedAccount?.address,
                     step: State[Steps.WaitFee]
                   })
                 )
@@ -306,7 +314,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                   console.log(`Fee receipt:`, txReceipt)
                   dispatch(
                     actions.incrementStepTo({
-                      key: address,
+                      key: selectedAccount?.address,
                       step: State[Steps.WaitBridge]
                     })
                   )
@@ -326,7 +334,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               if (proposalEvent.proposal.length > 0) {
                 dispatch(
                   actions.incrementStepTo({
-                    key: address,
+                    key: selectedAccount?.address,
                     step: State[Steps.Done]
                   })
                 )
@@ -340,7 +348,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
             setTimeout(() => {
               dispatch(
                 actions.incrementStepTo({
-                  key: address,
+                  key: selectedAccount?.address,
                   step: {
                     step: Steps.Done + 1,
                     message: 'Transfer complete!'
@@ -408,7 +416,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               setError(undefined)
               dispatch(
                 actions.incrementStepTo({
-                  key: address,
+                  key: selectedAccount?.address,
                   step: State[Steps.Init]
                 })
               )
@@ -470,7 +478,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               <StyledButton
                 small
                 onClick={() => {
-                  dispatch(actions.resetKey(address))
+                  dispatch(actions.resetKey(selectedAccount?.address))
                   resetState()
                 }}
               >

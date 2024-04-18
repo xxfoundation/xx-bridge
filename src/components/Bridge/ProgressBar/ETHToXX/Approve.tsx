@@ -221,6 +221,12 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
           <Stack direction="row" spacing="20px">
             <StyledButton
               onClick={() => {
+                dispatch(
+                  actions.setApprovalStatus({
+                    key: address,
+                    status: Steps[State.Prompt]
+                  })
+                )
                 ready.current = true
               }}
             >

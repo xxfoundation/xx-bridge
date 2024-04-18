@@ -69,7 +69,9 @@ const XXToETH: React.FC = () => {
 
   // use redux
   const tx = useAppSelector(
-    (state: RootState) => address && getTxFromAddress(state, address)
+    (state: RootState) =>
+      selectedAccount?.address &&
+      getTxFromAddress(state, selectedAccount.address)
   )
   // const fromNative = useAppSelector(
   //   (state: RootState) => address && getFromNativeFromAddress(state, address)
@@ -304,11 +306,10 @@ const XXToETH: React.FC = () => {
     setRecipient('')
     setRecipientError(undefined)
     refetchWrappedXX()
-    dispatch(actions.resetTxDetails(address))
     setTimeout(() => {
       setResetting(false)
     }, 2000)
-  }, [address, dispatch, refetchWrappedXX, resetTxDetails])
+  }, [refetchWrappedXX, resetTxDetails])
 
   // // useQuery hook to get the latest bridge transfers
   // const { data: latestTransfers, isLoading: latestTransfersLoading } =
@@ -334,12 +335,12 @@ const XXToETH: React.FC = () => {
         setStartTransfer(true)
       } else {
         console.log('Transaction already complete')
-        dispatch(actions.resetKey(address))
+        dispatch(actions.resetKey(selectedAccount?.address))
       }
     } else {
       console.log('No transaction found')
     }
-  }, [tx, address])
+  }, [tx, selectedAccount?.address, address])
 
   // Do not leave recipient empty
   useEffect(() => {
@@ -352,7 +353,7 @@ const XXToETH: React.FC = () => {
     setStartTransfer(true)
     dispatch(
       actions.setTxDetails({
-        key: address,
+        key: selectedAccount?.address,
         details: {
           status: State[0],
           sourceAddress: selectedAccount?.address || '',
