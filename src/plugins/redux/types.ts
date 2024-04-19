@@ -39,6 +39,7 @@ export interface ToNative {
 export interface FromNative {
   status: CustomStep
   nonce: number
+  extrinsicHash: string | undefined
   txHash: string | `0x${string}` | undefined
 }
 
@@ -47,6 +48,7 @@ export type BridgeTx = {
   tx: Transfer
   toNative: ToNative
   fromNative: FromNative
+  bridgeTxHash: string | `0x${string}` | undefined
 }
 
 export interface RootState {

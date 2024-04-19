@@ -8,6 +8,10 @@ export const getStateFromAddress = (state: RootState, address: string) =>
 export const getTxFromAddress = (state: RootState, address: string) =>
   state.transactions[address]?.tx
 
+// get bridgeTxHash with specific key (address)
+export const getBridgeTxHashFromAddress = (state: RootState, address: string) =>
+  state.transactions[address]?.bridgeTxHash
+
 // get approval with specific key (address)
 export const getApprovalFromAddress = (state: RootState, address: string) =>
   state.transactions[address]?.toNative.approval

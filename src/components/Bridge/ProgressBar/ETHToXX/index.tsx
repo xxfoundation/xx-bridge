@@ -67,7 +67,6 @@ export const State: CustomStep[] = [
 const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
   const { address } = useAccount()
   const [error, setError] = useState<string | undefined>()
-  const [extrinsic, setExtrinsic] = useState<string>()
 
   // use redux
   const currState =
@@ -85,7 +84,6 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
   // Reset state and go back to home page
   const resetState = useCallback(() => {
     setError(undefined)
-    setExtrinsic(undefined)
     reset()
   }, [reset])
 
@@ -216,7 +214,15 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
                 const block = bridgeEvent.event[0].blockNumber
                 const extrinsicIdx = JSON.parse(bridgeEvent.event[0].phase)
                   .applyExtrinsic as number
-                setExtrinsic(`${block}-${extrinsicIdx}`)
+                const extrinsic = `${block}-${extrinsicIdx}`
+                // Save txHash of bridge transaction
+                // Note: block-idx is equivalent to ext hash in xx explorer
+                dispatch(
+                  actions.setBridgeTxHash({
+                    key: address,
+                    txHash: extrinsic
+                  })
+                )
                 dispatch(
                   actions.incrementStepTo({
                     key: address,
@@ -375,22 +381,26 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
                   <Typography variant="h5" fontWeight="bold">
                     {Steps.Done}. Transfer complete!
                   </Typography>
-                  <Link
-                    variant="body2"
-                    href={`${ETH_EXPLORER_URL}/tx/${currState.toNative.deposit.txHash}`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    View Deposit transaction in Etherscan
-                  </Link>
-                  <Link
-                    variant="body2"
-                    href={`${XX_EXPLORER_URL}/extrinsics/${extrinsic}`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    View Bridge transaction in xx Explorer
-                  </Link>
+                  {currState.toNative.deposit.txHash && (
+                    <Link
+                      variant="body2"
+                      href={`${ETH_EXPLORER_URL}/tx/${currState.toNative.deposit.txHash}`}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      View Deposit transaction in Etherscan
+                    </Link>
+                  )}
+                  {currState.bridgeTxHash && (
+                    <Link
+                      variant="body2"
+                      href={`${XX_EXPLORER_URL}/extrinsics/${currState.bridgeTxHash}`}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      View Bridge transaction in xx Explorer
+                    </Link>
+                  )}
                   <StyledButton
                     onClick={() => {
                       dispatch(actions.resetKey(address))

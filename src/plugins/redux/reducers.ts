@@ -30,13 +30,15 @@ const emptyToNativeTx = {
 const emptyFromNativeTx = {
   status: emptyStep,
   nonce: 0,
+  extrinsicHash: undefined,
   txHash: undefined
 }
 
 export const emptyState: BridgeTx = {
   tx: emptyTx,
   toNative: emptyToNativeTx,
-  fromNative: emptyFromNativeTx
+  fromNative: emptyFromNativeTx,
+  bridgeTxHash: undefined
 }
 
 // Define the initial state using that type
@@ -289,11 +291,15 @@ export const slice = createSlice({
         }
       })
     },
-    setFromNativeNonce: (
+    setFromNative: (
       state,
-      action: PayloadAction<{ key: string | undefined; nonce: number }>
+      action: PayloadAction<{
+        key: string | undefined
+        nonce: number
+        extrinsicHash: string
+      }>
     ) => {
-      const { key, nonce } = action.payload
+      const { key, nonce, extrinsicHash } = action.payload
       if (!key) {
         console.error('No key provided', key)
         return
@@ -307,7 +313,8 @@ export const slice = createSlice({
         ...currState,
         fromNative: {
           ...currState.fromNative,
-          nonce
+          nonce,
+          extrinsicHash
         }
       })
     },
@@ -331,6 +338,28 @@ export const slice = createSlice({
           ...currState.fromNative,
           txHash: hash
         }
+      })
+    },
+    /* -------------------------------------------------------------------------- */
+    /*                        Bridge Tx Hash (from indexers)                      */
+    /* -------------------------------------------------------------------------- */
+    setBridgeTxHash: (
+      state,
+      action: PayloadAction<{ key: string | undefined; txHash: string }>
+    ) => {
+      const { key, txHash } = action.payload
+      if (!key) {
+        console.error('No key provided', key)
+        return
+      }
+      const currState = get(state, key)
+      if (!currState) {
+        console.error('No state found', key)
+        return
+      }
+      state.transactions = set(state, key, {
+        ...currState,
+        bridgeTxHash: txHash
       })
     }
   }

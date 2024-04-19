@@ -11,7 +11,8 @@ import {
   BRIDGE_ID_XXNETWORK,
   BRIDGE_RELAYER_FEE_ADDRESS,
   CONFIRMATIONS_THRESHOLD,
-  ETH_EXPLORER_URL
+  ETH_EXPLORER_URL,
+  XX_EXPLORER_URL
 } from '@/consts'
 import contracts from '@/contracts'
 import {
@@ -21,6 +22,7 @@ import {
 import StyledButton from '../../../custom/StyledButton'
 import { useAppDispatch, useAppSelector } from '@/plugins/redux/hooks'
 import {
+  getBridgeTxHashFromAddress,
   getFromNativeFromAddress,
   getTxFromAddress
 } from '@/plugins/redux/selectors'
@@ -99,6 +101,12 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
       (selectedAccount?.address &&
         getFromNativeFromAddress(state, selectedAccount?.address)) ||
       emptyState.fromNative
+  )
+  const bridgeTxHash = useAppSelector(
+    (state: RootState) =>
+      (selectedAccount?.address &&
+        getBridgeTxHashFromAddress(state, selectedAccount?.address)) ||
+      undefined
   )
   const dispatch = useAppDispatch()
 
@@ -183,7 +191,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                   .signAndSend(
                     selectedAccount.address,
                     { signer },
-                    ({ status, events }) => {
+                    ({ status, events, txHash }) => {
                       if (status.isInBlock) {
                         events.forEach(({ event }) => {
                           if (
@@ -191,9 +199,10 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                           ) {
                             const [, nonceValue] = event.data
                             dispatch(
-                              actions.setFromNativeNonce({
+                              actions.setFromNative({
                                 key: selectedAccount?.address,
-                                nonce: nonceValue.toNumber()
+                                nonce: nonceValue.toNumber(),
+                                extrinsicHash: txHash.toString()
                               })
                             )
                           }
@@ -321,6 +330,15 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
             // TODO: add domain specific event filter
             if (!errorProposalEvent && !loadingProposalEvent && proposalEvent) {
               if (proposalEvent.proposal.length > 0) {
+                // Save txHash of bridge transaction
+                if (proposalEvent.proposal[0].votes.length > 0) {
+                  dispatch(
+                    actions.setBridgeTxHash({
+                      key: selectedAccount?.address,
+                      txHash: proposalEvent.proposal[0].votes[0].txHash
+                    })
+                  )
+                }
                 dispatch(
                   actions.incrementStepTo({
                     key: selectedAccount?.address,
@@ -440,14 +458,36 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                   spacing="20px"
                 >
                   <Typography variant="h5">Transfer complete!</Typography>
-                  <Link
-                    variant="body2"
-                    href={`${ETH_EXPLORER_URL}/tx/${fromNative.txHash}`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    View transaction in Etherscan
-                  </Link>
+                  {fromNative.extrinsicHash && (
+                    <Link
+                      variant="body2"
+                      href={`${XX_EXPLORER_URL}/extrinsics/${fromNative.extrinsicHash}`}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      View Deposit transaction in xx Explorer
+                    </Link>
+                  )}
+                  {fromNative.txHash && (
+                    <Link
+                      variant="body2"
+                      href={`${ETH_EXPLORER_URL}/tx/${fromNative.txHash}`}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      View Fee Payment transaction in Etherscan
+                    </Link>
+                  )}
+                  {bridgeTxHash && (
+                    <Link
+                      variant="body2"
+                      href={`${ETH_EXPLORER_URL}/tx/${bridgeTxHash}`}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      View Bridge transaction in Etherscan
+                    </Link>
+                  )}
                   <StyledButton
                     onClick={() => {
                       dispatch(actions.resetKey(selectedAccount?.address))
