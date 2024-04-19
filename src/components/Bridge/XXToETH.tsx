@@ -352,6 +352,17 @@ const XXToETH: React.FC = () => {
         }
       })
     )
+    // Scroll
+    setTimeout(() => {
+      const element = document.querySelector(`[data-id='status-stack']`)
+      if (element instanceof HTMLElement) {
+        element.scrollIntoView({
+          behavior: 'auto',
+          block: 'start',
+          inline: 'start'
+        })
+      }
+    }, 50)
   }, [recipient, selectedAccount, transferValue])
 
   return (
@@ -431,6 +442,22 @@ const XXToETH: React.FC = () => {
                   target="_blank"
                 >
                   Talisman
+                </Link>
+                <Link
+                  variant="h6"
+                  href="https://novawallet.io/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Nova
+                </Link>
+                <Link
+                  variant="h6"
+                  href="https://fearlesswallet.io/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Fearless
                 </Link>
                 <Link
                   variant="h6"

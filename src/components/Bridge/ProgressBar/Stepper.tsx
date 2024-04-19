@@ -20,7 +20,7 @@ const CustomStepper: React.FC<CustomStepperProps> = ({
 
   return (
     <Box sx={{ width, alignContent: alignment }}>
-      <Stepper activeStep={activeStep} alternativeLabel>
+      <Stepper activeStep={activeStep - 1} alternativeLabel>
         {steps.map((step, index) => {
           const labelProps: {
             optional?: React.ReactNode

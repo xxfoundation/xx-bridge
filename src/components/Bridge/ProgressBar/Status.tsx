@@ -15,6 +15,7 @@ const Status: React.FC<StatusProps> = ({ sourceId, reset }) => (
       flexDirection: 'column',
       alignItems: 'center'
     }}
+    data-id="status-stack"
     spacing="20px"
   >
     <Typography variant="h5" fontWeight="bold">

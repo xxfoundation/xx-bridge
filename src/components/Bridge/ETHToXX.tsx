@@ -401,6 +401,17 @@ const ETHToXX: React.FC = () => {
         }
       })
     )
+    // Scroll
+    setTimeout(() => {
+      const element = document.querySelector(`[data-id='status-stack']`)
+      if (element instanceof HTMLElement) {
+        element.scrollIntoView({
+          behavior: 'auto',
+          block: 'start',
+          inline: 'start'
+        })
+      }
+    }, 50)
   }, [address, recipient, transferValue, needApprove])
 
   return (
