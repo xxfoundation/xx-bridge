@@ -34,9 +34,8 @@ import Status from './ProgressBar/Status'
 import { useAppSelector, useAppDispatch } from '@/plugins/redux/hooks'
 import { getTxFromAddress } from '@/plugins/redux/selectors'
 import { RootState } from '@/plugins/redux/types'
-import { actions, emptyState } from '@/plugins/redux/reducers'
+import { actions } from '@/plugins/redux/reducers'
 import { State } from './ProgressBar/XXToETH'
-import useLocalStorage from '@/hooks/useLocalStorage'
 
 const XXToETH: React.FC = () => {
   // Hooks
@@ -55,10 +54,6 @@ const XXToETH: React.FC = () => {
   const [ethBalance, setEthBalance] = useState<string>('0')
   const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
-  const [startTransfer, setStartTransfer] = useLocalStorage<boolean>(
-    `transfer-${address}`,
-    false
-  )
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
   const [xxFee, setXXFee] = useState<string>('0')
@@ -77,6 +72,9 @@ const XXToETH: React.FC = () => {
   //   (state: RootState) => address && getFromNativeFromAddress(state, address)
   // )
   const dispatch = useAppDispatch()
+
+  // check if transfer is in progress
+  const startTransfer = useMemo(() => !!(tx && tx.status.step > 0), [tx])
 
   // Can't send xx -> eth when no xx account is available
   useEffect(() => {
@@ -107,13 +105,6 @@ const XXToETH: React.FC = () => {
     },
     [xxBalance]
   )
-
-  // Set recipient to ETH account
-  useEffect(() => {
-    if (address) {
-      setRecipient(address)
-    }
-  }, [address, startTransfer])
 
   // Validate recipient
   const validateRecipient = useCallback((value: string) => {
@@ -292,9 +283,8 @@ const XXToETH: React.FC = () => {
     errorState
   ])
 
-  // Reset Tx details
-  const resetTxDetails = useCallback(() => {
-    setStartTransfer(false)
+  // Reset input
+  const resetInput = useCallback(() => {
     setInput(null)
     setTransferValue(BigInt(0))
   }, [])
@@ -302,14 +292,14 @@ const XXToETH: React.FC = () => {
   // Reset
   const reset = useCallback(() => {
     setResetting(true)
-    resetTxDetails()
+    resetInput()
     setRecipient('')
     setRecipientError(undefined)
     refetchWrappedXX()
     setTimeout(() => {
       setResetting(false)
     }, 2000)
-  }, [refetchWrappedXX, resetTxDetails])
+  }, [refetchWrappedXX, resetInput])
 
   // // useQuery hook to get the latest bridge transfers
   // const { data: latestTransfers, isLoading: latestTransfersLoading } =
@@ -321,26 +311,24 @@ const XXToETH: React.FC = () => {
   //     skip: !address || fromNative?.txHash === undefined
   //   })
 
-  // Restore transaction from local storage and set values if status not complete (4)
+  // Restore transaction from local storage and set values if transfer ongoing
+  // Otherwise, reset input and get recipient from eth wallet
   useEffect(() => {
-    resetTxDetails()
-    setRecipient(address || '')
-    if (tx && JSON.stringify(tx) !== JSON.stringify(emptyState.tx)) {
-      if (tx.status.step < 5 && tx.destinationAddress) {
-        setRecipient(tx.destinationAddress)
-        // Set transfer value passed as string to children components
-        setTransferValue(BigInt(tx.amount))
-        // Set input value to be displayed in the input field
-        setInput(parseFloat(tx.amount) / 10 ** xxNetwork.gasToken.decimals)
-        setStartTransfer(true)
-      } else {
-        console.log('Transaction already complete')
-        dispatch(actions.resetKey(selectedAccount?.address))
-      }
+    if (startTransfer && tx) {
+      setRecipient(tx.destinationAddress)
+      // Set transfer value passed as string to children components
+      setTransferValue(BigInt(tx.amount))
+      // Set input value to be displayed in the input field
+      setInput(parseFloat(tx.amount) / 10 ** xxNetwork.gasToken.decimals)
     } else {
-      console.log('No transaction found')
+      resetInput()
+      setRecipient(address || '')
     }
-  }, [tx, selectedAccount?.address, address])
+    return () => {
+      console.log('[Cleaning up]')
+      resetInput()
+    }
+  }, [startTransfer, address])
 
   // Do not leave recipient empty
   useEffect(() => {
@@ -350,12 +338,11 @@ const XXToETH: React.FC = () => {
   }, [address, recipient])
 
   const handleClickTransfer = useCallback(() => {
-    setStartTransfer(true)
     dispatch(
       actions.setTxDetails({
         key: selectedAccount?.address,
         details: {
-          status: State[0],
+          status: State[1],
           sourceAddress: selectedAccount?.address || '',
           destinationAddress: recipient,
           sourceId: BRIDGE_ID_XXNETWORK,
@@ -365,14 +352,7 @@ const XXToETH: React.FC = () => {
         }
       })
     )
-  }, [
-    address,
-    dispatch,
-    recipient,
-    resetTxDetails,
-    selectedAccount,
-    transferValue
-  ])
+  }, [recipient, selectedAccount, transferValue])
 
   return (
     <Stack

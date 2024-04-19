@@ -1,8 +1,13 @@
 import { Grid, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import { Loop } from '@mui/icons-material'
 import { useAccount } from 'wagmi'
+import { useEffect, useMemo } from 'react'
 import { Network } from '@/utils'
-import useLocalStorage from '@/hooks/useLocalStorage'
+import useAccounts from '@/plugins/substrate/hooks/useAccounts'
+import { getTxFromAddress } from '@/plugins/redux/selectors'
+import { useAppDispatch, useAppSelector } from '@/plugins/redux/hooks'
+import { RootState } from '@/plugins/redux/types'
+import { actions } from '@/plugins/redux/reducers'
 
 interface NetworkInfoProps {
   source: Network
@@ -16,7 +21,37 @@ const NetworkInfo: React.FC<NetworkInfoProps> = ({
   setSwitching
 }) => {
   const { address } = useAccount()
-  const [startTransfer] = useLocalStorage<boolean>(`transfer-${address}`)
+  const { selectedAccount } = useAccounts()
+  const dispatch = useAppDispatch()
+
+  // set account based on network
+  const account = useMemo(() => {
+    if (source.name === 'xx network') {
+      return selectedAccount?.address
+    }
+    return address
+  }, [address, selectedAccount, source])
+
+  // use redux
+  const transactions = useAppSelector((state: RootState) => state.transactions)
+  const tx = useAppSelector(
+    (state: RootState) => account && getTxFromAddress(state, account)
+  )
+
+  // check if transfer is in progress
+  const startTransfer = useMemo(() => !!(tx && tx.status.step > 0), [tx])
+
+  // Initialize redux state for account
+  useEffect(() => {
+    if (account) {
+      if (Object.prototype.hasOwnProperty.call(transactions, account)) {
+        console.log('Key already exists', account)
+        return
+      }
+      dispatch(actions.newKey(account))
+    }
+  }, [account])
+
   return (
     <Grid container p="20px">
       <Grid item mobile={5}>

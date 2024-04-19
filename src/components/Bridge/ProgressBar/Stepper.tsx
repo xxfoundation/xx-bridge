@@ -8,7 +8,6 @@ interface CustomStepperProps {
   activeStep: number
   width?: string
   alignment?: string
-  approve?: boolean
 }
 
 const CustomStepper: React.FC<CustomStepperProps> = ({
@@ -16,23 +15,8 @@ const CustomStepper: React.FC<CustomStepperProps> = ({
   activeStep = 0,
   width = '100%',
   alignment = 'center'
-  // approve = false
 }) => {
   const isStepFailed = (step: number) => step === -1
-
-  // Remove the first step if we don't need to approve
-  // let i = 0
-  // const newSteps = steps
-  //   .map(step => {
-  //     if (!approve && step.step === 1) {
-  //       return undefined
-  //     }
-  //     return {
-  //       step: i++,
-  //       message: step.message
-  //     }
-  //   })
-  //   .filter(step => step !== undefined) as CustomStep[]
 
   return (
     <Box sx={{ width, alignContent: alignment }}>

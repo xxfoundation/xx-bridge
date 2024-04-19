@@ -16,7 +16,6 @@ import {
   useContractRead,
   useFeeData
 } from 'wagmi'
-import { isHex } from 'viem/utils'
 import StyledButton from '../custom/StyledButton'
 import {
   convertXXAddress,
@@ -47,10 +46,9 @@ import Loading from '../Utils/Loading'
 import ModalWrapper from '../Modals/ModalWrapper'
 import Status from './ProgressBar/Status'
 import useXxBalance from '@/hooks/useXxBalance'
-import useLocalStorage from '@/hooks/useLocalStorage'
 import { useAppSelector, useAppDispatch } from '@/plugins/redux/hooks'
 import { RootState } from '@/plugins/redux/types'
-import { actions, emptyState } from '@/plugins/redux/reducers'
+import { actions } from '@/plugins/redux/reducers'
 import { getTxFromAddress } from '@/plugins/redux/selectors'
 import { State } from './ProgressBar/ETHToXX'
 
@@ -123,10 +121,6 @@ const ETHToXX: React.FC = () => {
   const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
   const [allowance, setAllowance] = useState<string>()
   const [needApprove, setNeedApprove] = useState<boolean>(false)
-  const [startTransfer, setStartTransfer] = useLocalStorage<boolean>(
-    `transfer-${address}`,
-    false
-  )
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
   const [resetting, setResetting] = useState<boolean>(false)
@@ -139,6 +133,9 @@ const ETHToXX: React.FC = () => {
     (state: RootState) => address && getTxFromAddress(state, address)
   )
   const dispatch = useAppDispatch()
+
+  // check if transfer is in progress
+  const startTransfer = useMemo(() => !!(tx && tx.status.step > 0), [tx])
 
   // Value computation
   const setValue = useCallback(
@@ -159,13 +156,6 @@ const ETHToXX: React.FC = () => {
     },
     [wrappedXXBalance]
   )
-
-  // Set recipient to xx account if connected
-  useEffect(() => {
-    if (selectedAccount && selectedAccount?.address && !startTransfer) {
-      setRecipient(selectedAccount.address)
-    }
-  }, [selectedAccount, startTransfer])
 
   // Validate recipient
   const validateRecipient = useCallback((value: string) => {
@@ -356,9 +346,8 @@ const ETHToXX: React.FC = () => {
     errorState
   ])
 
-  // Reset Tx details
-  const resetTxDetails = useCallback(() => {
-    setStartTransfer(false)
+  // Reset input
+  const resetInput = useCallback(() => {
     setInput(null)
     setTransferValue(BigInt(0))
   }, [])
@@ -366,7 +355,7 @@ const ETHToXX: React.FC = () => {
   // Reset
   const reset = useCallback(() => {
     setResetting(true)
-    resetTxDetails()
+    resetInput()
     setRecipient('')
     setRecipientError(undefined)
     refetchWrappedXX()
@@ -375,45 +364,34 @@ const ETHToXX: React.FC = () => {
     setTimeout(() => {
       setResetting(false)
     }, 2000)
-  }, [address, dispatch, refetchAllowance, refetchWrappedXX, resetTxDetails])
+  }, [address, dispatch, refetchAllowance, refetchWrappedXX, resetInput])
 
-  // Restore transaction from local storage and set values if status not complete (4)
+  // Restore transaction from local storage and set values if transfer ongoing
+  // Otherwise, reset input and get recipient from xx wallet
   useEffect(() => {
-    resetTxDetails()
-    setRecipient(selectedAccount?.address || '')
-    if (tx && JSON.stringify(tx) !== JSON.stringify(emptyState.tx)) {
-      if (tx.status.step < 3 && tx.destinationAddress) {
-        setNeedApprove(tx.needApproval)
-        setRecipient(
-          isHex(tx.destinationAddress)
-            ? tx.destinationAddress
-            : convertXXPubkey(tx.destinationAddress)
-        )
-        // Set transfer value passed as string to children components
-        setTransferValue(BigInt(tx.amount))
-        // Set input value to be displayed in the input field
-        setInput(parseFloat(tx.amount) / 10 ** ethereumMainnet.token.decimals)
-        setStartTransfer(true)
-      } else {
-        console.log('Transaction already complete')
-        dispatch(actions.resetKey(address))
-      }
+    if (startTransfer && tx) {
+      setNeedApprove(tx.needApproval)
+      setRecipient(convertXXPubkey(tx.destinationAddress))
+      // Set transfer value passed as string to children components
+      setTransferValue(BigInt(tx.amount))
+      // Set input value to be displayed in the input field
+      setInput(parseFloat(tx.amount) / 10 ** ethereumMainnet.token.decimals)
     } else {
-      console.log('No transaction found')
+      resetInput()
+      setRecipient(selectedAccount?.address || '')
     }
     return () => {
       console.log('[Cleaning up]')
-      resetTxDetails()
+      resetInput()
     }
-  }, [address])
+  }, [startTransfer, selectedAccount])
 
   const handleClickTransfer = useCallback(() => {
-    setStartTransfer(true)
     dispatch(
       actions.setTxDetails({
         key: address,
         details: {
-          status: State[0],
+          status: State[1],
           sourceAddress: address || '',
           destinationAddress: convertXXAddress(recipient),
           sourceId: BRIDGE_ID_ETH_MAINNET,

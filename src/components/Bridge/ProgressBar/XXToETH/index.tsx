@@ -1,5 +1,5 @@
 import { Link, Stack, Typography } from '@mui/material'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { readContract, waitForTransaction } from 'wagmi/actions'
 import { useQuery } from '@apollo/client'
@@ -37,15 +37,20 @@ interface TransferXXToETHProps {
 
 // From XX to ETH: Native Transfer (xx) -> Pay Fee (eth) -> Wait for Bridge -> Done
 export enum Steps {
-  Init = 0,
-  NativeTransfer = 1,
-  PromptRelayerFee = 2,
-  WaitFee = 3,
-  WaitBridge = 4,
-  Done = 5
+  Idle = 0,
+  Init = 1,
+  NativeTransfer = 2,
+  PromptRelayerFee = 3,
+  WaitFee = 4,
+  WaitBridge = 5,
+  Done = 6
 }
 
 export const State: CustomStep[] = [
+  {
+    step: Steps.Idle,
+    message: 'Idle'
+  },
   {
     step: Steps.Init,
     message: 'Initializing transfer...'
@@ -83,7 +88,6 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
   const [error, setError] = useState<string | undefined>()
 
   // use redux
-  const transactions = useAppSelector((state: RootState) => state.transactions)
   const tx = useAppSelector(
     (state: RootState) =>
       (selectedAccount?.address &&
@@ -97,21 +101,6 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
       emptyState.fromNative
   )
   const dispatch = useAppDispatch()
-
-  useEffect(() => {
-    if (selectedAccount?.address) {
-      if (
-        Object.prototype.hasOwnProperty.call(
-          transactions,
-          selectedAccount?.address
-        )
-      ) {
-        console.log('Key already exists', selectedAccount?.address)
-        return
-      }
-      dispatch(actions.newKey(selectedAccount?.address))
-    }
-  }, [selectedAccount?.address])
 
   // Go to error state
   const goError = useCallback((msg: string) => {
@@ -417,7 +406,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               dispatch(
                 actions.incrementStepTo({
                   key: selectedAccount?.address,
-                  step: State[Steps.Init]
+                  step: { step: 0, message: '' }
                 })
               )
             }}
@@ -428,7 +417,10 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
       ) : (
         <>
           <Stack direction="column" padding={2} spacing="20px">
-            <CustomStepper steps={State} activeStep={tx.status.step} />
+            <CustomStepper
+              steps={State.filter(state => state.step !== Steps.Idle)}
+              activeStep={tx.status.step}
+            />
             <Stack
               direction="column"
               spacing="20px"
@@ -458,6 +450,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                   </Link>
                   <StyledButton
                     onClick={() => {
+                      dispatch(actions.resetKey(selectedAccount?.address))
                       resetState()
                     }}
                   >

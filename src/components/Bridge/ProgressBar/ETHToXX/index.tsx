@@ -1,5 +1,5 @@
 import { Link, Stack, Typography } from '@mui/material'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import { useAccount } from 'wagmi'
 import Approve from './Approve'
@@ -29,15 +29,19 @@ interface TransferETHToXXProps {
 }
 
 export enum Steps {
-  Init = 0,
-  ApproveSpend = 1,
-  BridgeDeposit = 2,
-  WaitBridge = 3,
-  Done = 4,
-  Complete = 5
+  Idle = 0,
+  Init = 1,
+  ApproveSpend = 2,
+  BridgeDeposit = 3,
+  WaitBridge = 4,
+  Done = 5
 }
 
 export const State: CustomStep[] = [
+  {
+    step: Steps.Idle,
+    message: 'Idle'
+  },
   {
     step: Steps.Init,
     message: 'Initializing transfer'
@@ -66,22 +70,11 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
   const [extrinsic, setExtrinsic] = useState<string>()
 
   // use redux
-  const transactions = useAppSelector((state: RootState) => state.transactions)
   const currState =
     useAppSelector(
       (state: RootState) => address && getStateFromAddress(state, address)
     ) || emptyState
   const dispatch = useAppDispatch()
-
-  useEffect(() => {
-    if (address) {
-      if (Object.prototype.hasOwnProperty.call(transactions, address)) {
-        console.log('Key already exists', address)
-        return
-      }
-      dispatch(actions.newKey(address))
-    }
-  }, [address])
 
   // Go to error state
   const goError = useCallback((msg: string) => {
@@ -336,8 +329,12 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
             <CustomStepper
               steps={
                 currState.tx.needApproval
-                  ? State
-                  : State.filter(state => state.step !== Steps.ApproveSpend)
+                  ? State.filter(state => state.step !== Steps.Idle)
+                  : State.filter(
+                      state =>
+                        state.step !== Steps.ApproveSpend &&
+                        state.step !== Steps.Idle
+                    )
               }
               activeStep={currState.tx.status.step}
             />
@@ -350,21 +347,21 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
               {currState.tx.needApproval &&
                 currState.tx.status.step === Steps.ApproveSpend && (
                   <Approve
-                    currStep={Steps.ApproveSpend + 1}
+                    currStep={Steps.ApproveSpend}
                     setError={handleError}
                     done={handleApproveDone}
                   />
                 )}
               {currState.tx.status.step === Steps.BridgeDeposit && (
                 <Deposit
-                  currStep={Steps.BridgeDeposit + 1}
+                  currStep={Steps.BridgeDeposit}
                   setError={handleError}
                   done={handleDepositDone}
                 />
               )}
               {currState.tx.status.step === Steps.WaitBridge && (
                 <Typography variant="body1" fontWeight="bold">
-                  {Steps.WaitBridge + 1}. Waiting for Bridge ...
+                  {Steps.WaitBridge}. Waiting for Bridge ...
                 </Typography>
               )}
               {currState.tx.status.step >= Steps.Done && (
@@ -376,26 +373,27 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
                   spacing="20px"
                 >
                   <Typography variant="h5" fontWeight="bold">
-                    {Steps.Done + 1}. Transfer complete!
+                    {Steps.Done}. Transfer complete!
                   </Typography>
-                  <Link
-                    variant="body2"
-                    href={`${XX_EXPLORER_URL}/extrinsics/${extrinsic}`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    View transaction in xx Explorer
-                  </Link>
                   <Link
                     variant="body2"
                     href={`${ETH_EXPLORER_URL}/tx/${currState.toNative.deposit.txHash}`}
                     rel="noopener noreferrer"
                     target="_blank"
                   >
-                    View transaction in Etherscan
+                    View Deposit transaction in Etherscan
+                  </Link>
+                  <Link
+                    variant="body2"
+                    href={`${XX_EXPLORER_URL}/extrinsics/${extrinsic}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    View Bridge transaction in xx Explorer
                   </Link>
                   <StyledButton
                     onClick={() => {
+                      dispatch(actions.resetKey(address))
                       resetState()
                     }}
                   >
