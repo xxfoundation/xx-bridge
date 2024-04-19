@@ -15,8 +15,8 @@ import {
 } from '@/consts'
 import contracts from '@/contracts'
 import {
-  SUB_PROPOSAL_EVENTS,
-  SubProposalEvents
+  QUERY_PROPOSAL_EVENTS,
+  QueryProposalEvents
 } from '@/plugins/apollo/schemas'
 import StyledButton from '../../../custom/StyledButton'
 import { useAppDispatch, useAppSelector } from '@/plugins/redux/hooks'
@@ -139,7 +139,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
     loading: loadingProposalEvent,
     error: errorProposalEvent
     // networkStatus: networkStatusProposalEvent
-  } = useQuery<SubProposalEvents>(SUB_PROPOSAL_EVENTS, {
+  } = useQuery<QueryProposalEvents>(QUERY_PROPOSAL_EVENTS, {
     variables: {
       where: {
         _and: [

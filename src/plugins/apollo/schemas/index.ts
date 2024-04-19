@@ -4,33 +4,38 @@ import { gql } from '@apollo/client'
 /*                           ETH Indexer: XX => ETH                           */
 /* -------------------------------------------------------------------------- */
 
-// Subscription for proposal events
-export type SubProposalEvents = {
+// Query for proposal events
+export type QueryProposalEvents = {
   proposal: {
-    status: boolean
+    votes: {
+      txHash: string
+    }[]
   }[]
 }
 
-const SUBSCRIBE_PROPOSAL_EVENTS_QUERY = `
-    query SubProposalEvents($where: proposal_bool_exp!){
-        proposal(where: $where) {
-            status
-        }
+const PROPOSAL_EVENTS_QUERY = `
+  query GetProposalEvents($where: proposal_bool_exp!){
+    proposal(where: $where) {
+      status
+      votes {
+        txHash: txn_hash
+      }
     }
+  }
 `
 
-export const SUB_PROPOSAL_EVENTS = gql([SUBSCRIBE_PROPOSAL_EVENTS_QUERY])
+export const QUERY_PROPOSAL_EVENTS = gql([PROPOSAL_EVENTS_QUERY])
 
-// Subscribe deposit nonce
-export type SubDepositNonce = {
+// Query deposit nonce
+export type QueryDepositNonce = {
   deposit: {
     nonce: string
     blockNumber: string
   }[]
 }
 
-const SUB_DEPOSIT_NONCE_QUERY = `
-  query SubDepositNonce($where: deposit_bool_exp!){
+const QUERY_DEPOSIT_NONCE_QUERY = `
+  query GetDepositNonce($where: deposit_bool_exp!){
     deposit(where: $where) {
       nonce
       blockNumber: block_number
@@ -38,22 +43,22 @@ const SUB_DEPOSIT_NONCE_QUERY = `
   }
 `
 
-export const SUB_DEPOSIT_NONCE = gql([SUB_DEPOSIT_NONCE_QUERY])
+export const QUERY_DEPOSIT_NONCE = gql([QUERY_DEPOSIT_NONCE_QUERY])
 
 /* -------------------------------------------------------------------------- */
 /*                            XX Indexer: ETH => XX                           */
 /* -------------------------------------------------------------------------- */
 
-// Subscription for bridge event
-export type SubBridgeEvents = {
+// Query for bridge event
+export type QueryBridgeEvents = {
   event: {
     blockNumber: string
     phase: string
   }[]
 }
 
-const SUBSCRIBE_BRIDGE_EVENTS_QUERY = `
-    query SubBridgeEvents($where: event_bool_exp!){
+const QUERY_BRIDGE_EVENTS_QUERY = `
+    query GetBridgeEvents($where: event_bool_exp!){
       event(where: $where) {
         blockNumber: block_number
         phase
@@ -61,7 +66,7 @@ const SUBSCRIBE_BRIDGE_EVENTS_QUERY = `
     }
 `
 
-export const SUB_BRIDGE_EVENTS = gql([SUBSCRIBE_BRIDGE_EVENTS_QUERY])
+export const QUERY_BRIDGE_EVENTS = gql([QUERY_BRIDGE_EVENTS_QUERY])
 
 // Get Latest Bridge Transfers
 export type GetBridgeTransfers = {

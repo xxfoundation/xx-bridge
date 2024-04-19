@@ -5,10 +5,10 @@ import { useAccount } from 'wagmi'
 import Approve from './Approve'
 import Deposit from './Deposit'
 import {
-  SUB_BRIDGE_EVENTS,
-  SUB_DEPOSIT_NONCE,
-  SubBridgeEvents,
-  SubDepositNonce
+  QUERY_BRIDGE_EVENTS,
+  QUERY_DEPOSIT_NONCE,
+  QueryBridgeEvents,
+  QueryDepositNonce
 } from '@/plugins/apollo/schemas'
 import {
   BRIDGE_ID_ETH_MAINNET,
@@ -107,7 +107,7 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
   /* -------------------------------------------------------------------------- */
   // Watch deposit nonce (evm indexer)
   const { data: depositNonce, error: errorDepositNonce } =
-    useQuery<SubDepositNonce>(SUB_DEPOSIT_NONCE, {
+    useQuery<QueryDepositNonce>(QUERY_DEPOSIT_NONCE, {
       variables: {
         where: {
           txn_hash: { _eq: currState.toNative.deposit.txHash }
@@ -135,7 +135,7 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
 
   // Watch executed event on Bridge smart contract (xx indexer)
   const { data: bridgeEvent, error: errorBridgeEvent } =
-    useQuery<SubBridgeEvents>(SUB_BRIDGE_EVENTS, {
+    useQuery<QueryBridgeEvents>(QUERY_BRIDGE_EVENTS, {
       client: xxClient,
       variables: {
         where: {
