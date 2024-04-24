@@ -12,6 +12,7 @@ import { truncateString, shortenHash } from '@/utils'
 import StyledButton from '@/components/custom/StyledButton'
 import useSessionStorage from '@/hooks/useSessionStorage'
 import WrappedIcon from '../WrappedIcon'
+import { wagmiConfig } from '@/plugins/wagmi'
 
 /* -------------------------------------------------------------------------- */
 /*                                   Styles                                   */
@@ -131,7 +132,7 @@ export const MobileWalletsDisplay: React.FC = () => {
       <WrappedIcon
         icon={<Cancel />}
         onClick={() => {
-          disconnect()
+          disconnect(wagmiConfig)
         }}
       />
     </Stack>

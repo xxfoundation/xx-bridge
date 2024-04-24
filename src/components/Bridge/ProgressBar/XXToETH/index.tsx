@@ -1,7 +1,7 @@
 import { Link, Stack, Typography } from '@mui/material'
 import React, { useCallback, useRef, useState } from 'react'
 import { useAccount } from 'wagmi'
-import { readContract, waitForTransaction } from 'wagmi/actions'
+import { readContract, waitForTransactionReceipt } from 'wagmi/actions'
 import { useQuery } from '@apollo/client'
 import { Info } from '@mui/icons-material'
 import useApi from '@/plugins/substrate/hooks/useApi'
@@ -32,6 +32,7 @@ import CustomStepper from '../Stepper'
 import { useEffectDebugger } from '@/hooks/useUtils'
 import customWriteContract from '@/utils/promises'
 import CustomTooltip from '@/plugins/substrate/components/Tooltip'
+import { wagmiConfig } from '@/plugins/wagmi'
 
 interface TransferXXToETHProps {
   reset: () => void
@@ -125,7 +126,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
   // Get current relayer fee from contract
   const fetchRelayerFee = useCallback(async () => {
     try {
-      const relayerFee = await readContract({
+      const relayerFee = await readContract(wagmiConfig, {
         address: BRIDGE_RELAYER_FEE_ADDRESS,
         abi: contracts.relayerFeeAbi,
         functionName: 'currentFee'
@@ -266,14 +267,13 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
             // Prompt user to pay relayer fee if not yet
             console.log(`Prompting user to pay relayer fee...`)
             const relayerFee = await fetchRelayerFee()
-            if (relayerFee && fromNative.nonce) {
+            if (relayerFee && fromNative.nonce && address) {
               try {
                 const hash = await customWriteContract({
                   address: BRIDGE_RELAYER_FEE_ADDRESS,
                   abi: contracts.relayerFeeAbi,
                   functionName: 'payFee',
                   args: [BRIDGE_ID_XXNETWORK, BigInt(fromNative.nonce)],
-                  account: address,
                   value: relayerFee
                 })
                 dispatch(
@@ -304,7 +304,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
             if (fromNative.txHash) {
               try {
                 console.log(`Waiting for fee:`, fromNative.txHash)
-                const txReceipt = await waitForTransaction({
+                const txReceipt = await waitForTransactionReceipt(wagmiConfig, {
                   hash: fromNative.txHash as `0x${string}`,
                   confirmations: CONFIRMATIONS_THRESHOLD
                 })

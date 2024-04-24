@@ -1,24 +1,21 @@
-import {
-  PrepareWriteContractConfig,
-  PrepareWriteContractResult,
-  prepareWriteContract,
-  writeContract
-} from 'wagmi/actions'
+import { simulateContract, writeContract } from 'wagmi/actions'
+import { SimulateContractReturnType, SimulateContractParameters } from 'viem'
+import { wagmiConfig } from '@/plugins/wagmi'
 
 const customWriteContract = async (
-  config: PrepareWriteContractConfig
+  config: SimulateContractParameters
 ): Promise<string> => {
-  let request: PrepareWriteContractResult
+  let data: SimulateContractReturnType
   try {
-    request = await prepareWriteContract(config)
+    data = await simulateContract(wagmiConfig, config)
   } catch (error) {
-    console.error(`Error preparing contract write:`, error)
-    throw new Error(`Preparing contract write: ${error}`)
+    console.error(`Error simulating contract write:`, error)
+    throw new Error(`Simulating contract write: ${error}`)
   }
 
   try {
-    const result = await writeContract(request)
-    return result.hash
+    const hash = await writeContract(wagmiConfig, data.request)
+    return hash
   } catch (error) {
     console.error(`Error writing contract:`, error)
     throw new Error(`Writing contract: ${error}`)

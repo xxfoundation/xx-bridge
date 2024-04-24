@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react'
 import { useEnsAvatar, useEnsName } from 'wagmi'
+import { normalize } from 'viem/ens'
 import { Avatar } from '@mui/material'
-import defaultAvatar from '@/assets/avatar/profile.svg'
+import defaultAvatar from '@/assets/avatar/user.svg'
 import { NetworkLogo } from './Wallets/Utils'
 import { ethereumMainnet } from '@/consts'
 
@@ -15,11 +16,14 @@ const DisplayAvatar: React.FC<DisplayAvatarProps> = ({
   address,
   ...props
 }) => {
-  const ensName = useEnsName({
+  const { data: ensName } = useEnsName({
     address: address as `0x${string}`,
     chainId: 1
+  })
+  const ensAvatar = useEnsAvatar({
+    name: normalize(ensName as string),
+    chainId: 1
   }).data
-  const ensAvatar = useEnsAvatar({ name: ensName, chainId: 1 }).data
 
   const avatarSize = useMemo(() => {
     switch (size) {

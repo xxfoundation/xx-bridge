@@ -9,7 +9,13 @@ import {
   Link
 } from '@mui/material'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useAccount, useBalance, useContractRead, useFeeData } from 'wagmi'
+import {
+  useAccount,
+  useBalance,
+  useBlockNumber,
+  useReadContract,
+  useEstimateFeesPerGas
+} from 'wagmi'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import contracts from '@/contracts'
@@ -117,30 +123,23 @@ const XXToETH: React.FC = () => {
   }, [])
 
   // Network fees
-  const { isError: feeError, isLoading: feeLoading } = useFeeData({
-    watch: true,
-    onSuccess: data => {
-      if (data.gasPrice) {
-        // Add 10% for faster txs
-        setGasPrice(Number(data.gasPrice) * 1.1)
-      }
-    },
-    onError: (error: Error) => {
-      console.error('Error fetching fee data:', error)
-      setGasPrice(undefined)
-    }
-  })
+  const {
+    data: feeData,
+    isError: feeError,
+    isLoading: feeLoading,
+    refetch: refetchFees
+  } = useEstimateFeesPerGas()
 
   // Get current relayer fee from contract
   const {
     data: relayerFee,
     isError: relayerFeeError,
-    isLoading: relayerFeeLoading
-  } = useContractRead({
+    isLoading: relayerFeeLoading,
+    refetch: refetchRelayerFee
+  } = useReadContract({
     address: BRIDGE_RELAYER_FEE_ADDRESS,
     abi: contracts.relayerFeeAbi,
-    functionName: 'currentFee',
-    watch: true
+    functionName: 'currentFee'
   })
 
   /* -------------------------------------------------------------------------- */
@@ -148,43 +147,70 @@ const XXToETH: React.FC = () => {
   /* -------------------------------------------------------------------------- */
 
   // ETH
-  const { isError: ethError, isLoading: ethLoading } = useBalance({
-    address,
-    watch: true,
-    onSuccess: (data: any) => {
-      if (data) {
-        setEthBalance(formatBalance(data.value, data.decimals, 4))
-      }
-    },
-    onError: (error: Error) => {
-      console.error('Error fetching ETH balance', error)
-      setEthBalance('0')
-    }
-  })
+  const {
+    data: ethData,
+    isError: ethError,
+    isLoading: ethLoading,
+    refetch: refetchBalance
+  } = useBalance({ address })
 
   // Wrapped xx (when recipient set)
   const {
+    data: wrappedXXData,
     isError: wrappedXXError,
     isLoading: wrappedXXLoading,
     refetch: refetchWrappedXX
-  } = useContractRead({
+  } = useReadContract({
     address: WRAPPED_XX_ADDRESS,
     abi: contracts.ierc20Abi,
     functionName: 'balanceOf',
-    args: [address as `0x${string}`],
-    watch: true,
-    onSuccess: (data: any) => {
-      if (data !== undefined) {
-        setWrappedXXBalance(
-          formatBalance(data.toString(), ethereumMainnet.token.decimals, 4)
+    args: [recipient as `0x${string}`]
+  })
+
+  // Set values and errors
+  useEffect(() => {
+    // Gas fee
+    if (feeData && feeData.gasPrice) {
+      // Add 10% for faster txs
+      setGasPrice(Number(feeData.gasPrice) * 1.1)
+    }
+    // ETH Balance
+    if (ethData) {
+      setEthBalance(formatBalance(ethData.value, ethData.decimals, 4))
+    } else if (ethError) {
+      console.error('Error fetching ETH balance', ethError)
+      setEthBalance('0')
+    }
+    // Wrapped XX Balance
+    if (wrappedXXData !== undefined) {
+      setWrappedXXBalance(
+        formatBalance(
+          wrappedXXData.toString(),
+          ethereumMainnet.token.decimals,
+          4
         )
-      }
-    },
-    onError: (error: Error) => {
-      console.error('Error fetching wrapped XX balance', error)
+      )
+    } else if (wrappedXXError) {
+      console.error('Error fetching wrapped XX balance', wrappedXXError)
       setWrappedXXBalance('0')
     }
-  })
+  }, [feeData, ethData, ethError, wrappedXXData, wrappedXXError])
+
+  // Refetch values every block
+  // No need to refetch allowance
+  const { data: blockNumber } = useBlockNumber({ watch: true })
+  useEffect(() => {
+    refetchFees()
+    refetchRelayerFee()
+    refetchBalance()
+    refetchWrappedXX()
+  }, [
+    blockNumber,
+    refetchFees,
+    refetchRelayerFee,
+    refetchBalance,
+    refetchWrappedXX
+  ])
 
   // Set fees
   useEffect(() => {
@@ -295,11 +321,10 @@ const XXToETH: React.FC = () => {
     resetInput()
     setRecipient('')
     setRecipientError(undefined)
-    refetchWrappedXX()
     setTimeout(() => {
       setResetting(false)
     }, 2000)
-  }, [refetchWrappedXX, resetInput])
+  }, [resetInput])
 
   // // useQuery hook to get the latest bridge transfers
   // const { data: latestTransfers, isLoading: latestTransfersLoading } =

@@ -1,19 +1,23 @@
-import { useCallback } from 'react'
-import { useNetwork, useSwitchNetwork } from 'wagmi'
-import { localConfig } from '@/plugins/wagmi'
+import { useCallback, useMemo } from 'react'
+import { useAccount, useSwitchChain } from 'wagmi'
+import { devChain } from '@/plugins/wagmi'
 
 // TODO: Add support for other networks and remove Goerli
 export const supportedNetworkIds = [
   {
-    id: localConfig.id,
-    name: localConfig.name
+    id: devChain.id,
+    name: devChain.name
   }
 ]
+export type ChainId = 9296
 
 export const useSwitchToSupportedNetwork = () => {
-  const { chain } = useNetwork()
-  const { chains, error, isSuccess, isLoading, switchNetworkAsync } =
-    useSwitchNetwork()
+  const { chain } = useAccount()
+  const { chains, error, isSuccess, status, switchChainAsync } =
+    useSwitchChain()
+
+  // Loading flag
+  const isLoading = useMemo(() => status === 'pending', [status])
 
   const addNetworkChain = async (config: any) => {
     // check is network added
@@ -52,17 +56,19 @@ export const useSwitchToSupportedNetwork = () => {
       if (
         chain &&
         chains &&
-        !supportedNetworkIds.map(network => network.id).includes(chain.id)
+        !supportedNetworkIds
+          .map(network => network.id)
+          .includes(chain.id as ChainId)
       ) {
-        const res = await addNetworkChain(localConfig)
+        const res = await addNetworkChain(devChain)
         if (!res) {
           console.error('Error adding network')
           return
         }
-        await switchNetworkAsync?.(id)
+        await switchChainAsync?.({ chainId: id })
       }
     },
-    [chain, chains, switchNetworkAsync]
+    [chain, chains, switchChainAsync]
   )
 
   return { error, isSuccess, isLoading, trigger }

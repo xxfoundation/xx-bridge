@@ -1,13 +1,8 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import { createWeb3Modal } from '@web3modal/wagmi/react'
-import { configureChains, mainnet } from '@wagmi/core'
-import { publicProvider } from '@wagmi/core/providers/public'
-import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet'
-import { InjectedConnector } from 'wagmi/connectors/injected'
-import { MetaMaskConnector } from 'wagmi/connectors/metaMask'
-import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
+import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors'
 import { createConfig } from 'wagmi'
-import { defineChain } from 'viem'
+import { http, defineChain } from 'viem'
+import { mainnet, sepolia } from 'viem/chains'
 
 const projectId = process.env.WALLET_CONNECT_PROJECT_ID || ''
 const httpUrl = process.env.ETH_API_URL || 'http://localhost:8545'
@@ -19,7 +14,7 @@ const httpUrl = process.env.ETH_API_URL || 'http://localhost:8545'
 //   icons: ['https://avatars.githubusercontent.com/u/37784886']
 // }
 
-export const localConfig = {
+export const devChain = defineChain({
   name: 'Bridge Dev',
   network: 'homestead',
   id: 9296,
@@ -42,40 +37,30 @@ export const localConfig = {
     symbol: 'ETH',
     decimals: 18
   }
-}
-
-const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [mainnet, defineChain(localConfig)],
-  [publicProvider()]
-)
+})
 
 export const wagmiConfig = createConfig({
-  autoConnect: true,
+  chains: [mainnet, sepolia, devChain],
+  transports: {
+    [mainnet.id]: http('https://eth.llamarpc.com'),
+    [sepolia.id]: http('https://ethereum-sepolia-rpc.publicnode.com'),
+    [devChain.id]: http(httpUrl)
+  },
   connectors: [
-    new MetaMaskConnector({ chains }),
-    new CoinbaseWalletConnector({
-      chains,
-      options: {
-        appName: 'wagmi'
-      }
+    // Wallet connect
+    walletConnect({
+      projectId,
+      showQrModal: false
     }),
-    new WalletConnectConnector({
-      chains,
-      options: {
-        projectId,
-        showQrModal: false
-      }
+    // Coinbase wallet
+    coinbaseWallet({
+      appName: 'echoexx'
     }),
-    new InjectedConnector({
-      chains,
-      options: {
-        name: 'Injected',
-        shimDisconnect: true
-      }
+    // Any injected wallet
+    injected({
+      shimDisconnect: true
     })
-  ],
-  publicClient,
-  webSocketPublicClient
+  ]
 })
 
 export function init() {
@@ -85,7 +70,6 @@ export function init() {
   createWeb3Modal({
     wagmiConfig,
     projectId,
-    chains,
     featuredWalletIds: []
   })
 }

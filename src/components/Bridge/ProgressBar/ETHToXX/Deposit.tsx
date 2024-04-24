@@ -1,7 +1,7 @@
 import { Stack, Typography } from '@mui/material'
 import React, { useCallback, useRef, useState } from 'react'
 import { useAccount } from 'wagmi'
-import { waitForTransaction } from 'wagmi/actions'
+import { waitForTransactionReceipt } from 'wagmi/actions'
 import contracts from '@/contracts'
 import {
   BRIDGE_ADDRESS,
@@ -20,6 +20,7 @@ import {
 } from '@/plugins/redux/selectors'
 import customWriteContract from '@/utils/promises'
 import { useEffectDebugger } from '@/hooks/useUtils'
+import { wagmiConfig } from '@/plugins/wagmi'
 
 interface DepositProps {
   currStep: number
@@ -140,8 +141,7 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
                         BRIDGE_ID_XXNETWORK,
                         BRIDGE_RESOURCE_ID_XX,
                         deposit
-                      ],
-                      account: address
+                      ]
                     })
                     dispatch(
                       actions.setDepositTxHash({
@@ -180,10 +180,13 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
             if (depositState.txHash) {
               try {
                 console.log(`Waiting for deposit:`, depositState.txHash)
-                const depositReceipt = await waitForTransaction({
-                  hash: depositState.txHash as `0x${string}`,
-                  confirmations: CONFIRMATIONS_THRESHOLD
-                })
+                const depositReceipt = await waitForTransactionReceipt(
+                  wagmiConfig,
+                  {
+                    hash: depositState.txHash as `0x${string}`,
+                    confirmations: CONFIRMATIONS_THRESHOLD
+                  }
+                )
                 if (depositReceipt) {
                   console.log(`Deposit receipt:`, depositReceipt)
                   dispatch(

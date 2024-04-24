@@ -9,13 +9,13 @@ import {
   useMediaQuery
 } from '@mui/material'
 import {
-  PublicClient,
   useAccount,
   useBalance,
-  useConfig,
-  useContractRead,
-  useFeeData
+  useBlockNumber,
+  useReadContract,
+  useEstimateFeesPerGas
 } from 'wagmi'
+import { createPublicClient, http, PublicClient } from 'viem'
 import StyledButton from '../custom/StyledButton'
 import {
   convertXXAddress,
@@ -106,9 +106,12 @@ const RecipientBalance: React.FC<{ recipient: string }> = ({ recipient }) => {
 
 const ETHToXX: React.FC = () => {
   // Hooks
-  const { address } = useAccount()
-  const { publicClient } = useConfig()
+  const { address, chain } = useAccount()
   const { selectedAccount } = useAccounts()
+  const publicClient = createPublicClient({
+    chain,
+    transport: http()
+  })
 
   // State
   const [input, setInput] = useState<number | null>(null)
@@ -167,80 +170,103 @@ const ETHToXX: React.FC = () => {
     setRecipient(value)
   }, [])
 
-  // Network fees
-  const { isError: feeError, isLoading: feeLoading } = useFeeData({
-    watch: true,
-    onSuccess: (data: any) => {
-      if (data && data.gasPrice) {
-        // Add 10% for faster txs
-        setGasPrice(Number(data.gasPrice) * 1.1)
-      }
-    }
-  })
-
   /* -------------------------------------------------------------------------- */
   /*                            Get account balances                            */
   /* -------------------------------------------------------------------------- */
 
+  // Network fees
+  const {
+    data: feeData,
+    isError: feeError,
+    isLoading: feeLoading,
+    refetch: refetchFees
+  } = useEstimateFeesPerGas()
+
   // ETH
-  const { isError: ethError, isLoading: ethLoading } = useBalance({
-    address,
-    watch: true,
-    onSuccess: (data: any) => {
-      if (data) {
-        setEthBalance(formatBalance(data.value, data.decimals, 4))
-      }
-    },
-    onError: (error: Error) => {
-      console.error('Error fetching ETH balance', error)
-      setEthBalance('0')
-    }
-  })
+  const {
+    data: ethData,
+    isError: ethError,
+    isLoading: ethLoading,
+    refetch: refetchBalance
+  } = useBalance({ address })
 
   // Wrapped XX
   const {
+    data: wrappedXXData,
     isError: wrappedXXError,
     isLoading: wrappedXXLoading,
     refetch: refetchWrappedXX
-  } = useContractRead({
+  } = useReadContract({
     address: WRAPPED_XX_ADDRESS,
     abi: contracts.ierc20Abi,
     functionName: 'balanceOf',
-    args: [address as `0x${string}`],
-    watch: true,
-    onSuccess: (data: any) => {
-      if (data !== undefined) {
-        setWrappedXXBalance(
-          formatBalance(data.toString(), ethereumMainnet.token.decimals, 4)
-        )
-      }
-    },
-    onError: (error: Error) => {
-      console.error('Error fetching wrapped XX balance', error)
-      setWrappedXXBalance('0')
-    }
+    args: [address as `0x${string}`]
   })
 
   // Allowance
   const {
+    data: wrappedXXAllowanceData,
     isError: wrappedXXAllowanceError,
-    isLoading: wrappedXXAllowanceLoading,
-    refetch: refetchAllowance
-  } = useContractRead({
+    isLoading: wrappedXXAllowanceLoading
+  } = useReadContract({
     address: WRAPPED_XX_ADDRESS,
     abi: contracts.ierc20Abi,
     functionName: 'allowance',
-    args: [address as `0x${string}`, BRIDGE_ERC20_HANDLER_ADDRESS],
-    onSuccess: (data: any) => {
-      if (data !== undefined) {
-        setAllowance(data.toString())
-      }
-    },
-    onError: (error: Error) => {
-      console.error('Error fetching allowance', error)
+    args: [address as `0x${string}`, BRIDGE_ERC20_HANDLER_ADDRESS]
+  })
+
+  // Set values and errors
+  useEffect(() => {
+    // Gas fee
+    if (feeData && feeData.gasPrice) {
+      // Add 10% for faster txs
+      setGasPrice(Number(feeData.gasPrice) * 1.1)
+    }
+    // ETH Balance
+    if (ethData) {
+      setEthBalance(formatBalance(ethData.value, ethData.decimals, 4))
+    } else if (ethError) {
+      console.error('Error fetching ETH balance', ethError)
+      setEthBalance('0')
+    }
+    // Wrapped XX Balance
+    if (wrappedXXData !== undefined) {
+      setWrappedXXBalance(
+        formatBalance(
+          wrappedXXData.toString(),
+          ethereumMainnet.token.decimals,
+          4
+        )
+      )
+    } else if (wrappedXXError) {
+      console.error('Error fetching wrapped XX balance', wrappedXXError)
+      setWrappedXXBalance('0')
+    }
+    // Wrapped XX Allowance
+    if (wrappedXXAllowanceData !== undefined) {
+      setAllowance(wrappedXXAllowanceData.toString())
+    } else if (wrappedXXAllowanceError) {
+      console.error('Error fetching allowance', wrappedXXAllowanceError)
       setAllowance(undefined)
     }
-  })
+  }, [
+    feeData,
+    ethData,
+    ethError,
+    wrappedXXData,
+    wrappedXXError,
+    wrappedXXAllowanceData,
+    wrappedXXAllowanceError
+  ])
+
+  // Refetch values every block
+  // No need to refetch allowance
+  const { data: blockNumber } = useBlockNumber({ watch: true })
+  useEffect(() => {
+    refetchFees()
+    refetchBalance()
+    refetchWrappedXX()
+  }, [blockNumber, refetchFees, refetchBalance, refetchWrappedXX])
 
   // Check if needs approve
   useEffect(() => {
@@ -358,13 +384,11 @@ const ETHToXX: React.FC = () => {
     resetInput()
     setRecipient('')
     setRecipientError(undefined)
-    refetchWrappedXX()
-    refetchAllowance()
     dispatch(actions.resetTxDetails(address))
     setTimeout(() => {
       setResetting(false)
     }, 2000)
-  }, [address, dispatch, refetchAllowance, refetchWrappedXX, resetInput])
+  }, [address, dispatch, resetInput])
 
   // Restore transaction from local storage and set values if transfer ongoing
   // Otherwise, reset input and get recipient from xx wallet

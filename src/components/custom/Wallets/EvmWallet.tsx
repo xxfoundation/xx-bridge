@@ -1,11 +1,12 @@
 import { Divider, Stack, Typography } from '@mui/material'
 import React, { useEffect, useState } from 'react'
-import { useAccount, useBalance } from 'wagmi'
+import { useAccount, useBalance, useBlockNumber } from 'wagmi'
 import { Cancel } from '@mui/icons-material'
 import { disconnect } from 'wagmi/actions'
 import { formatBalance } from '@/utils'
 import DisplayAddress from '@/components/custom/DisplayAddress'
 import WrappedIcon from '@/components/custom/WrappedIcon'
+import { wagmiConfig } from '@/plugins/wagmi'
 
 interface EvmWalletProps {
   showBalance?: boolean
@@ -19,10 +20,13 @@ const EvmWallet: React.FC<EvmWalletProps> = ({
   showAll = false
 }) => {
   const { address } = useAccount()
-  const { data } = useBalance({
-    address,
-    watch: true
+  const { data, refetch } = useBalance({
+    address
   })
+  const { data: blockNumber } = useBlockNumber({ watch: true })
+  useEffect(() => {
+    refetch()
+  }, [blockNumber, refetch])
 
   const [balance, setBalance] = useState<string | undefined>()
 
@@ -76,7 +80,7 @@ const EvmWallet: React.FC<EvmWalletProps> = ({
         <WrappedIcon
           icon={<Cancel />}
           onClick={() => {
-            disconnect()
+            disconnect(wagmiConfig)
           }}
         />
       )}

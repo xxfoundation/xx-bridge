@@ -1,7 +1,7 @@
 import { Stack, Typography } from '@mui/material'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useAccount } from 'wagmi'
-import { waitForTransaction } from 'wagmi/actions'
+import { waitForTransactionReceipt } from 'wagmi/actions'
 import contracts from '@/contracts'
 import {
   BRIDGE_ERC20_HANDLER_ADDRESS,
@@ -15,6 +15,7 @@ import { useAppDispatch, useAppSelector } from '@/plugins/redux/hooks'
 import { actions, emptyState } from '@/plugins/redux/reducers'
 import { getApprovalFromAddress } from '@/plugins/redux/selectors'
 import customWriteContract from '@/utils/promises'
+import { wagmiConfig } from '@/plugins/wagmi'
 
 interface ApproveProps {
   currStep: number
@@ -114,15 +115,14 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
           }
           // if not prompted, prompt user
           console.log(`Prompting user to approve spending...`)
-          if (!prompted.current && !approveError) {
+          if (!prompted.current && !approveError && address) {
             prompted.current = true
             try {
               const hash = await customWriteContract({
                 address: WRAPPED_XX_ADDRESS,
                 abi: contracts.ierc20Abi,
                 functionName: 'approve',
-                args: [BRIDGE_ERC20_HANDLER_ADDRESS, BRIDGE_SPENDING_LIMIT],
-                account: address
+                args: [BRIDGE_ERC20_HANDLER_ADDRESS, BRIDGE_SPENDING_LIMIT]
               })
               dispatch(
                 actions.setApprovalTxHash({
@@ -156,10 +156,13 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
           if (approvalState.txHash) {
             try {
               console.log(`Waiting for approval:`, approvalState.txHash)
-              const approvalReceipt = await waitForTransaction({
-                hash: approvalState.txHash as `0x${string}`,
-                confirmations: CONFIRMATIONS_THRESHOLD
-              })
+              const approvalReceipt = await waitForTransactionReceipt(
+                wagmiConfig,
+                {
+                  hash: approvalState.txHash as `0x${string}`,
+                  confirmations: CONFIRMATIONS_THRESHOLD
+                }
+              )
               if (approvalReceipt) {
                 console.log(`Approval receipt:`, approvalReceipt)
                 dispatch(
