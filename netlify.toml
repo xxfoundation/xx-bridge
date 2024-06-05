@@ -11,4 +11,29 @@ status = 200
 # Environment variables for all branches
 [build.environment]
 NODE_OPTIONS = "--max_old_space_size=4096"
+
+# Wallet Connect Project ID
 WALLET_CONNECT_PROJECT_ID = '01c18f1ef60e3cadd621865e0a14de04'
+
+# API URLs
+XX_API_URL = 'wss://bridge-dev.xx.network/xx/rpc'
+ETH_API_URL = 'https://bridge-dev.xx.network/eth/rpc'
+
+# Explorer URLs
+XX_EXPLORER_URL = 'https://explorer.xx.network'
+
+# Indexer URLs
+XX_INDEXER_URL = 'https://bridge-dev.xx.network/xx/indexer'
+ETH_INDEXER_URL = 'https://bridge-dev.xx.network/eth/indexer'
+
+# Address of the XX network contract
+WRAPPED_XX_ADDRESS = '0x3f709398808af36ADBA86ACC617FeB7F5B7B193E'
+
+# Address of the Ethereum network contract
+BRIDGE_ERC20_HANDLER_ADDRESS = '0x3167776db165D8eA0f51790CA2bbf44Db5105ADF'
+
+# Address of the Bridge contract
+BRIDGE_ADDRESS = '0x62877dDCd49aD22f5eDfc6ac108e9a4b5D2bD88B'
+
+# Address of the Relayer 
+BRIDGE_RELAYER_FEE_ADDRESS = '0x028152c03ad5E28dE97AEaf90f104C7eD42a47bB'

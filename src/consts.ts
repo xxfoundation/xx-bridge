@@ -2,11 +2,26 @@ import xxLogo from '@/assets/currencies/xx.jpeg'
 import wxxLogo from '@/assets/currencies/wxx.svg'
 import ethLogo from '@/assets/currencies/eth.png'
 
-// URLs
+// API URLs
+export const XX_API_URL = process.env.XX_API_URL || 'wss://rpc.xx.network'
+export const ETH_API_URL =
+  process.env.ETH_API_URL ||
+  'wss://mainnet.infura.io/ws/v3/6a6e1d5c4e5f4c2e8e9e6e2b0e8b1c6c'
+
+// Explorer URLs
 export const XX_EXPLORER_URL =
   process.env.XX_EXPLORER_URL || 'https://explorer.xx.network'
 export const ETH_EXPLORER_URL =
   process.env.ETH_EXPLORER_URL || 'https://etherscan.io'
+
+// Indexer URLs
+export const XX_INDEXER_URL =
+  `${process.env.XX_INDEXER_URL}/v1/graphql` ||
+  'http://localhost:4350/v1/graphql'
+
+export const ETH_INDEXER_URL =
+  `${process.env.ETH_INDEXER_URL}/v1/graphql` ||
+  'http://localhost:4350/v1/graphql'
 
 // Known addresses
 export const WRAPPED_XX_ADDRESS = (process.env.WRAPPED_XX_ADDRESS ||

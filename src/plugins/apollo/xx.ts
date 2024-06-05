@@ -11,10 +11,9 @@ import { RetryLink } from '@apollo/client/link/retry'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { OperationDefinitionNode } from 'graphql'
 import { createClient } from 'graphql-ws'
+import { XX_INDEXER_URL } from '@/consts'
 
-const graphqlHost =
-  `${process.env.XX_INDEXER_URL}/v1/graphql` ||
-  'http://localhost:4350/v1/graphql'
+const graphqlHost = XX_INDEXER_URL
 
 const httpLink = new HttpLink({ uri: graphqlHost })
 const wsLink = new GraphQLWsLink(

@@ -7,6 +7,7 @@ import { Box } from '@mui/material'
 import ApiContext, { ApiContextType } from './ApiContext'
 import Error from './Error'
 import { WithChildren } from '../types'
+import { XX_API_URL } from '@/consts'
 
 const registry = new TypeRegistry()
 
@@ -29,7 +30,7 @@ const ApiProvider: FC<WithChildren> = ({ children }) => {
   useEffect(() => {
     if (!api) {
       console.log('Connecting to xx network blockchain')
-      const provider = new WsProvider(process.env.XX_API_URL)
+      const provider = new WsProvider(XX_API_URL)
       setApi(
         new ApiPromise({
           provider,

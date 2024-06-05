@@ -3,9 +3,10 @@ import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors'
 import { createConfig } from 'wagmi'
 import { http, defineChain } from 'viem'
 import { mainnet, sepolia } from 'viem/chains'
+import { ETH_API_URL } from '@/consts'
 
 const projectId = process.env.WALLET_CONNECT_PROJECT_ID || ''
-const httpUrl = process.env.ETH_API_URL || 'http://localhost:8545'
+const httpUrl = ETH_API_URL
 
 // const metadata = {
 //   name: 'Web3Modal',
