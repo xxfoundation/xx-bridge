@@ -2,11 +2,12 @@ import xxLogo from '@/assets/currencies/xx.jpeg'
 import wxxLogo from '@/assets/currencies/wxx.svg'
 import ethLogo from '@/assets/currencies/eth.png'
 
+// Network
+export const DAPP_NETWORK = process.env.DAPP_NETWORK || 'mainnet'
+
 // API URLs
 export const XX_API_URL = process.env.XX_API_URL || 'wss://rpc.xx.network'
-export const ETH_API_URL =
-  process.env.ETH_API_URL ||
-  'wss://mainnet.infura.io/ws/v3/6a6e1d5c4e5f4c2e8e9e6e2b0e8b1c6c'
+export const ETH_API_URL = process.env.ETH_API_URL || 'https://eth.llamarpc.com'
 
 // Explorer URLs
 export const XX_EXPLORER_URL =

@@ -3,17 +3,10 @@ import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors'
 import { createConfig } from 'wagmi'
 import { http, defineChain } from 'viem'
 import { mainnet, sepolia } from 'viem/chains'
-import { ETH_API_URL } from '@/consts'
+import { DAPP_NETWORK, ETH_API_URL } from '@/consts'
 
 const projectId = process.env.WALLET_CONNECT_PROJECT_ID || ''
 const httpUrl = ETH_API_URL
-
-// const metadata = {
-//   name: 'Web3Modal',
-//   description: 'Web3Modal Example',
-//   url: 'https://web3modal.com',
-//   icons: ['https://avatars.githubusercontent.com/u/37784886']
-// }
 
 export const devChain = defineChain({
   name: 'Bridge Dev',
@@ -41,7 +34,12 @@ export const devChain = defineChain({
 })
 
 export const wagmiConfig = createConfig({
-  chains: [mainnet, sepolia, devChain],
+  chains:
+    DAPP_NETWORK === 'mainnet'
+      ? [mainnet]
+      : DAPP_NETWORK === 'sepolia'
+        ? [sepolia]
+        : [devChain],
   transports: {
     [mainnet.id]: http('https://eth.llamarpc.com'),
     [sepolia.id]: http('https://ethereum-sepolia-rpc.publicnode.com'),
@@ -55,7 +53,7 @@ export const wagmiConfig = createConfig({
     }),
     // Coinbase wallet
     coinbaseWallet({
-      appName: 'echoexx'
+      appName: 'xx-bridge'
     }),
     // Any injected wallet
     injected({

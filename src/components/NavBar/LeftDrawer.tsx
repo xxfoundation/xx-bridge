@@ -79,7 +79,7 @@ const LeftDrawer: React.FC = () => {
     isMobile
   })
 
-  const menuList = ['xx network', 'xx wallet', 'xx hub', 'echoexx.tech']
+  const menuList = ['xx network', 'xx wallet', 'xx hub', 'phoenixx']
   const menuIcons = [
     <Home key="home" />,
     <Wallet key="wallet" />,
@@ -116,8 +116,8 @@ const LeftDrawer: React.FC = () => {
       case 'xx hub':
         window.open('https://hub.xx.network/', '_blank')
         break
-      case 'echoexx':
-        window.open('https://echoexx.tech/', '_blank')
+      case 'phoenixx':
+        window.open('https://phoenixx.io/', '_blank')
         break
       default:
         break
