@@ -60,9 +60,7 @@ const FooterMobile: React.FC = () => (
               height: '30px',
               color: 'text.primary'
             }}
-            onClick={() =>
-              window.open('https://discord.com/invite/Y8pCkbK', '_blank')
-            }
+            onClick={() => window.open('https://discord.xx.network', '_blank')}
           >
             <img src={discordLogo} alt="discord" width="20px" height="20px" />
           </IconButton>
