@@ -1,6 +1,7 @@
 import { BN } from '@polkadot/util'
 import { useState, useCallback, useEffect } from 'react'
 import useApi from '@/plugins/substrate/hooks/useApi'
+import { isValidXXNetworkAddress } from '@/utils'
 
 const useXxBalance = (address: string) => {
   const [xxBalance, setXXBalance] = useState<BN>(new BN(0))
@@ -9,7 +10,12 @@ const useXxBalance = (address: string) => {
   const { api, ready } = useApi()
 
   const fetchXxBalance = useCallback(() => {
-    if (api && api?.query?.system?.account && address) {
+    if (
+      api &&
+      api?.query?.system?.account &&
+      address &&
+      isValidXXNetworkAddress(address)
+    ) {
       setIsLoadingBalance(true)
       api.query.system
         .account(address)

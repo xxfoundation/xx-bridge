@@ -3,11 +3,13 @@ import wxxLogo from '@/assets/currencies/wxx.svg'
 import ethLogo from '@/assets/currencies/eth.png'
 
 // Network
-export const DAPP_NETWORK = process.env.DAPP_NETWORK || 'mainnet'
+export const DAPP_NETWORK = process.env.DAPP_NETWORK || 'dev'
 
 // API URLs
-export const XX_API_URL = process.env.XX_API_URL || 'wss://rpc.xx.network'
-export const ETH_API_URL = process.env.ETH_API_URL || 'https://eth.llamarpc.com'
+export const XX_API_URL =
+  process.env.XX_API_URL || 'wss://bridge-dev.xx.network/xx/rpc'
+export const ETH_API_URL =
+  process.env.ETH_API_URL || 'https://bridge-dev.xx.network/eth/rpc'
 
 // Explorer URLs
 export const XX_EXPLORER_URL =
@@ -16,13 +18,9 @@ export const ETH_EXPLORER_URL =
   process.env.ETH_EXPLORER_URL || 'https://etherscan.io'
 
 // Indexer URLs
-export const XX_INDEXER_URL =
-  `${process.env.XX_INDEXER_URL}/v1/graphql` ||
-  'http://localhost:4350/v1/graphql'
+export const XX_INDEXER_URL = `${process.env.XX_INDEXER_URL || 'https://bridge-dev.xx.network/xx/indexer'}/v1/graphql`
 
-export const ETH_INDEXER_URL =
-  `${process.env.ETH_INDEXER_URL}/v1/graphql` ||
-  'http://localhost:4350/v1/graphql'
+export const ETH_INDEXER_URL = `${process.env.ETH_INDEXER_URL || 'https://bridge-dev.xx.network/eth/indexer'}/v1/graphql`
 
 // Known addresses
 export const WRAPPED_XX_ADDRESS = (process.env.WRAPPED_XX_ADDRESS ||

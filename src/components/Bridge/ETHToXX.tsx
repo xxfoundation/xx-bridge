@@ -218,9 +218,16 @@ const ETHToXX: React.FC = () => {
   // Set values and errors
   useEffect(() => {
     // Gas fee
-    if (feeData && feeData.gasPrice) {
+    if (feeData) {
       // Add 10% for faster txs
-      setGasPrice(Number(feeData.gasPrice) * 1.1)
+      if (feeData.gasPrice) {
+        setGasPrice(Number(feeData.gasPrice) * 1.1)
+      } else if (feeData.maxFeePerGas) {
+        setGasPrice(Number(feeData.maxFeePerGas) * 1.1)
+      } else {
+        console.error('Error fetching gas price', feeData)
+        setGasPrice(undefined)
+      }
     }
     // ETH Balance
     if (ethData) {

@@ -97,6 +97,10 @@ export const isValidXXNetworkAddress = (address: string) => {
   if (address.startsWith('0x')) {
     return false
   }
+  // Quit early if not valid lenght
+  if (address.length !== 48) {
+    return false
+  }
   try {
     // Use ss58 format 55, which is registered for xx network
     const val = decodeAddress(address, false, 55)
