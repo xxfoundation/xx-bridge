@@ -9,6 +9,9 @@ import XXToETH from '@/components/Bridge/XXToETH.tsx'
 import { ethereumMainnet, xxNetwork } from '@/consts.ts'
 import theme from '@/theme.ts'
 import useSessionStorage from '@/hooks/useSessionStorage.ts'
+import { getMarketvalue } from '@/utils.ts'
+
+const priceFrequency = 2 * 60 * 1000 // 2 minutes
 
 const Bridge: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
@@ -34,6 +37,23 @@ const Bridge: React.FC = () => {
       setSwitching(false)
     }, 2000)
   }, [fromXX])
+
+  // Get ETH and XX prices in USD
+  const [ethPrice, setEthPrice] = useState<string>()
+  const [xxPrice, setXXPrice] = useState<string>()
+  useEffect(() => {
+    async function fetchPrices() {
+      const priceEth = await getMarketvalue('ethereum')
+      const priceXX = await getMarketvalue('xxcoin')
+      console.log('ETH price:', priceEth)
+      console.log('XX price:', priceXX)
+      setEthPrice(priceEth)
+      setXXPrice(priceXX)
+    }
+    fetchPrices()
+    const interval = setInterval(fetchPrices, priceFrequency)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <StyledStack
@@ -80,7 +100,11 @@ const Bridge: React.FC = () => {
             setSwitching={switchNetworks}
           />
           <Divider />
-          {fromXX ? <XXToETH /> : <ETHToXX />}
+          {fromXX ? (
+            <XXToETH ethPrice={ethPrice} xxPrice={xxPrice} />
+          ) : (
+            <ETHToXX ethPrice={ethPrice} />
+          )}
         </Stack>
       )}
     </StyledStack>

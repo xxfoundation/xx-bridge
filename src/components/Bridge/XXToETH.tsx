@@ -43,7 +43,12 @@ import { RootState } from '@/plugins/redux/types'
 import { actions } from '@/plugins/redux/reducers'
 import { State } from './ProgressBar/XXToETH'
 
-const XXToETH: React.FC = () => {
+interface XXToETHProps {
+  ethPrice?: string
+  xxPrice?: string
+}
+
+const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
   // Hooks
   const { address } = useAccount()
   const { selectedAccount, connectWallet, hasExtensions } = useAccounts()
@@ -656,10 +661,12 @@ const XXToETH: React.FC = () => {
               paddingRight={2}
             >
               <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
-                {xxFee !== '0' && `~ ${xxFee} ${xxNetwork.gasToken.code}`}
+                {xxFee !== '0' &&
+                  `~ ${xxFee} ${xxNetwork.gasToken.code} ${xxPrice && `(${(parseFloat(xxPrice) * parseFloat(xxFee)).toFixed(3)} USD)`}`}
               </Typography>
               <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
-                {fees !== '0' && `~ ${fees} ${ethereumMainnet.gasToken.code}`}
+                {fees !== '0' &&
+                  `~ ${fees} ${ethereumMainnet.gasToken.code} ${ethPrice && `(${(parseFloat(ethPrice) * parseFloat(fees)).toFixed(3)} USD)`}`}
               </Typography>
             </Stack>
           </Stack>

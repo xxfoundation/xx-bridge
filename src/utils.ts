@@ -1,6 +1,7 @@
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import { u8aToHex } from '@polkadot/util'
 import { padHex, toHex } from 'viem'
+import axios, { AxiosError } from 'axios'
 
 export interface Network {
   name: string
@@ -277,4 +278,43 @@ export const debounce = (
     }, delay)
   }
   return retval
+}
+
+// USD values for ETH and XX
+
+type JSONData = {
+  market_data: {
+    current_price: {
+      usd: string
+    }
+  }
+}
+
+export const getMarketvalue = async (
+  coin: string
+): Promise<string | undefined> => {
+  try {
+    const { data, status } = await axios.get<JSONData>(
+      `https://api.coingecko.com/api/v3/coins/${coin}/`,
+      {
+        headers: {
+          Accept: 'application/json'
+        }
+      }
+    )
+
+    let coinValue = 'error'
+    if (status === 200) {
+      coinValue = JSON.stringify(data.market_data.current_price.usd)
+    }
+    return coinValue
+  } catch (err) {
+    const error = err as Error | AxiosError
+    if (axios.isAxiosError(error)) {
+      console.warn(`error getting ${coin} market value: ${error.message}`)
+      return undefined
+    }
+    console.warn(`unexpected error getting ${coin} market value: ${error}`)
+    return undefined
+  }
 }

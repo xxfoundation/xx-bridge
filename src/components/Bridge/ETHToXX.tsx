@@ -104,7 +104,11 @@ const RecipientBalance: React.FC<{ recipient: string }> = ({ recipient }) => {
   )
 }
 
-const ETHToXX: React.FC = () => {
+interface ETHToXXProps {
+  ethPrice?: string
+}
+
+const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
   // Hooks
   const { address, chain } = useAccount()
   const { selectedAccount } = useAccounts()
@@ -616,7 +620,7 @@ const ETHToXX: React.FC = () => {
                 <Typography sx={{ fontSize: '14px', color: 'text.primary' }}>
                   {fees === '0'
                     ? 'Fill in valid amount and recipient to estimate fees'
-                    : `~ ${fees} ${ethereumMainnet.gasToken.code}`}
+                    : `~ ${fees} ${ethereumMainnet.gasToken.code} ${ethPrice && `(${(parseFloat(ethPrice) * parseFloat(fees)).toFixed(3)} USD)`}`}
                 </Typography>
               </Stack>
               <Stack direction="row" padding={2} justifyContent="center">
