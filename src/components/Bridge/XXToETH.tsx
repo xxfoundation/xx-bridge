@@ -26,6 +26,7 @@ import {
   BRIDGE_RELAYER_FEE_ADDRESS,
   GAS_ESTIMATE_RELAYER_FEE,
   WRAPPED_XX_ADDRESS,
+  RELAYER_FEE_WARNING,
   ethereumMainnet,
   xxNetwork
 } from '@/consts'
@@ -69,6 +70,7 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
   const [fees, setFees] = useState<string>('0')
   const [xxFee, setXXFee] = useState<string>('0')
   const [resetting, setResetting] = useState<boolean>(false)
+  const [warning, setWarning] = useState<boolean>(false)
 
   // Check screen checkpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
@@ -240,6 +242,12 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
       const fee =
         BigInt((GAS_ESTIMATE_RELAYER_FEE * gasPrice).toFixed(0)) + relayerFee
       setFees(formatBalance(fee, 18, 6))
+      // Set warning if relayer fee is over the limit
+      if (relayerFee > RELAYER_FEE_WARNING) {
+        setWarning(true)
+      } else {
+        setWarning(false)
+      }
       // Tx fee for xx swap.transferNative call
       const extrinsic = api.tx.swap.transferNative(
         transferValue,
@@ -670,6 +678,24 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
               </Typography>
             </Stack>
           </Stack>
+          {warning && (
+            <Stack
+              direction="row"
+              padding={2}
+              justifyContent="center"
+              alignItems="center"
+            >
+              <Typography
+                sx={{
+                  color: 'error.main',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                Gas fees are currently high
+              </Typography>
+            </Stack>
+          )}
           {startTransfer && recipient ? (
             <Status sourceId={BRIDGE_ID_XXNETWORK} reset={reset} />
           ) : (

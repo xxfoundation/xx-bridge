@@ -69,6 +69,8 @@ export const BRIDGE_SPENDING_LIMIT = BigInt(
   '0xDE0B6B3A7640000'
 )
 
+export const RELAYER_FEE_WARNING = BigInt(6e15)
+
 export type Network = {
   name: string
   gasToken: {
