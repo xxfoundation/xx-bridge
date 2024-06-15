@@ -28,10 +28,15 @@ const emptyToNativeTx = {
 }
 
 const emptyFromNativeTx = {
-  status: emptyStep,
-  nonce: 0,
-  extrinsicHash: undefined,
-  txHash: undefined
+  nativeTransfer: {
+    status: emptyStep,
+    nonce: 0,
+    extrinsicHash: undefined
+  },
+  feePayment: {
+    status: emptyStep,
+    txHash: undefined
+  }
 }
 
 export const emptyState: BridgeTx = {
@@ -267,9 +272,9 @@ export const slice = createSlice({
       })
     },
     /* -------------------------------------------------------------------------- */
-    /*                                 From Native                                */
+    /*                                 Native Transfer                            */
     /* -------------------------------------------------------------------------- */
-    setFromNativeStatus: (
+    setNativeTransferStatus: (
       state,
       action: PayloadAction<{ key: string | undefined; status: CustomStep }>
     ) => {
@@ -287,11 +292,14 @@ export const slice = createSlice({
         ...currState,
         fromNative: {
           ...currState.fromNative,
-          status
+          nativeTransfer: {
+            ...currState.fromNative.nativeTransfer,
+            status
+          }
         }
       })
     },
-    setFromNative: (
+    setNativeTransferData: (
       state,
       action: PayloadAction<{
         key: string | undefined
@@ -313,12 +321,43 @@ export const slice = createSlice({
         ...currState,
         fromNative: {
           ...currState.fromNative,
-          nonce,
-          extrinsicHash
+          nativeTransfer: {
+            ...currState.fromNative.nativeTransfer,
+            nonce,
+            extrinsicHash
+          }
         }
       })
     },
-    setFromNativeTxHash: (
+    /* -------------------------------------------------------------------------- */
+    /*                                  Fee Payment                               */
+    /* -------------------------------------------------------------------------- */
+    setFeePaymentStatus: (
+      state,
+      action: PayloadAction<{ key: string | undefined; status: CustomStep }>
+    ) => {
+      const { key, status } = action.payload
+      if (!key) {
+        console.error('No key provided', key)
+        return
+      }
+      const currState = get(state, key)
+      if (!currState) {
+        console.error('No state found', key)
+        return
+      }
+      state.transactions = set(state, key, {
+        ...currState,
+        fromNative: {
+          ...currState.fromNative,
+          feePayment: {
+            ...currState.fromNative.feePayment,
+            status
+          }
+        }
+      })
+    },
+    setFeePaymentTxHash: (
       state,
       action: PayloadAction<{ key: string | undefined; hash: string }>
     ) => {
@@ -336,7 +375,10 @@ export const slice = createSlice({
         ...currState,
         fromNative: {
           ...currState.fromNative,
-          txHash: hash
+          feePayment: {
+            ...currState.fromNative.feePayment,
+            txHash: hash
+          }
         }
       })
     },

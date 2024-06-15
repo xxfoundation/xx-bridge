@@ -20,6 +20,12 @@ export const getApprovalFromAddress = (state: RootState, address: string) =>
 export const getDepositFromAddress = (state: RootState, address: string) =>
   state.transactions[address]?.toNative.deposit
 
-// get fromNative with specific key (address)
-export const getFromNativeFromAddress = (state: RootState, address: string) =>
-  state.transactions[address]?.fromNative
+// get nativeTransfer with specific key (address)
+export const getNativeTransferFromAddress = (
+  state: RootState,
+  address: string
+) => state.transactions[address]?.fromNative.nativeTransfer
+
+// get feePayment with specific key (address)
+export const getFeePaymentFromAddress = (state: RootState, address: string) =>
+  state.transactions[address]?.fromNative.feePayment

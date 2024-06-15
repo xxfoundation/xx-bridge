@@ -341,10 +341,11 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
     resetInput()
     setRecipient('')
     setRecipientError(undefined)
+    dispatch(actions.resetTxDetails(selectedAccount?.address))
     setTimeout(() => {
       setResetting(false)
     }, 2000)
-  }, [resetInput])
+  }, [selectedAccount, dispatch, resetInput])
 
   // // useQuery hook to get the latest bridge transfers
   // const { data: latestTransfers, isLoading: latestTransfersLoading } =
@@ -641,7 +642,7 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
             <CurrencyInputField
               disabled={startTransfer}
               code={xxNetwork.gasToken.code}
-              balance={parseFloat(xxBalance.toString())}
+              balance={parseFloat(xxBalance.toString()) / 1e9}
               value={input}
               setValue={setValue}
               error={valueError}

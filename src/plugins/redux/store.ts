@@ -9,7 +9,7 @@ const rootReducer = (state: RootState, action: UnknownAction) =>
 // Load string from localStarage and convert into an Object
 const loadFromLocalStorage = () => {
   try {
-    const serialisedState = localStorage.getItem('persistantState')
+    const serialisedState = localStorage.getItem('persistentState')
     if (serialisedState === null) return undefined
     console.log(
       '[STORAGE] Loading state from localStorage',
@@ -27,7 +27,7 @@ const saveToLocalStorage = (state: RootState) => {
   try {
     console.log('[STORAGE] Saving state to localStorage', state)
     const serialisedState = JSON.stringify(state)
-    localStorage.setItem('persistantState', serialisedState)
+    localStorage.setItem('persistentState', serialisedState)
   } catch (e) {
     console.warn(e)
   }

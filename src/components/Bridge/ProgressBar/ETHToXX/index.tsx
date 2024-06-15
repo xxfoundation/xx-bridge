@@ -52,11 +52,11 @@ export const State: CustomStep[] = [
   },
   {
     step: Steps.BridgeDeposit,
-    message: 'Depositing to bridge'
+    message: 'Depositing WXX to Bridge'
   },
   {
     step: Steps.WaitBridge,
-    message: 'Waiting for bridge'
+    message: 'Waiting for Bridge'
   },
   {
     step: Steps.Done,
@@ -129,7 +129,6 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
     }
     return ''
   }, [depositNonce])
-  console.log('dataEvent', dataEvent)
 
   // Watch executed event on Bridge smart contract (xx indexer)
   const { data: bridgeEvent, error: errorBridgeEvent } =
@@ -256,6 +255,7 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
 
           /* -------------------------------------------------------------------------- */
           default:
+            console.log(`Unknown step: ${currState.tx.status.step}`)
             break
         }
       }
@@ -288,7 +288,6 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
 
   // Handle deposit done
   const handleDepositDone = useCallback(() => {
-    console.log('handleDepositDone')
     dispatch(
       actions.incrementStepTo({
         key: address,
@@ -340,9 +339,17 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
                       state =>
                         state.step !== Steps.ApproveSpend &&
                         state.step !== Steps.Idle
+                    ).map(state =>
+                      state.step < Steps.ApproveSpend
+                        ? state
+                        : { step: state.step - 1, message: state.message }
                     )
               }
-              activeStep={currState.tx.status.step}
+              activeStep={
+                currState.tx.needApproval
+                  ? currState.tx.status.step
+                  : currState.tx.status.step - 1
+              }
             />
             <Stack
               direction="column"
@@ -360,15 +367,29 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
                 )}
               {currState.tx.status.step === Steps.BridgeDeposit && (
                 <Deposit
-                  currStep={Steps.BridgeDeposit}
+                  currStep={
+                    currState.tx.needApproval
+                      ? Steps.BridgeDeposit
+                      : Steps.BridgeDeposit - 1
+                  }
                   setError={handleError}
                   done={handleDepositDone}
                 />
               )}
               {currState.tx.status.step === Steps.WaitBridge && (
-                <Typography variant="body1" fontWeight="bold">
-                  {Steps.WaitBridge}. Waiting for Bridge ...
-                </Typography>
+                <>
+                  <Typography variant="body1" fontWeight="bold">
+                    {currState.tx.needApproval
+                      ? Steps.WaitBridge
+                      : Steps.WaitBridge - 1}
+                    . Waiting for Bridge ...
+                  </Typography>
+                  <Typography variant="body2">
+                    The relayer requires 10 blocks to confirm a deposit, so the
+                    bridge operation can take upwards of 2 minutes, please be
+                    patient.
+                  </Typography>
+                </>
               )}
               {currState.tx.status.step >= Steps.Done && (
                 <Stack
@@ -379,7 +400,8 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
                   spacing="20px"
                 >
                   <Typography variant="h5" fontWeight="bold">
-                    {Steps.Done}. Transfer complete!
+                    {currState.tx.needApproval ? Steps.Done : Steps.Done - 1}.
+                    Transfer complete!
                   </Typography>
                   {currState.toNative.deposit.txHash && (
                     <Link

@@ -36,11 +36,20 @@ export interface ToNative {
 /* -------------------------------------------------------------------------- */
 /*                           From Native (XX -> EVM)                          */
 /* -------------------------------------------------------------------------- */
-export interface FromNative {
+export interface NativeTransferInfo {
   status: CustomStep
   nonce: number
   extrinsicHash: string | undefined
+}
+
+export interface FeePaymentInfo {
+  status: CustomStep
   txHash: string | `0x${string}` | undefined
+}
+
+export interface FromNative {
+  nativeTransfer: NativeTransferInfo
+  feePayment: FeePaymentInfo
 }
 
 /* ------------------------------------ - ----------------------------------- */

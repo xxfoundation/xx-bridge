@@ -1,38 +1,21 @@
 import { Link, Stack, Typography } from '@mui/material'
-import React, { useCallback, useRef, useState } from 'react'
-import { useAccount } from 'wagmi'
-import { readContract, waitForTransactionReceipt } from 'wagmi/actions'
+import React, { useCallback, useState } from 'react'
 import { useQuery } from '@apollo/client'
-import { Info } from '@mui/icons-material'
-import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
-import {
-  BRIDGE_ID_ETH_MAINNET,
-  BRIDGE_ID_XXNETWORK,
-  BRIDGE_RELAYER_FEE_ADDRESS,
-  CONFIRMATIONS_THRESHOLD,
-  ETH_EXPLORER_URL,
-  XX_EXPLORER_URL
-} from '@/consts'
-import contracts from '@/contracts'
+import { ETH_EXPLORER_URL, XX_EXPLORER_URL } from '@/consts'
 import {
   QUERY_PROPOSAL_EVENTS,
   QueryProposalEvents
 } from '@/plugins/apollo/schemas'
 import StyledButton from '../../../custom/StyledButton'
 import { useAppDispatch, useAppSelector } from '@/plugins/redux/hooks'
-import {
-  getBridgeTxHashFromAddress,
-  getFromNativeFromAddress,
-  getTxFromAddress
-} from '@/plugins/redux/selectors'
+import { getStateFromAddress } from '@/plugins/redux/selectors'
 import { CustomStep, RootState } from '@/plugins/redux/types'
 import { actions, emptyState } from '@/plugins/redux/reducers'
 import CustomStepper from '../Stepper'
 import { useEffectDebugger } from '@/hooks/useUtils'
-import customWriteContract from '@/utils/promises'
-import CustomTooltip from '@/plugins/substrate/components/Tooltip'
-import { wagmiConfig } from '@/plugins/wagmi'
+import NativeTranfer from './NativeTransfer'
+import PayFee from './PayFee'
 
 interface TransferXXToETHProps {
   reset: () => void
@@ -43,10 +26,9 @@ export enum Steps {
   Idle = 0,
   Init = 1,
   NativeTransfer = 2,
-  PromptRelayerFee = 3,
-  WaitFee = 4,
-  WaitBridge = 5,
-  Done = 6
+  FeePayment = 3,
+  WaitBridge = 4,
+  Done = 5
 }
 
 export const State: CustomStep[] = [
@@ -56,59 +38,40 @@ export const State: CustomStep[] = [
   },
   {
     step: Steps.Init,
-    message: 'Initializing transfer...'
+    message: 'Initializing transfer'
   },
   {
     step: Steps.NativeTransfer,
-    message: 'Transfering XX to Bridge...'
+    message: 'Transfering XX to Bridge'
   },
   {
-    step: Steps.PromptRelayerFee,
-    message: 'Prompted user to pay relayer fee...'
-  },
-  {
-    step: Steps.WaitFee,
-    message: 'Waiting for fee confirmation...'
+    step: Steps.FeePayment,
+    message: 'Paying Relayer Fee'
   },
   {
     step: Steps.WaitBridge,
-    message: 'Waiting for Bridge...'
+    message: 'Waiting for Bridge'
   },
   {
     step: Steps.Done,
-    message: 'Transfer complete!'
+    message: 'Completing Transfer'
   }
 ]
 
 const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
   // Hooks
-  const { address } = useAccount()
-  const { selectedAccount, getSigner } = useAccounts()
-  const { api, ready } = useApi()
-  const sent = useRef<boolean>(false)
+  const { selectedAccount } = useAccounts()
 
   // State variables
   const [error, setError] = useState<string | undefined>()
 
   // use redux
-  const tx = useAppSelector(
-    (state: RootState) =>
-      (selectedAccount?.address &&
-        getTxFromAddress(state, selectedAccount?.address)) ||
-      emptyState.tx
-  )
-  const fromNative = useAppSelector(
-    (state: RootState) =>
-      (selectedAccount?.address &&
-        getFromNativeFromAddress(state, selectedAccount?.address)) ||
-      emptyState.fromNative
-  )
-  const bridgeTxHash = useAppSelector(
-    (state: RootState) =>
-      (selectedAccount?.address &&
-        getBridgeTxHashFromAddress(state, selectedAccount?.address)) ||
-      undefined
-  )
+  const currState =
+    useAppSelector(
+      (state: RootState) =>
+        selectedAccount?.address &&
+        getStateFromAddress(state, selectedAccount?.address)
+    ) || emptyState
   const dispatch = useAppDispatch()
 
   // Go to error state
@@ -123,20 +86,18 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
     reset()
   }, [reset])
 
-  // Get current relayer fee from contract
-  const fetchRelayerFee = useCallback(async () => {
-    try {
-      const relayerFee = await readContract(wagmiConfig, {
-        address: BRIDGE_RELAYER_FEE_ADDRESS,
-        abi: contracts.relayerFeeAbi,
-        functionName: 'currentFee'
-      })
-      return relayerFee
-    } catch (err) {
-      console.error('Error reading contract:', err)
-      return null
-    }
-  }, [])
+  // Handle error from children
+  // If empty message, just reset state
+  const handleError = useCallback(
+    (msg: string) => {
+      if (msg !== '') {
+        goError(msg)
+      } else {
+        resetState()
+      }
+    },
+    [goError, resetState]
+  )
 
   /* -------------------------------------------------------------------------- */
   /*                                    Hooks                                   */
@@ -153,174 +114,54 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
       where: {
         _and: [
           { status: { _eq: 'Executed' } },
-          { nonce: { _eq: fromNative.nonce.toString() } }
+          {
+            nonce: { _eq: currState.fromNative.nativeTransfer.nonce.toString() }
+          }
         ]
       }
     },
     pollInterval: 2000,
-    skip: !fromNative.nonce || tx.status.step !== Steps.WaitBridge
+    skip:
+      !currState.fromNative.nativeTransfer.nonce ||
+      currState.tx.status.step !== Steps.WaitBridge
   })
 
   // State machine
   useEffectDebugger(
     () => {
       const executeStep = async () => {
-        switch (tx.status.step) {
+        switch (currState.tx.status.step) {
           /* -------------------------------- Init ------------------------------- */
           case Steps.Init: {
-            // check if api is ready
-            if (!api || !ready) {
-              goError('API not ready')
-              break
-            }
-            // check if selected account is available
-            if (!selectedAccount) {
-              goError('No account selected')
-              break
-            }
-            // Check if we have nonce and send transferNative extrinsic to bridge contract if not already sent
-            if (!fromNative.nonce && !sent.current) {
-              const extrinsic = api.tx.swap.transferNative(
-                BigInt(tx?.amount ?? 0),
-                tx?.destinationAddress ?? '',
-                BRIDGE_ID_ETH_MAINNET
-              )
-              const signer = getSigner()
-              if (signer) {
-                sent.current = true
-                extrinsic
-                  .signAndSend(
-                    selectedAccount.address,
-                    { signer },
-                    ({ status, events, txHash }) => {
-                      if (status.isInBlock) {
-                        events.forEach(({ event }) => {
-                          if (
-                            api.events.chainBridge.FungibleTransfer.is(event)
-                          ) {
-                            const [, nonceValue] = event.data
-                            dispatch(
-                              actions.setFromNative({
-                                key: selectedAccount?.address,
-                                nonce: nonceValue.toNumber(),
-                                extrinsicHash: txHash.toString()
-                              })
-                            )
-                          }
-                        })
-                      }
-                    }
-                  )
-                  .then(() => {
-                    dispatch(
-                      actions.incrementStepTo({
-                        key: selectedAccount?.address,
-                        step: State[Steps.NativeTransfer]
-                      })
-                    )
-                  })
-                  .catch(err => {
-                    goError(`Error executing transferNative: ${err.message}`)
-                  })
-              } else {
-                goError('No signer available')
-              }
-            } else {
-              // If nonce exists, increment step because transfer was already sent
-              dispatch(
-                actions.incrementStepTo({
-                  key: selectedAccount?.address,
-                  step: State[Steps.NativeTransfer]
-                })
-              )
-            }
+            // Go to native transfer
+            dispatch(
+              actions.incrementStepTo({
+                key: selectedAccount?.address,
+                step: State[Steps.NativeTransfer]
+              })
+            )
             break
           }
 
           /* ---------------------------- NativeTransfer ---------------------------- */
           case Steps.NativeTransfer: {
-            // Wait for nonce
-            if (fromNative.nonce) {
+            // If native transfer already done go to fee payment
+            if (currState.fromNative.nativeTransfer.extrinsicHash) {
+              console.log('Native transfer already done, moving to PayFee')
               dispatch(
                 actions.incrementStepTo({
                   key: selectedAccount?.address,
-                  step: State[Steps.PromptRelayerFee]
+                  step: State[Steps.FeePayment]
                 })
               )
             }
+            // Wait for native transfer to finish
             break
           }
 
-          /* ---------------------------- RelayerFee ---------------------------- */
-          case Steps.PromptRelayerFee: {
-            // if relayer fee hash exists on local storage go to wait state
-            if (fromNative.txHash) {
-              dispatch(
-                actions.incrementStepTo({
-                  key: selectedAccount?.address,
-                  step: State[Steps.WaitFee]
-                })
-              )
-              break
-            }
-
-            // Prompt user to pay relayer fee if not yet
-            console.log(`Prompting user to pay relayer fee...`)
-            const relayerFee = await fetchRelayerFee()
-            if (relayerFee && fromNative.nonce && address) {
-              try {
-                const hash = await customWriteContract({
-                  address: BRIDGE_RELAYER_FEE_ADDRESS,
-                  abi: contracts.relayerFeeAbi,
-                  functionName: 'payFee',
-                  args: [BRIDGE_ID_XXNETWORK, BigInt(fromNative.nonce)],
-                  value: relayerFee
-                })
-                dispatch(
-                  actions.setFromNativeTxHash({
-                    key: selectedAccount?.address,
-                    hash
-                  })
-                )
-                dispatch(
-                  actions.incrementStepTo({
-                    key: selectedAccount?.address,
-                    step: State[Steps.WaitFee]
-                  })
-                )
-              } catch (err) {
-                goError(`Error executing payFee: User rejected transaction`)
-              }
-            } else {
-              goError(`Error fetching relayer fee or nonce`)
-            }
-            break
-          }
-
-          /* ---------------------------- WaitFee ---------------------------- */
-          case Steps.WaitFee: {
-            // Wait for relayer fee payment transaction to be completed / confirmed
-            console.log(`Waiting for fee confirmation (3)...`, fromNative)
-            if (fromNative.txHash) {
-              try {
-                console.log(`Waiting for fee:`, fromNative.txHash)
-                const txReceipt = await waitForTransactionReceipt(wagmiConfig, {
-                  hash: fromNative.txHash as `0x${string}`,
-                  confirmations: CONFIRMATIONS_THRESHOLD
-                })
-                if (txReceipt) {
-                  console.log(`Fee receipt:`, txReceipt)
-                  dispatch(
-                    actions.incrementStepTo({
-                      key: selectedAccount?.address,
-                      step: State[Steps.WaitBridge]
-                    })
-                  )
-                }
-              } catch (err: any) {
-                goError(`Paying relayer fee failed: ${err}`)
-              }
-            }
+          /* ---------------------------- PayFee ---------------------------- */
+          case Steps.FeePayment: {
+            // Wait for fee payment to finish
             break
           }
 
@@ -368,37 +209,52 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
 
           /* -------------------------------------------------------------------------- */
           default:
-            console.log(`Unknown step: ${tx.status.step}`)
+            console.log(`Unknown step: ${currState.tx.status.step}`)
             break
         }
       }
-      if (api && ready && selectedAccount && tx && fromNative) {
+      if (selectedAccount) {
+        console.log('Executing step', currState.tx.status.step)
         executeStep()
       }
     },
     [
-      api,
-      ready,
       selectedAccount,
-      tx,
-      fromNative,
-      fetchRelayerFee,
+      currState.tx.status.step,
+      currState.fromNative.nativeTransfer.extrinsicHash,
       errorProposalEvent,
       loadingProposalEvent,
       proposalEvent
     ],
     [
-      'api',
-      'ready',
       'selectedAccount',
-      'tx',
-      'fromNative',
-      'fetchRelayerFee',
+      'currState.tx.status.step',
+      'currState.fromNative.nativeTransfer.extrinsicHash',
       'errorProposalEvent',
       'loadingProposalEvent',
       'proposalEvent'
     ]
   )
+
+  // Handle native transfer done
+  const handleNativeTransferDone = useCallback(() => {
+    dispatch(
+      actions.incrementStepTo({
+        key: selectedAccount?.address,
+        step: State[Steps.FeePayment]
+      })
+    )
+  }, [selectedAccount])
+
+  // Handle fee payment done
+  const handlePayFeeDone = useCallback(() => {
+    dispatch(
+      actions.incrementStepTo({
+        key: selectedAccount?.address,
+        step: State[Steps.WaitBridge]
+      })
+    )
+  }, [selectedAccount])
 
   return (
     <>
@@ -416,20 +272,10 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
           <StyledButton
             sx={{ marginTop: '20px !important' }}
             onClick={() => {
-              // TODO: cannot reset tx details and save nonce because nonce is linked to the transaction. Reset the whole state after a native transfer will make user lose ability to pay the relayer fee to unlock that transaction. Need to find a way to save nonce and txHash for each transaction or simply do not let user reset the state until transaction is completed.
-              if (!fromNative.nonce) {
-                sent.current = false
-              }
-              setError(undefined)
-              dispatch(
-                actions.incrementStepTo({
-                  key: selectedAccount?.address,
-                  step: { step: 0, message: '' }
-                })
-              )
+              resetState()
             }}
           >
-            Retry
+            Go Back
           </StyledButton>
         </Stack>
       ) : (
@@ -437,7 +283,7 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
           <Stack direction="column" padding={2} spacing="20px">
             <CustomStepper
               steps={State.filter(state => state.step !== Steps.Idle)}
-              activeStep={tx.status.step}
+              activeStep={currState.tx.status.step}
             />
             <Stack
               direction="column"
@@ -445,11 +291,33 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               padding={2}
               alignItems="left"
             >
-              {tx.status.step < Steps.Done ? (
-                <Typography variant="body1" fontWeight="bold">
-                  {tx.status.step + 1}. {tx.status.message}
-                </Typography>
-              ) : (
+              {currState.tx.status.step === Steps.NativeTransfer && (
+                <NativeTranfer
+                  currStep={Steps.NativeTransfer}
+                  setError={handleError}
+                  done={handleNativeTransferDone}
+                />
+              )}
+              {currState.tx.status.step === Steps.FeePayment && (
+                <PayFee
+                  currStep={Steps.FeePayment}
+                  setError={handleError}
+                  done={handlePayFeeDone}
+                />
+              )}
+              {currState.tx.status.step === Steps.WaitBridge && (
+                <>
+                  <Typography variant="body1" fontWeight="bold">
+                    {Steps.WaitBridge}. Waiting for Bridge ...
+                  </Typography>
+                  <Typography variant="body2">
+                    The relayer requires 10 blocks to confirm a deposit, so the
+                    bridge operation can take upwards of 2 minutes, please be
+                    patient.
+                  </Typography>
+                </>
+              )}
+              {currState.tx.status.step >= Steps.Done && (
                 <Stack
                   sx={{
                     flexDirection: 'column'
@@ -457,31 +325,33 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
                   alignItems="center"
                   spacing="20px"
                 >
-                  <Typography variant="h5">Transfer complete!</Typography>
-                  {fromNative.extrinsicHash && (
+                  <Typography variant="h5" fontWeight="bold">
+                    {Steps.Done}. Transfer complete!
+                  </Typography>
+                  {currState.fromNative.nativeTransfer.extrinsicHash && (
                     <Link
                       variant="body2"
-                      href={`${XX_EXPLORER_URL}/extrinsics/${fromNative.extrinsicHash}`}
+                      href={`${XX_EXPLORER_URL}/extrinsics/${currState.fromNative.nativeTransfer.extrinsicHash}`}
                       rel="noopener noreferrer"
                       target="_blank"
                     >
                       View Deposit transaction in xx Explorer
                     </Link>
                   )}
-                  {fromNative.txHash && (
+                  {currState.fromNative.feePayment.txHash && (
                     <Link
                       variant="body2"
-                      href={`${ETH_EXPLORER_URL}/tx/${fromNative.txHash}`}
+                      href={`${ETH_EXPLORER_URL}/tx/${currState.fromNative.feePayment.txHash}`}
                       rel="noopener noreferrer"
                       target="_blank"
                     >
                       View Fee Payment transaction in Etherscan
                     </Link>
                   )}
-                  {bridgeTxHash && (
+                  {currState.bridgeTxHash && (
                     <Link
                       variant="body2"
-                      href={`${ETH_EXPLORER_URL}/tx/${bridgeTxHash}`}
+                      href={`${ETH_EXPLORER_URL}/tx/${currState.bridgeTxHash}`}
                       rel="noopener noreferrer"
                       target="_blank"
                     >
@@ -500,14 +370,8 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               )}
             </Stack>
           </Stack>
-          {tx.status.step < Steps.Done && (
-            <Stack
-              flexDirection="row"
-              alignItems="center"
-              justifyContent="right"
-              padding={2}
-              gap="5px"
-            >
+          {currState.tx.status.step < Steps.Done && (
+            <Stack justifyContent="right" padding={2}>
               <StyledButton
                 small
                 onClick={() => {
@@ -517,9 +381,6 @@ const TransferXXToETH: React.FC<TransferXXToETHProps> = ({ reset }) => {
               >
                 Reset
               </StyledButton>
-              <CustomTooltip title="Resetting now will cancel the current transaction. You'll lose the chance to pay the relayer fee and complete the initial transfer. If unclaimed, the xx tokens waiting on the bridge will be returned to the original address after 5 minutes.">
-                <Info fontSize="small" />
-              </CustomTooltip>
             </Stack>
           )}
         </>

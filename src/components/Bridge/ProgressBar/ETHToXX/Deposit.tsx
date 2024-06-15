@@ -38,15 +38,15 @@ enum State {
 const Steps: CustomStep[] = [
   {
     step: State.Init,
-    message: 'Initializing deposit...'
+    message: 'Initializing...'
   },
   {
     step: State.Prompt,
-    message: 'Waiting user to sign deposit...'
+    message: 'Waiting for signature...'
   },
   {
     step: State.Wait,
-    message: 'Waiting for deposit block confirmations (3)...'
+    message: 'Waiting for block confirmations (3)...'
   },
   {
     step: State.Done,
@@ -150,9 +150,9 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
                       })
                     )
                     dispatch(
-                      actions.incrementStepTo({
+                      actions.setDepositStatus({
                         key: address,
-                        step: Steps[State.Wait]
+                        status: Steps[State.Wait]
                       })
                     )
                   } catch (err) {
