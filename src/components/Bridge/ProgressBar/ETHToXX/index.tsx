@@ -377,19 +377,23 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
                 />
               )}
               {currState.tx.status.step === Steps.WaitBridge && (
-                <>
+                <Stack direction="column" spacing={1}>
                   <Typography variant="body1" fontWeight="bold">
                     {currState.tx.needApproval
                       ? Steps.WaitBridge
                       : Steps.WaitBridge - 1}
                     . Waiting for Bridge ...
                   </Typography>
-                  <Typography variant="body2">
-                    The relayer requires 10 blocks to confirm a deposit, so the
-                    bridge operation can take upwards of 2 minutes, please be
-                    patient.
-                  </Typography>
-                </>
+                  <Stack alignSelf="center" sx={{ maxWidth: '80%' }}>
+                    <Typography variant="body2">
+                      The relayer requires 10 blocks to confirm a deposit, so
+                      the bridge operation can take upwards of 2 minutes, please
+                      be patient. If it appears that you are stuck on this page,
+                      please press the reset button to go back to the home page.
+                      This will not affect the transaction.
+                    </Typography>
+                  </Stack>
+                </Stack>
               )}
               {currState.tx.status.step >= Steps.Done && (
                 <Stack
@@ -435,7 +439,7 @@ const TransferETHToXX: React.FC<TransferETHToXXProps> = ({ reset }) => {
               )}
             </Stack>
           </Stack>
-          {currState.tx.status.step < Steps.Done && (
+          {currState.tx.status.step === Steps.WaitBridge && (
             <Stack justifyContent="right" padding={2}>
               <StyledButton
                 small

@@ -267,15 +267,23 @@ const PayFee: React.FC<PayFeeProps> = ({ currStep, setError, done }) => {
             flexDirection: 'column',
             marginTop: '20px !important'
           }}
+          alignItems="center"
           spacing="10px"
         >
-          <Typography variant="body2">
-            Please confirm the transaction in your wallet. If you do not see a
-            confirmation prompt to sign this transaction, please check your
-            wallet settings or try again by pressing the button below. Make sure
-            you do not have any queued transactions in your wallet before
-            proceeding.
-          </Typography>
+          <Stack sx={{ maxWidth: '80%' }}>
+            <Typography variant="body2">
+              Please confirm the transaction in your wallet. If you do not see a
+              confirmation prompt to sign this transaction, please check your
+              wallet settings or try again by pressing the button below. Make
+              sure you do not have any queued transactions in your wallet before
+              proceeding.
+            </Typography>
+          </Stack>
+          {feePaymentError && (
+            <Typography variant="body2" sx={{ color: 'red' }}>
+              {feePaymentError}
+            </Typography>
+          )}
           <Stack direction="row" gap="10px">
             <StyledButton
               onClick={() => {
@@ -298,24 +306,8 @@ const PayFee: React.FC<PayFeeProps> = ({ currStep, setError, done }) => {
                 ? 'Trying Fee Payment...'
                 : 'Retry Fee Payment'}
             </StyledButton>
-            <StyledButton
-              onClick={() => {
-                resetState('')
-              }}
-              sx={{
-                backgroundColor: 'text.primary'
-              }}
-              small
-            >
-              Cancel
-            </StyledButton>
           </Stack>
         </Stack>
-      )}
-      {feePaymentError && (
-        <Typography variant="body2" sx={{ color: 'red' }}>
-          {feePaymentError}
-        </Typography>
       )}
     </Stack>
   )
