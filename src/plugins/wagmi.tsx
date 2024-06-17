@@ -33,13 +33,15 @@ export const devChain = defineChain({
   }
 })
 
+export const activeChain =
+  DAPP_NETWORK === 'mainnet'
+    ? mainnet
+    : DAPP_NETWORK === 'sepolia'
+      ? sepolia
+      : devChain
+
 export const wagmiConfig = createConfig({
-  chains:
-    DAPP_NETWORK === 'mainnet'
-      ? [mainnet]
-      : DAPP_NETWORK === 'sepolia'
-        ? [sepolia]
-        : [devChain],
+  chains: [activeChain],
   transports: {
     [mainnet.id]: http('https://eth.llamarpc.com'),
     [sepolia.id]: http('https://ethereum-sepolia-rpc.publicnode.com'),

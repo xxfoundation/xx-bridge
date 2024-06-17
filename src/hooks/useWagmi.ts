@@ -1,15 +1,8 @@
 import { useCallback, useMemo } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
-import { devChain } from '@/plugins/wagmi'
+import { activeChain } from '@/plugins/wagmi'
 
-// TODO: Add support for other networks and remove Goerli
-export const supportedNetworkIds = [
-  {
-    id: devChain.id,
-    name: devChain.name
-  }
-]
-export type ChainId = 9296
+export type ChainId = 1 | 5 | 9296
 
 export const useSwitchToSupportedNetwork = () => {
   const { chain } = useAccount()
@@ -53,14 +46,8 @@ export const useSwitchToSupportedNetwork = () => {
 
   const trigger = useCallback(
     async (id: number) => {
-      if (
-        chain &&
-        chains &&
-        !supportedNetworkIds
-          .map(network => network.id)
-          .includes(chain.id as ChainId)
-      ) {
-        const res = await addNetworkChain(devChain)
+      if (chains && (chain === undefined || chain?.id !== id)) {
+        const res = await addNetworkChain(activeChain)
         if (!res) {
           console.error('Error adding network')
           return
@@ -68,7 +55,7 @@ export const useSwitchToSupportedNetwork = () => {
         await switchChainAsync?.({ chainId: id })
       }
     },
-    [chain, chains, switchChainAsync]
+    [chains, switchChainAsync]
   )
 
   return { error, isSuccess, isLoading, trigger }

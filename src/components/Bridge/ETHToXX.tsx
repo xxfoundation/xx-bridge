@@ -51,6 +51,7 @@ import { RootState } from '@/plugins/redux/types'
 import { actions } from '@/plugins/redux/reducers'
 import { getTxFromAddress } from '@/plugins/redux/selectors'
 import { State } from './ProgressBar/ETHToXX'
+import { activeChain } from '@/plugins/wagmi'
 
 const estimateGasBridgeDeposit = async (
   client: PublicClient,
@@ -114,7 +115,7 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
   const { selectedAccount } = useAccounts()
   const publicClient = createPublicClient({
     chain,
-    transport: http()
+    transport: http(activeChain.rpcUrls.default.http[0])
   })
 
   // State

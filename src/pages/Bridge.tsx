@@ -20,7 +20,6 @@ const Bridge: React.FC = () => {
   const [fromXX, setFromXX] = useSessionStorage<boolean>('fromNative', false)
   const [accountChange, setAccountChange] = useState<boolean>(false)
 
-  // TODO: Add account change listener and show modal if new account is not yet connected to the bridge
   // refresh page and pass by loading state when account changes
   useEffect(() => {
     setAccountChange(true)

@@ -6,12 +6,8 @@ import NotFound from './pages/NotFound'
 // Files
 import Bridge from './pages/Bridge.tsx'
 import NavBar from './components/NavBar/index.tsx'
-import {
-  ChainId,
-  supportedNetworkIds,
-  useSwitchToSupportedNetwork
-} from './hooks/useWagmi.ts'
-import { devChain } from './plugins/wagmi.tsx'
+import { useSwitchToSupportedNetwork } from './hooks/useWagmi.ts'
+import { activeChain } from './plugins/wagmi.tsx'
 import Loading from './components/Utils/Loading.tsx'
 
 const AppRouter: React.FC = () => {
@@ -21,9 +17,7 @@ const AppRouter: React.FC = () => {
   const { isLoading, trigger, error } = useSwitchToSupportedNetwork()
 
   const inSupportedNetwork = useMemo(
-    () =>
-      chain &&
-      supportedNetworkIds.map(elem => elem.id).includes(chain.id as ChainId),
+    () => chain && chain.id === activeChain.id,
     [chain]
   )
 
@@ -36,9 +30,9 @@ const AppRouter: React.FC = () => {
   // trigger switch on chain change
   useEffect(() => {
     if (!inSupportedNetwork) {
-      trigger(devChain.id)
+      trigger(activeChain.id)
     }
-  }, [inSupportedNetwork, trigger, devChain.id, chain, supportedNetworkIds])
+  }, [inSupportedNetwork, trigger, activeChain.id, chain])
 
   useEffect(() => {
     if (error) {
