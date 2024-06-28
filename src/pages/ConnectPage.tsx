@@ -4,7 +4,6 @@ import xxBridgeLogo from '@/assets/logo/png/xxbridge.png'
 
 import ImageWrapper from '../components/custom/ImageWrapper'
 import StyledStack from '../components/custom/StyledStack'
-import Login from '../components/User/Login'
 import xxbridge from '@/components/custom/XXBridge'
 
 const MobileMessage: React.FC = () => (
@@ -29,7 +28,7 @@ const ConnectPage: React.FC = () => {
       ) : (
         <StyledStack direction="column" spacing="50px" centerWidth centerHeight>
           <ImageWrapper src={xxBridgeLogo} alt="Logo with slogan" width="10%" />
-          <Login />
+          <Typography variant="h2">Coming soon ...</Typography>
         </StyledStack>
       )}
     </>
