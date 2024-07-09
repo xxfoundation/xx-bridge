@@ -28,7 +28,9 @@ const ConnectPage: React.FC = () => {
       ) : (
         <StyledStack direction="column" spacing="50px" centerWidth centerHeight>
           <ImageWrapper src={xxBridgeLogo} alt="Logo with slogan" width="10%" />
-          <Typography variant="h2">Coming soon ...</Typography>
+          <Typography variant="h2">
+            Bridge is currently under maintenance ...
+          </Typography>
         </StyledStack>
       )}
     </>
