@@ -60,7 +60,7 @@ export const State: CustomStep[] = [
   },
   {
     step: Steps.Done,
-    message: 'Completing Transfer'
+    message: 'Transfer complete'
   }
 ]
 

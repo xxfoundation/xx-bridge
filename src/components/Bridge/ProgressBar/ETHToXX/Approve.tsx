@@ -270,27 +270,40 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
               {approveError}
             </Typography>
           )}
-          <StyledButton
-            onClick={() => {
-              // reset approve error
-              setApproveError('')
-              // set prompted to undefined
-              prompted.current = undefined
-              // set approve status to prompt
-              dispatch(
-                actions.setApprovalStatus({
-                  key: address,
-                  status: Steps[State.Prompt]
-                })
-              )
-            }}
-            disabled={prompted.current !== false}
-            small
-          >
-            {prompted.current !== false
-              ? 'Trying Approval...'
-              : 'Retry Approval'}
-          </StyledButton>
+          <Stack direction="row" gap="10px">
+            <StyledButton
+              onClick={() => {
+                // reset approve error
+                setApproveError('')
+                // set prompted to undefined
+                prompted.current = undefined
+                // set approve status to prompt
+                dispatch(
+                  actions.setApprovalStatus({
+                    key: address,
+                    status: Steps[State.Prompt]
+                  })
+                )
+              }}
+              disabled={prompted.current !== false}
+              small
+            >
+              {prompted.current !== false
+                ? 'Trying Approval...'
+                : 'Retry Approval'}
+            </StyledButton>
+            <StyledButton
+              onClick={() => {
+                resetState('')
+              }}
+              sx={{
+                backgroundColor: 'text.primary'
+              }}
+              small
+            >
+              Cancel
+            </StyledButton>
+          </Stack>
         </Stack>
       )}
     </Stack>
