@@ -16,6 +16,8 @@ import {
   useReadContract,
   useEstimateFeesPerGas
 } from 'wagmi'
+import { zeroAddress } from 'viem'
+import { BN, BN_ZERO } from '@polkadot/util'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import contracts from '@/contracts'
@@ -68,9 +70,21 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
+  const [feesError, setFeesError] = useState<string | undefined>()
+  const [xxFeeValue, setXXFeeValue] = useState<BN>(BN_ZERO)
   const [xxFee, setXXFee] = useState<string>('0')
+  const [xxFeeError, setXXFeeError] = useState<string | undefined>()
   const [resetting, setResetting] = useState<boolean>(false)
   const [warning, setWarning] = useState<boolean>(false)
+
+  // Max xx that can be transferred
+  const maxXXValue = useMemo(() => {
+    const value = parseFloat(xxBalance.sub(xxFeeValue).toString()) / 1e9
+    if (value < 0) {
+      return 0
+    }
+    return value
+  }, [xxBalance, xxFeeValue])
 
   // Check screen checkpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('tablet'))
@@ -102,11 +116,11 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
   const setValue = useCallback(
     (value: number | null) => {
       // TODO: Parsing from BN to number can overflow if the value is bigger than Number.MAX_SAFE_INTEGER (9007199254740991) ~ 9e15 ~ 9M xx
-      if (value !== null && value > parseFloat(xxBalance.toString())) {
+      if (value !== null && value > maxXXValue) {
         setError('Exceeds balance')
       } else if (value !== null && value < 1) {
         setError('Minimum amount is 1')
-      } else if (value !== null && value > 1000000) {
+      } else if (value !== null && value > 9000000) {
         setError('Maximum amount is 9,000,000 (9 Million) xx')
       } else {
         setError(undefined)
@@ -116,7 +130,7 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
       }
       setInput(value)
     },
-    [xxBalance]
+    [maxXXValue]
   )
 
   // Validate recipient
@@ -228,51 +242,50 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
 
   // Set fees
   useEffect(() => {
-    if (
-      api &&
-      ready &&
-      allowTransfer &&
-      gasPrice &&
-      transferValue &&
-      recipient &&
-      selectedAccount &&
-      relayerFee
-    ) {
+    if (api && ready && gasPrice && selectedAccount && relayerFee) {
       // Gas fee + relayer fee
       const fee =
         BigInt((GAS_ESTIMATE_RELAYER_FEE * gasPrice).toFixed(0)) + relayerFee
-      setFees(formatBalance(fee, 18, 6))
+      const feeValue = formatBalance(fee, 18, 6)
+      setFees(feeValue)
       // Set warning if relayer fee is over the limit
       if (relayerFee > RELAYER_FEE_WARNING) {
         setWarning(true)
       } else {
         setWarning(false)
       }
+      // Set fee error if balance is insufficient
+      if (Number(feeValue) > Number(ethBalance)) {
+        setFeesError('Insufficient ETH balance')
+      } else {
+        setFeesError(undefined)
+      }
       // Tx fee for xx swap.transferNative call
       const extrinsic = api.tx.swap.transferNative(
-        transferValue,
-        recipient,
+        BigInt(1 * 10 ** xxNetwork.gasToken.decimals),
+        zeroAddress,
         BRIDGE_ID_ETH_MAINNET
       )
       extrinsic.paymentInfo(selectedAccount.address).then(({ partialFee }) => {
-        setXXFee(
-          formatBalance(partialFee.toString(), xxNetwork.gasToken.decimals, 6)
+        setXXFeeValue(partialFee)
+        const feeStr = formatBalance(
+          partialFee.toString(),
+          xxNetwork.gasToken.decimals,
+          6
         )
+        setXXFee(feeStr)
+        if (partialFee.gt(xxBalance)) {
+          setXXFeeError('Insufficient XX balance')
+        } else {
+          setXXFeeError(undefined)
+        }
       })
     } else {
       setFees('0')
+      setXXFeeValue(BN_ZERO)
       setXXFee('0')
     }
-  }, [
-    api,
-    ready,
-    allowTransfer,
-    gasPrice,
-    transferValue,
-    recipient,
-    selectedAccount,
-    relayerFee
-  ])
+  }, [api, ready, gasPrice, selectedAccount, relayerFee, ethBalance, xxBalance])
 
   // Update loading state
   const loadingState = useMemo(() => {
@@ -311,6 +324,8 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
     if (
       transferValue &&
       !valueError &&
+      !feesError &&
+      !xxFeeError &&
       recipient &&
       !recipientError &&
       !loadingState &&
@@ -323,6 +338,8 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
   }, [
     transferValue,
     valueError,
+    feesError,
+    xxFeeError,
     recipient,
     recipientError,
     loadingState,
@@ -642,73 +659,105 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
             <CurrencyInputField
               disabled={startTransfer}
               code={xxNetwork.gasToken.code}
-              balance={parseFloat(xxBalance.toString()) / 1e9}
+              balance={maxXXValue}
               value={input}
               setValue={setValue}
               error={valueError}
             />
           </Stack>
           <Divider />
-          <Stack sx={{ textAlign: 'left', paddingLeft: '10px' }}>
-            <Stack direction="column" padding={2}>
-              <Typography
-                sx={{
-                  fontWeight: 'bold'
-                }}
-              >
-                Estimated fees
-              </Typography>
-              <Typography sx={{ fontSize: '14px', color: 'text.primary' }}>
-                {fees === '0' &&
-                  'Fill in valid amount and recipient to estimate fees'}
-              </Typography>
-            </Stack>
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              paddingLeft={1}
-              paddingRight={2}
-            >
-              <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
-                {xxFee !== '0' &&
-                  `~ ${xxFee} ${xxNetwork.gasToken.code} ${xxPrice && `(${(parseFloat(xxPrice) * parseFloat(xxFee)).toFixed(3)} USD)`}`}
-              </Typography>
-              <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
-                {fees !== '0' &&
-                  `~ ${fees} ${ethereumMainnet.gasToken.code} ${ethPrice && `(${(parseFloat(ethPrice) * parseFloat(fees)).toFixed(3)} USD)`}`}
-              </Typography>
-            </Stack>
-          </Stack>
-          {warning && (
-            <Stack
-              direction="row"
-              padding={2}
-              justifyContent="center"
-              alignItems="center"
-            >
-              <Typography
-                sx={{
-                  color: 'error.main',
-                  fontSize: '14px',
-                  fontWeight: 'bold'
-                }}
-              >
-                Gas fees are currently high
-              </Typography>
-            </Stack>
-          )}
           {startTransfer && recipient ? (
             <Status sourceId={BRIDGE_ID_XXNETWORK} reset={reset} />
           ) : (
-            <Stack direction="row" padding={2} justifyContent="center">
-              <StyledButton
-                fullWidth
-                disabled={!allowTransfer}
-                onClick={handleClickTransfer}
-              >
-                Transfer
-              </StyledButton>
-            </Stack>
+            <>
+              <Stack sx={{ textAlign: 'left', paddingLeft: '10px' }}>
+                <Stack direction="column" padding={2}>
+                  <Typography
+                    sx={{
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Estimated fees
+                  </Typography>
+                  <Typography sx={{ fontSize: '14px', color: 'text.primary' }}>
+                    {fees === '0' &&
+                      'Fill in valid amount and recipient to estimate fees'}
+                  </Typography>
+                </Stack>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  paddingLeft={1}
+                  paddingRight={2}
+                >
+                  <Stack direction="column">
+                    <Typography
+                      sx={{ fontSize: '13px', color: 'text.primary' }}
+                    >
+                      {xxFee !== '0' &&
+                        `~ ${xxFee} ${xxNetwork.gasToken.code} ${xxPrice && `(${(parseFloat(xxPrice) * parseFloat(xxFee)).toFixed(3)} USD)`}`}
+                    </Typography>
+                    {xxFeeError && (
+                      <Typography
+                        sx={{
+                          color: 'error.light',
+                          fontSize: '13px',
+                          textAlign: 'left'
+                        }}
+                      >
+                        {xxFeeError}
+                      </Typography>
+                    )}
+                  </Stack>
+                  <Stack direction="column">
+                    <Typography
+                      sx={{ fontSize: '13px', color: 'text.primary' }}
+                    >
+                      {fees !== '0' &&
+                        `~ ${fees} ${ethereumMainnet.gasToken.code} ${ethPrice && `(${(parseFloat(ethPrice) * parseFloat(fees)).toFixed(3)} USD)`}`}
+                    </Typography>
+                    {feesError && (
+                      <Typography
+                        sx={{
+                          color: 'error.light',
+                          fontSize: '13px',
+                          textAlign: 'left'
+                        }}
+                      >
+                        {feesError}
+                      </Typography>
+                    )}
+                  </Stack>
+                </Stack>
+              </Stack>
+              {warning && (
+                <Stack
+                  direction="row"
+                  padding={2}
+                  justifyContent="center"
+                  alignItems="center"
+                >
+                  <Typography
+                    sx={{
+                      color: 'error.main',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Gas fees are currently high
+                  </Typography>
+                </Stack>
+              )}
+              <Stack direction="row" padding={2} justifyContent="center">
+                <StyledButton
+                  fullWidth
+                  disabled={!allowTransfer}
+                  onClick={handleClickTransfer}
+                >
+                  Transfer
+                </StyledButton>
+              </Stack>
+            </>
           )}
         </>
       )}

@@ -15,12 +15,10 @@ import {
   useReadContract,
   useEstimateFeesPerGas
 } from 'wagmi'
-import { createPublicClient, http, PublicClient } from 'viem'
 import StyledButton from '../custom/StyledButton'
 import {
   convertXXAddress,
   convertXXPubkey,
-  encodeBridgeDeposit,
   formatBalance,
   isValidXXNetworkAddress,
   shortenHash
@@ -30,10 +28,8 @@ import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import {
   GAS_ESTIMATE_APPROVE,
   GAS_ESTIMATE_DEPOSIT,
-  BRIDGE_ADDRESS,
   BRIDGE_ERC20_HANDLER_ADDRESS,
   BRIDGE_ID_XXNETWORK,
-  BRIDGE_RESOURCE_ID_XX,
   WRAPPED_XX_ADDRESS,
   ethereumMainnet,
   xxNetwork,
@@ -51,28 +47,6 @@ import { RootState } from '@/plugins/redux/types'
 import { actions } from '@/plugins/redux/reducers'
 import { getTxFromAddress } from '@/plugins/redux/selectors'
 import { State } from './ProgressBar/ETHToXX'
-import { activeChain } from '@/plugins/wagmi'
-
-const estimateGasBridgeDeposit = async (
-  client: PublicClient,
-  address: `0x${string}` | undefined,
-  to: string,
-  amount: bigint
-): Promise<bigint | undefined> => {
-  const data = encodeBridgeDeposit(to, amount)
-  try {
-    const gas = await client.estimateContractGas({
-      address: BRIDGE_ADDRESS,
-      abi: contracts.bridgeAbi,
-      functionName: 'deposit',
-      args: [BRIDGE_ID_XXNETWORK, BRIDGE_RESOURCE_ID_XX, data],
-      account: address || '0x'
-    })
-    return gas
-  } catch (error: any) {
-    throw new Error(`Error estimating gas: ${error.message}`)
-  }
-}
 
 const RecipientBalance: React.FC<{ recipient: string }> = ({ recipient }) => {
   const { xxBalance } = useXxBalance(recipient || '')
@@ -111,12 +85,8 @@ interface ETHToXXProps {
 
 const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
   // Hooks
-  const { address, chain } = useAccount()
+  const { address } = useAccount()
   const { selectedAccount } = useAccounts()
-  const publicClient = createPublicClient({
-    chain,
-    transport: http(activeChain.rpcUrls.default.http[0])
-  })
 
   // State
   const [input, setInput] = useState<number | null>(null)
@@ -131,6 +101,7 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
   const [needApprove, setNeedApprove] = useState<boolean>(false)
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
+  const [feesError, setFeesError] = useState<string | undefined>()
   const [resetting, setResetting] = useState<boolean>(false)
 
   // Check screen checkpoints
@@ -293,41 +264,24 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
 
   // Compute fees
   useEffect(() => {
-    if (allowTransfer && gasPrice) {
-      // If need approve call, then can't estimate bridge deposit since it will
-      // fail without the allowance
-      // This way, just use the fixed more conservative gas estimates
-      if (needApprove) {
-        const fee = (
-          (GAS_ESTIMATE_APPROVE + GAS_ESTIMATE_DEPOSIT) *
-          gasPrice
-        ).toFixed(0)
-        setFees(formatBalance(BigInt(fee), 18, 6))
-      } else if (transferValue && recipient) {
-        estimateGasBridgeDeposit(
-          publicClient,
-          address,
-          convertXXAddress(recipient),
-          transferValue
-        )
-          .then(gas => {
-            if (gas) {
-              const fee = Number(gas) * gasPrice
-              setFees(formatBalance(BigInt(fee.toFixed(0)), 18, 6))
-            } else {
-              console.error('Error estimating gas: gas returned undefined')
-              setFees('0')
-            }
-          })
-          .catch((err: any) => {
-            console.error(err.message)
-            setFees('0')
-          })
+    if (gasPrice) {
+      const fee = (
+        ((needApprove ? GAS_ESTIMATE_APPROVE : 0) + GAS_ESTIMATE_DEPOSIT) *
+        gasPrice
+      ).toFixed(0)
+      const feeValue = formatBalance(BigInt(fee), 18, 6)
+      setFees(feeValue)
+      // Set fee error if balance is insufficient
+      if (Number(feeValue) > Number(ethBalance)) {
+        setFeesError('Insufficient ETH balance')
+      } else {
+        setFeesError(undefined)
       }
     } else {
       setFees('0')
+      setFeesError(undefined)
     }
-  }, [needApprove, transferValue, recipient, allowTransfer, gasPrice])
+  }, [needApprove, gasPrice, ethBalance])
 
   // Update loading state
   const loadingState = useMemo(() => {
@@ -366,6 +320,7 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
     if (
       transferValue &&
       !valueError &&
+      !feesError &&
       recipient &&
       !recipientError &&
       !loadingState &&
@@ -378,6 +333,7 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
   }, [
     transferValue,
     valueError,
+    feesError,
     recipient,
     recipientError,
     loadingState,
@@ -417,7 +373,6 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
       setRecipient(selectedAccount?.address || '')
     }
     return () => {
-      console.log('[Cleaning up]')
       resetInput()
     }
   }, [startTransfer, selectedAccount])
@@ -620,9 +575,20 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
                 </Typography>
                 <Typography sx={{ fontSize: '14px', color: 'text.primary' }}>
                   {fees === '0'
-                    ? 'Fill in valid amount and recipient to estimate fees'
+                    ? 'Estimating fees...'
                     : `~ ${fees} ${ethereumMainnet.gasToken.code} ${ethPrice && `(${(parseFloat(ethPrice) * parseFloat(fees)).toFixed(3)} USD)`}`}
                 </Typography>
+                {feesError && (
+                  <Typography
+                    sx={{
+                      color: 'error.light',
+                      fontSize: '13px',
+                      textAlign: 'left'
+                    }}
+                  >
+                    {feesError}
+                  </Typography>
+                )}
               </Stack>
               <Stack direction="row" padding={2} justifyContent="center">
                 <StyledButton
