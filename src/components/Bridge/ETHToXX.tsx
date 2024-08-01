@@ -20,7 +20,9 @@ import {
   convertXXAddress,
   convertXXPubkey,
   formatBalance,
+  formatValueToSuffix,
   isValidXXNetworkAddress,
+  parseBalance,
   shortenHash
 } from '@/utils'
 import CurrencyInputField from '../custom/CurrencyInputField'
@@ -95,8 +97,8 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
   const [recipient, setRecipient] = useState<string>('')
   const [recipientError, setRecipientError] = useState<string | undefined>()
-  const [ethBalance, setEthBalance] = useState<string>('0')
-  const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
+  const [ethBalance, setEthBalance] = useState<number>(0)
+  const [wrappedXXBalance, setWrappedXXBalance] = useState<number>(0)
   const [allowance, setAllowance] = useState<string>()
   const [needApprove, setNeedApprove] = useState<boolean>(false)
   const [gasPrice, setGasPrice] = useState<number>()
@@ -119,7 +121,7 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
   // Value computation
   const setValue = useCallback(
     (value: number | null) => {
-      if (value !== null && value > parseFloat(wrappedXXBalance)) {
+      if (value !== null && value > wrappedXXBalance) {
         setError('Exceeds balance')
       } else if (value !== null && value < 1) {
         setError('Minimum amount is 1')
@@ -207,23 +209,19 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
     }
     // ETH Balance
     if (ethData) {
-      setEthBalance(formatBalance(ethData.value, ethData.decimals, 4))
+      setEthBalance(parseBalance(ethData.value, ethData.decimals))
     } else if (ethError) {
       console.error('Error fetching ETH balance', ethError)
-      setEthBalance('0')
+      setEthBalance(0)
     }
     // Wrapped XX Balance
     if (wrappedXXData !== undefined) {
       setWrappedXXBalance(
-        formatBalance(
-          wrappedXXData.toString(),
-          ethereumMainnet.token.decimals,
-          4
-        )
+        parseBalance(wrappedXXData, ethereumMainnet.token.decimals)
       )
     } else if (wrappedXXError) {
       console.error('Error fetching wrapped XX balance', wrappedXXError)
-      setWrappedXXBalance('0')
+      setWrappedXXBalance(0)
     }
     // Wrapped XX Allowance
     if (wrappedXXAllowanceData !== undefined) {
@@ -272,7 +270,7 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
       const feeValue = formatBalance(BigInt(fee), 18, 6)
       setFees(feeValue)
       // Set fee error if balance is insufficient
-      if (Number(feeValue) > Number(ethBalance)) {
+      if (Number(feeValue) > ethBalance) {
         setFeesError('Insufficient ETH balance')
       } else {
         setFeesError(undefined)
@@ -491,12 +489,12 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
             <Stack direction="row" spacing={1}>
               <Balance
                 icon={ethereumMainnet.gasToken.symbol}
-                balance={<>{ethBalance}</>}
+                balance={<>{formatValueToSuffix(ethBalance, 4, 4)}</>}
                 title="ETH"
               />
               <Balance
                 icon={ethereumMainnet.token.symbol}
-                balance={<>{wrappedXXBalance}</>}
+                balance={<>{formatValueToSuffix(wrappedXXBalance, 4, 4)}</>}
                 title="Wrapped XX"
               />
             </Stack>
@@ -554,7 +552,7 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
             <CurrencyInputField
               disabled={startTransfer}
               code={ethereumMainnet.token.code}
-              balance={parseFloat(wrappedXXBalance)}
+              balance={wrappedXXBalance}
               value={input}
               setValue={setValue}
               error={valueError}

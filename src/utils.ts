@@ -25,7 +25,7 @@ export interface Network {
  * const result = formatValueToSuffix(value)
  * console.log(result) // 1K
  */
-const formatValueToSuffix = (
+export const formatValueToSuffix = (
   value: number,
   maxDigits: number = 4,
   decimalDigits: number = 2
@@ -81,16 +81,17 @@ const formatValueToSuffix = (
   return `${formatNumber(value, true)}M`
 }
 
+export const parseBalance = (
+  balance: bigint | string,
+  networkDecimals: number
+): number => parseFloat(balance.toString()) * 10 ** (-1 * networkDecimals)
+
 export const formatBalance = (
   balance: bigint | string,
   networkDecimals: number,
   decimals: number = 2
 ): string =>
-  formatValueToSuffix(
-    parseFloat(balance.toString()) * 10 ** (-1 * networkDecimals),
-    4,
-    decimals
-  )
+  formatValueToSuffix(parseBalance(balance, networkDecimals), 4, decimals)
 
 // Check if an address is a valid xx network address
 export const isValidXXNetworkAddress = (address: string) => {

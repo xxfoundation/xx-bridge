@@ -21,7 +21,13 @@ import { BN, BN_ZERO } from '@polkadot/util'
 import useApi from '@/plugins/substrate/hooks/useApi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
 import contracts from '@/contracts'
-import { formatBalance, isETHAddress, shortenHash } from '@/utils'
+import {
+  formatBalance,
+  formatValueToSuffix,
+  isETHAddress,
+  parseBalance,
+  shortenHash
+} from '@/utils'
 import {
   BRIDGE_ID_ETH_MAINNET,
   BRIDGE_ID_XXNETWORK,
@@ -65,8 +71,8 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
   const [valueError, setError] = useState<string | undefined>()
   const [recipient, setRecipient] = useState<string>('')
   const [recipientError, setRecipientError] = useState<string | undefined>()
-  const [ethBalance, setEthBalance] = useState<string>('0')
-  const [wrappedXXBalance, setWrappedXXBalance] = useState<string>('0')
+  const [ethBalance, setEthBalance] = useState<number>(0)
+  const [wrappedXXBalance, setWrappedXXBalance] = useState<number>(0)
   const [allowTransfer, setAllowTransfer] = useState<boolean>(false)
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
@@ -204,23 +210,19 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
     }
     // ETH Balance
     if (ethData) {
-      setEthBalance(formatBalance(ethData.value, ethData.decimals, 4))
+      setEthBalance(parseBalance(ethData.value, ethData.decimals))
     } else if (ethError) {
       console.error('Error fetching ETH balance', ethError)
-      setEthBalance('0')
+      setEthBalance(0)
     }
     // Wrapped XX Balance
     if (wrappedXXData !== undefined) {
       setWrappedXXBalance(
-        formatBalance(
-          wrappedXXData.toString(),
-          ethereumMainnet.token.decimals,
-          4
-        )
+        parseBalance(wrappedXXData, ethereumMainnet.token.decimals)
       )
     } else if (wrappedXXError) {
       console.error('Error fetching wrapped XX balance', wrappedXXError)
-      setWrappedXXBalance('0')
+      setWrappedXXBalance(0)
     }
   }, [feeData, ethData, ethError, wrappedXXData, wrappedXXError])
 
@@ -255,7 +257,7 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
         setWarning(false)
       }
       // Set fee error if balance is insufficient
-      if (Number(feeValue) > Number(ethBalance)) {
+      if (Number(feeValue) > ethBalance) {
         setFeesError('Insufficient ETH balance')
       } else {
         setFeesError(undefined)
@@ -586,7 +588,8 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
                 icon={ethereumMainnet.gasToken.symbol}
                 balance={
                   <>
-                    {ethBalance} {ethereumMainnet.gasToken.code}
+                    {formatValueToSuffix(ethBalance, 4, 4)}{' '}
+                    {ethereumMainnet.gasToken.code}
                   </>
                 }
                 title="ETH"
@@ -616,7 +619,8 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
               <Typography sx={{ fontSize: '14px' }} alignSelf="baseline">
                 Balance:{' '}
                 <b>
-                  {wrappedXXBalance} {ethereumMainnet.token.code}
+                  {formatValueToSuffix(wrappedXXBalance, 4, 4)}{' '}
+                  {ethereumMainnet.token.code}
                 </b>
               </Typography>
             </Stack>
