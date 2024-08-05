@@ -99,7 +99,7 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
   const [recipientError, setRecipientError] = useState<string | undefined>()
   const [ethBalance, setEthBalance] = useState<number>(0)
   const [wrappedXXBalance, setWrappedXXBalance] = useState<number>(0)
-  const [allowance, setAllowance] = useState<string>()
+  const [allowance, setAllowance] = useState<number>(0)
   const [needApprove, setNeedApprove] = useState<boolean>(false)
   const [gasPrice, setGasPrice] = useState<number>()
   const [fees, setFees] = useState<string>('0')
@@ -225,10 +225,12 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
     }
     // Wrapped XX Allowance
     if (wrappedXXAllowanceData !== undefined) {
-      setAllowance(wrappedXXAllowanceData.toString())
+      setAllowance(
+        parseBalance(wrappedXXAllowanceData, ethereumMainnet.token.decimals)
+      )
     } else if (wrappedXXAllowanceError) {
       console.error('Error fetching allowance', wrappedXXAllowanceError)
-      setAllowance(undefined)
+      setAllowance(0)
     }
   }, [
     feeData,
@@ -251,8 +253,8 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
 
   // Check if needs approve
   useEffect(() => {
-    if (allowance && input) {
-      if (parseFloat(allowance) < input) {
+    if (input) {
+      if (allowance < input) {
         setNeedApprove(true)
       } else {
         setNeedApprove(false)
