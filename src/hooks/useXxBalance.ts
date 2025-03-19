@@ -21,8 +21,7 @@ const useXxBalance = (address: string) => {
         .account(address)
         .then(({ data }) => {
           if (data) {
-            const balance = data.free.add(data.reserved)
-            setXXBalance(balance)
+            setXXBalance(data.free)
           }
         })
         .catch(console.error)
