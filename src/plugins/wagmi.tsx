@@ -43,7 +43,7 @@ export const activeChain =
 export const wagmiConfig = createConfig({
   chains: [activeChain],
   transports: {
-    [mainnet.id]: http('https://eth.llamarpc.com'),
+    [mainnet.id]: http('https://eth.drpc.org'),
     [sepolia.id]: http('https://ethereum-sepolia-rpc.publicnode.com'),
     [devChain.id]: http(httpUrl)
   },
