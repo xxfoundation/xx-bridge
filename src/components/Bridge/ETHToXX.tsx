@@ -516,9 +516,10 @@ const ETHToXX: React.FC<ETHToXXProps> = ({ ethPrice }) => {
                 value={recipient}
                 error={!!recipientError}
                 helperText={
-                  recipientError || recipient
+                  recipientError ||
+                  (recipient
                     ? 'xx network address'
-                    : 'Enter xx network address'
+                    : 'Enter xx network address')
                 }
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                   validateRecipient(event.target.value)
