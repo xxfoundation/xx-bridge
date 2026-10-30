@@ -1,5 +1,6 @@
 import { Alert, Stack } from '@mui/material'
 import { walletStyles, ConnectEthereumNetwork } from '../custom/Wallets/Utils'
+import SupportNote from '../custom/SupportNote'
 
 const Login = () => (
   <Stack
@@ -14,6 +15,7 @@ const Login = () => (
       To use this bridge, you need to connect your Ethereum wallet. If you wish
       to convert XX to wrapped XX, you will also need to connect your XX wallet.
     </Alert>
+    <SupportNote textAlign="center" paddingTop={1} />
   </Stack>
 )
 

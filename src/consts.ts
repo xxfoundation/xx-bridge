@@ -17,6 +17,10 @@ export const XX_EXPLORER_URL =
 export const ETH_EXPLORER_URL =
   process.env.ETH_EXPLORER_URL || 'https://etherscan.io'
 
+// Help and support (email is the bridge's only support channel)
+export const BRIDGE_GUIDE_URL = 'https://learn.xx.network/tools/bridge/'
+export const SUPPORT_EMAIL = 'support@xx.network'
+
 // Indexer URLs
 export const XX_INDEXER_URL = `${process.env.XX_INDEXER_URL || 'https://bridge-dev.xx.network/xx/indexer'}/v1/graphql`
 

@@ -4,6 +4,7 @@ import { useAccount } from 'wagmi'
 import StyledStack from '../components/custom/StyledStack.tsx'
 import NetworkInfo from '../components/Bridge/NetworkInfo'
 import Loading from '@/components/Utils/Loading.tsx'
+import SupportNote from '@/components/custom/SupportNote.tsx'
 import ETHToXX from '@/components/Bridge/ETHToXX.tsx'
 import XXToETH from '@/components/Bridge/XXToETH.tsx'
 import { ethereumMainnet, xxNetwork } from '@/consts.ts'
@@ -104,6 +105,8 @@ const Bridge: React.FC = () => {
           ) : (
             <ETHToXX ethPrice={ethPrice} />
           )}
+          <Divider />
+          <SupportNote padding={2} textAlign="center" />
         </Stack>
       )}
     </StyledStack>

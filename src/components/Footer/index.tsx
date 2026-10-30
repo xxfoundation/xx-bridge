@@ -11,6 +11,7 @@ import theme from '@/theme'
 import ButtonLink from '../custom/ButtonLink'
 import discordLogo from '@/assets/socials/discord.svg'
 import xxNetworkLogo from '@/assets/xxnetwork/xxnetworkLogo.svg'
+import { BRIDGE_GUIDE_URL } from '@/consts'
 
 interface FooterProps extends StackProps {}
 
@@ -51,6 +52,11 @@ const Footer: React.FC<FooterProps> = props => (
           <ButtonLink
             text="xx wallet"
             onClick={() => window.open('https://wallet.xx.network/', '_blank')}
+            noUnderline
+          />
+          <ButtonLink
+            text="Help"
+            onClick={() => window.open(BRIDGE_GUIDE_URL, '_blank')}
             noUnderline
           />
         </Stack>

@@ -11,7 +11,7 @@ import {
   Stack,
   useMediaQuery
 } from '@mui/material'
-import { Home, Hub, Message, Wallet } from '@mui/icons-material'
+import { HelpOutline, Home, Hub, Message, Wallet } from '@mui/icons-material'
 
 // Files
 import theme from '../../theme'
@@ -19,6 +19,7 @@ import logo from '../../assets/logo/png/xxbridge.png'
 import { useNavBarContext } from '.'
 import getStyles from './styles'
 import FooterMobile from '../Footer/FooterMobile'
+import { BRIDGE_GUIDE_URL } from '@/consts'
 
 interface ListMenuElementsProps {
   menuList: string[]
@@ -57,7 +58,7 @@ const ListMenuElements: React.FC<ListMenuElementsProps> = ({
             />
           </ListItemButton>
         </ListItem>
-        {index === 2 && <Divider />}
+        {(index === 2 || index === 3) && <Divider />}
       </Fragment>
     ))}
   </List>
@@ -79,12 +80,13 @@ const LeftDrawer: React.FC = () => {
     isMobile
   })
 
-  const menuList = ['xx network', 'xx wallet', 'xx hub', 'phoenixx']
+  const menuList = ['xx network', 'xx wallet', 'xx hub', 'phoenixx', 'Help']
   const menuIcons = [
     <Home key="home" />,
     <Wallet key="wallet" />,
     <Hub key="home" />,
-    <Message key="message" />
+    <Message key="message" />,
+    <HelpOutline key="help" />
   ]
 
   const drawerProps: DrawerProps = useMemo(
@@ -118,6 +120,9 @@ const LeftDrawer: React.FC = () => {
         break
       case 'phoenixx':
         window.open('https://phoenixx.io/', '_blank')
+        break
+      case 'Help':
+        window.open(BRIDGE_GUIDE_URL, '_blank')
         break
       default:
         break
