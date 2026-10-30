@@ -15,7 +15,7 @@ import {
   getFeePaymentFromAddress,
   getNativeTransferFromAddress
 } from '@/plugins/redux/selectors'
-import customWriteContract from '@/utils/promises'
+import customWriteContract, { describeWriteError } from '@/utils/promises'
 import { useEffectDebugger } from '@/hooks/useUtils'
 import { wagmiConfig } from '@/plugins/wagmi'
 import useAccounts from '@/plugins/substrate/hooks/useAccounts'
@@ -177,7 +177,7 @@ const PayFee: React.FC<PayFeeProps> = ({ currStep, setError, done }) => {
               } catch (err) {
                 console.error(`Error paying fee: ${err}`)
                 setFeePaymentError(
-                  `Error paying fee: User rejected transaction`
+                  `Error paying fee: ${describeWriteError(err)}`
                 )
               }
               prompted.current = false

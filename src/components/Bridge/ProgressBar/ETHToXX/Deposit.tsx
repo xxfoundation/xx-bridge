@@ -18,7 +18,7 @@ import {
   getDepositFromAddress,
   getTxFromAddress
 } from '@/plugins/redux/selectors'
-import customWriteContract from '@/utils/promises'
+import customWriteContract, { describeWriteError } from '@/utils/promises'
 import { useEffectDebugger } from '@/hooks/useUtils'
 import { wagmiConfig } from '@/plugins/wagmi'
 
@@ -158,7 +158,7 @@ const Deposit: React.FC<DepositProps> = ({ currStep, setError, done }) => {
                   } catch (err) {
                     console.error(`Error depositing: ${err}`)
                     setDepositError(
-                      `Error depositing: User rejected transaction`
+                      `Error depositing: ${describeWriteError(err)}`
                     )
                   }
                   prompted.current = false

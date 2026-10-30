@@ -14,7 +14,7 @@ import { CustomStep, RootState } from '@/plugins/redux/types'
 import { useAppDispatch, useAppSelector } from '@/plugins/redux/hooks'
 import { actions, emptyState } from '@/plugins/redux/reducers'
 import { getApprovalFromAddress } from '@/plugins/redux/selectors'
-import customWriteContract from '@/utils/promises'
+import customWriteContract, { describeWriteError } from '@/utils/promises'
 import { wagmiConfig } from '@/plugins/wagmi'
 
 interface ApproveProps {
@@ -139,7 +139,7 @@ const Approve: React.FC<ApproveProps> = ({ currStep, setError, done }) => {
             } catch (err: any) {
               console.error(`Error executing approval: ${err}`)
               setApproveError(
-                `Error waiting for approval: User rejected transaction`
+                `Error approving spending: ${describeWriteError(err)}`
               )
             }
             prompted.current = false
