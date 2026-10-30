@@ -502,27 +502,19 @@ const XXToETH: React.FC<XXToETHProps> = ({ ethPrice, xxPrice }) => {
               <Stack direction="row" spacing={4} padding={1}>
                 <Link
                   variant="h6"
+                  href="https://polkadot.js.org/extension/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {'polkadot{.js}'}
+                </Link>
+                <Link
+                  variant="h6"
                   href="https://www.talisman.xyz/"
                   rel="noopener noreferrer"
                   target="_blank"
                 >
                   Talisman
-                </Link>
-                <Link
-                  variant="h6"
-                  href="https://novawallet.io/"
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  Nova
-                </Link>
-                <Link
-                  variant="h6"
-                  href="https://fearlesswallet.io/"
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  Fearless
                 </Link>
                 <Link
                   variant="h6"
