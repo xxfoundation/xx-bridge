@@ -39,12 +39,6 @@ const Footer: React.FC<FooterProps> = props => (
             noUnderline
           />
           <ButtonLink
-            text="phoenixx"
-            onClick={() => window.open('https://phoenixx.io/', '_blank')}
-            noUnderline
-            secondaryColor
-          />
-          <ButtonLink
             text="xx hub"
             onClick={() => window.open('https://hub.xx.network/', '_blank')}
             noUnderline

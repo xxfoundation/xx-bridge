@@ -11,7 +11,7 @@ import {
   Stack,
   useMediaQuery
 } from '@mui/material'
-import { HelpOutline, Home, Hub, Message, Wallet } from '@mui/icons-material'
+import { HelpOutline, Home, Hub, Wallet } from '@mui/icons-material'
 
 // Files
 import theme from '../../theme'
@@ -52,13 +52,12 @@ const ListMenuElements: React.FC<ListMenuElementsProps> = ({
             <ListItemText
               primary={text}
               sx={{
-                color: 'white',
-                fontStyle: index === 3 ? 'italic' : 'normal'
+                color: 'white'
               }}
             />
           </ListItemButton>
         </ListItem>
-        {(index === 2 || index === 3) && <Divider />}
+        {index === 2 && <Divider />}
       </Fragment>
     ))}
   </List>
@@ -80,12 +79,11 @@ const LeftDrawer: React.FC = () => {
     isMobile
   })
 
-  const menuList = ['xx network', 'xx wallet', 'xx hub', 'phoenixx', 'Help']
+  const menuList = ['xx network', 'xx wallet', 'xx hub', 'Help']
   const menuIcons = [
     <Home key="home" />,
     <Wallet key="wallet" />,
     <Hub key="home" />,
-    <Message key="message" />,
     <HelpOutline key="help" />
   ]
 
@@ -117,9 +115,6 @@ const LeftDrawer: React.FC = () => {
         break
       case 'xx hub':
         window.open('https://hub.xx.network/', '_blank')
-        break
-      case 'phoenixx':
-        window.open('https://phoenixx.io/', '_blank')
         break
       case 'Help':
         window.open(BRIDGE_GUIDE_URL, '_blank')
